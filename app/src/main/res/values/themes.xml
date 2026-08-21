@@ -1,0 +1,4 @@
+<resources>
+    <style name="Theme.MomentMark" parent="android:style/Theme.Material.Light.NoActionBar" />
+</resources>
+

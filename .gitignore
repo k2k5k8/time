@@ -1,0 +1,11 @@
+.gradle/
+.gradle-local/
+.idea/
+.kotlin/
+local.properties
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.iml
+.DS_Store
