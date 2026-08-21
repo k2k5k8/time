@@ -115,8 +115,10 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 private val DetailBackgroundShade = Color(0xFF2A201C).copy(alpha = 0.46f)
@@ -645,20 +647,33 @@ private fun shareDetail(context: Context, event: TimeEvent, amount: Long) {
     runCatching { context.startActivity(Intent.createChooser(intent, "分享时间详情")) }
 }
 
-private fun saveDetailImage(context: Context, view: android.view.View, title: String): String {
+private suspend fun saveDetailImage(context: Context, view: android.view.View, title: String): String {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return "Android 10 以下暂未自动写入系统相册"
     val bitmap = view.drawToBitmap()
-    val resolver = context.contentResolver
-    val values = ContentValues().apply {
-        put(MediaStore.Images.Media.DISPLAY_NAME, "${title.take(20)}-${System.currentTimeMillis()}.png")
-        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MomentMark")
-        put(MediaStore.Images.Media.IS_PENDING, 1)
+    return withContext(Dispatchers.IO) {
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "${title.take(20)}-${System.currentTimeMillis()}.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MomentMark")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+        val uri = resolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values)
+            ?: return@withContext "保存图片失败"
+        try {
+            val compressed = resolver.openOutputStream(uri)?.use { output ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+            } ?: false
+            check(compressed) { "无法写入相册输出流" }
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            "图片已保存到系统相册"
+        } catch (error: Exception) {
+            resolver.delete(uri, null, null)
+            "保存图片失败：${error.message.orEmpty()}"
+        } finally {
+            bitmap.recycle()
+        }
     }
-    val uri = resolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values) ?: return "保存图片失败"
-    return runCatching {
-        resolver.openOutputStream(uri)?.use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        values.clear(); values.put(MediaStore.Images.Media.IS_PENDING, 0); resolver.update(uri, values, null, null)
-        "图片已保存到系统相册"
-    }.getOrElse { resolver.delete(uri, null, null); "保存图片失败：${it.message.orEmpty()}" }
 }

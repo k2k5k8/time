@@ -1,8 +1,5 @@
 package com.cch.momentmark.ui
 
-import androidx.compose.animation.core.AnimationState
-import androidx.compose.animation.core.animateDecay
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -11,8 +8,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberOverscrollEffect
-import androidx.compose.foundation.gestures.FlingBehavior
-import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -88,7 +83,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -162,8 +156,6 @@ import com.cch.momentmark.ui.daybook.DaybookFeature
 import com.cch.momentmark.ui.theme.ThemeMode
 import com.cch.momentmark.ui.theme.MomentMarkTheme
 import java.time.LocalDate
-import kotlin.math.abs
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.cch.momentmark.ui.home.CollapsibleHeroBackground
@@ -235,50 +227,6 @@ private const val HomeGridColumns = 2
 private val LantingheiTcHeavy = FontFamily(
     Font(com.cch.momentmark.R.font.lantinghei_tc_heavy, FontWeight.Black),
 )
-
-private const val HomeFlingVelocityScale = 1.12f
-
-/**
- * A feed-style fling: keep Compose's platform spline decay, with a small velocity
- * boost so a quick card swipe has a visible, relaxed tail instead of stopping
- * immediately after the finger leaves the screen.
- */
-@Composable
-private fun rememberHomeFlingBehavior(): FlingBehavior {
-    val decaySpec = rememberSplineBasedDecay<Float>()
-    return remember(decaySpec) {
-        object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
-                val flingVelocity = initialVelocity * HomeFlingVelocityScale
-                if (abs(flingVelocity) <= 1f) return initialVelocity
-
-                var velocityLeft = flingVelocity
-                var lastValue = 0f
-                val animationState = AnimationState(
-                    initialValue = 0f,
-                    initialVelocity = flingVelocity,
-                )
-
-                try {
-                    animationState.animateDecay(decaySpec) {
-                        val delta = value - lastValue
-                        val consumed = scrollBy(delta)
-                        lastValue = value
-                        velocityLeft = this.velocity
-
-                        // Stop as soon as the grid reaches an edge. This keeps
-                        // the overscroll effect in charge of the boundary.
-                        if (abs(delta - consumed) > 0.5f) cancelAnimation()
-                    }
-                } catch (_: CancellationException) {
-                    velocityLeft = animationState.velocity
-                }
-
-                return velocityLeft
-            }
-        }
-    }
-}
 
 @Composable
 fun MomentMarkApp() {
@@ -744,7 +692,10 @@ internal fun HomeScreen(
     var draggedCardId by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
     var dropTargetId by remember { mutableStateOf<String?>(null) }
-    val cardBounds = remember { mutableStateMapOf<String, Rect>() }
+    // Bounds are imperative drag hit-test data, not UI state. Keeping them out
+    // of Compose snapshot state avoids a recomposition for every card layout
+    // change while the grid scrolls.
+    val cardBounds = remember { mutableMapOf<String, Rect>() }
     val boardScope = rememberCoroutineScope()
     LaunchedEffect(savedBoardLayouts) {
         if (!isLayoutEditing) workingBoardLayouts = savedBoardLayouts
@@ -759,7 +710,6 @@ internal fun HomeScreen(
     // Keep the feed state outside the grid content so recomposition from the
     // toolbar, filters, or countdown cards does not reset the user's position.
     val homeGridState = rememberLazyGridState()
-    val homeFlingBehavior = rememberHomeFlingBehavior()
     val homeOverscrollEffect = rememberOverscrollEffect()
     // HomeScreen is removed from composition while another app screen is open,
     // so a plain remember gives each return to Home a fresh scene while keeping
@@ -771,12 +721,15 @@ internal fun HomeScreen(
     // Template gallery items are previews, not user-owned date cards. Keep
     // them out of the home CRUD feed so every visible card has a real Room id
     // and can consistently enter detail/edit/delete flows.
-    val displayEvents = filterEventsByScope(
-        events = events,
-        selectedFilter = selectedFilter,
-        selectedGroup = selectedGroup,
-    )
-        .map { event ->
+    // Scroll progress changes every frame. Keep filtering, copying and sorting
+    // outside that hot path so the visible card list stays referentially stable
+    // while the finger is moving.
+    val displayEvents = remember(events, selectedFilter, selectedGroup, templateOverrides, travelConfigOverrides) {
+        filterEventsByScope(
+            events = events,
+            selectedFilter = selectedFilter,
+            selectedGroup = selectedGroup,
+        ).map { event ->
             val config = travelConfigOverrides[event.id] ?: event.travelCardConfig
             event.copy(
                 cardTemplateKey = templateOverrides[event.id] ?: event.cardTemplateKey,
@@ -788,11 +741,17 @@ internal fun HomeScreen(
                 },
             )
         }
-    val visibleEvents = filterEventsByTitle(displayEvents, searchQuery)
-    val orderedVisibleEvents = visibleEvents.sortedWith(
-        compareBy<TimeEvent> { workingBoardLayouts[it.id]?.order ?: displayEvents.indexOfFirst { candidate -> candidate.id == it.id } }
-            .thenBy { it.id },
-    )
+    }
+    val visibleEvents = remember(displayEvents, searchQuery) {
+        filterEventsByTitle(displayEvents, searchQuery)
+    }
+    val orderedVisibleEvents = remember(visibleEvents, workingBoardLayouts, displayEvents) {
+        val fallbackOrder = displayEvents.mapIndexed { index, event -> event.id to index }.toMap()
+        visibleEvents.sortedWith(
+            compareBy<TimeEvent> { workingBoardLayouts[it.id]?.order ?: fallbackOrder.getValue(it.id) }
+                .thenBy { it.id },
+        )
+    }
     fun persistBoardLayout() {
         val layouts = displayEvents.mapIndexed { index, event ->
             workingBoardLayouts[event.id] ?: defaultCardLayout(event, index)
@@ -827,7 +786,6 @@ internal fun HomeScreen(
             val cardDragLiftPx = with(LocalDensity.current) { 6.dp.toPx() }
             val cardDragShadowPx = with(LocalDensity.current) { 25.dp.toPx() }
             val cardEditingShadowPx = with(LocalDensity.current) { 11.dp.toPx() }
-            val cardRestingShadowPx = with(LocalDensity.current) { 9.dp.toPx() }
             val collapseProgress by remember(collapseDistancePx) {
                 derivedStateOf {
                     homeHeroCollapseProgress(
@@ -889,7 +847,6 @@ internal fun HomeScreen(
                         ),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        flingBehavior = homeFlingBehavior,
                         userScrollEnabled = !isLayoutEditing,
                         overscrollEffect = homeOverscrollEffect,
                     ) {
@@ -929,32 +886,48 @@ internal fun HomeScreen(
                                 animationSpec = spring(dampingRatio = .82f, stiffness = 430f),
                                 label = "card-board-tilt",
                             )
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn(animationSpec = tween(480)) +
-                                    slideInVertically(
-                                        animationSpec = tween(480),
-                                        initialOffsetY = { it / 14 },
-                                    ),
-                                label = "home-card-entrance",
-                            ) {
-                                AdaptiveCardSurface(
-                                    palette = heroPalette,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateItem(placementSpec = spring(dampingRatio = .78f, stiffness = 410f))
-                                        .onGloballyPositioned { coordinates ->
-                                            cardBounds[event.id] = coordinates.boundsInParent()
-                                        }
-                                        .graphicsLayer {
-                                            translationX = if (isDragged) dragOffset.x else 0f
-                                            translationY = if (isDragged) dragOffset.y - cardDragLiftPx else 0f
-                                            scaleX = cardScale
-                                            scaleY = cardScale
-                                            rotationZ = cardRotation
-                                            shadowElevation = if (isDragged) cardDragShadowPx else if (isLayoutEditing) cardEditingShadowPx else cardRestingShadowPx
-                                        }
-                                        .pointerInput(event.id, isLayoutEditing) {
+                            AdaptiveCardSurface(
+                                palette = heroPalette,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    // Placement animation and the transform layer are useful
+                                    // only while arranging the board. Keeping them off normal
+                                    // scrolling avoids a second render node and per-item
+                                    // placement bookkeeping on every visible card.
+                                    .then(
+                                        if (isLayoutEditing) {
+                                            Modifier.animateItem(
+                                                placementSpec = spring(
+                                                    dampingRatio = .78f,
+                                                    stiffness = 410f,
+                                                ),
+                                            )
+                                        } else {
+                                            Modifier
+                                        },
+                                    )
+                                    .onGloballyPositioned { coordinates ->
+                                        cardBounds[event.id] = coordinates.boundsInParent()
+                                    }
+                                    .then(
+                                        if (isLayoutEditing) {
+                                            Modifier.graphicsLayer {
+                                                translationX = if (isDragged) dragOffset.x else 0f
+                                                translationY = if (isDragged) dragOffset.y - cardDragLiftPx else 0f
+                                                scaleX = cardScale
+                                                scaleY = cardScale
+                                                rotationZ = cardRotation
+                                                shadowElevation = if (isDragged) {
+                                                    cardDragShadowPx
+                                                } else {
+                                                    cardEditingShadowPx
+                                                }
+                                            }
+                                        } else {
+                                            Modifier
+                                        },
+                                    )
+                                    .pointerInput(event.id, isLayoutEditing) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = {
                                                     isLayoutEditing = true
@@ -998,19 +971,18 @@ internal fun HomeScreen(
                                                     }
                                                 }
                                             }
-                                        },
-                                ) {
-                                    EventCardFeature(
-                                        event = event,
-                                        onClick = if (isLayoutEditing) null else ({ onOpenEventSettings(event) }),
+                                    },
+                            ) {
+                                EventCardFeature(
+                                    event = event,
+                                    onClick = if (isLayoutEditing) null else ({ onOpenEventSettings(event) }),
+                                )
+                                if (isDropTarget) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(heroPalette.cardHighlightColor.copy(alpha = .12f)),
                                     )
-                                    if (isDropTarget) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(heroPalette.cardHighlightColor.copy(alpha = .12f)),
-                                        )
-                                    }
                                 }
                             }
                         }

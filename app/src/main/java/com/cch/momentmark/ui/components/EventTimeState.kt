@@ -3,7 +3,6 @@ package com.cch.momentmark.ui.components
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import com.cch.momentmark.domain.model.EventTimeType
 import com.cch.momentmark.domain.model.TimeCardFields
 import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.domain.model.cardFields
@@ -52,12 +51,21 @@ fun rememberEventCountdown(event: TimeEvent): CountdownResult {
         key2 = localDate,
         key3 = targetInstant,
     ) {
-        val refreshMillis = if (event.timeType == EventTimeType.TIMED) 1_000L else 60_000L
+        // Home cards expose whole-day values only. Refreshing every second for
+        // each precise-time card redraws the grid sixty times more often than
+        // the UI can show a different number, which competes with a fling for
+        // the main-thread frame budget. Detail-level precision remains a
+        // separate concern; card summaries advance on minute boundaries.
         while (isActive) {
+            kotlinx.coroutines.delay(millisUntilNextMinute(clock))
             value = calculate(event, localDate, targetInstant, clock, zoneId)
-            kotlinx.coroutines.delay(refreshMillis)
         }
     }.value
+}
+
+private fun millisUntilNextMinute(clock: Clock): Long {
+    val elapsedInMinute = clock.millis() % 60_000L
+    return (60_000L - elapsedInMinute).coerceIn(1L, 60_000L)
 }
 
 private fun calculate(

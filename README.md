@@ -6,6 +6,7 @@
 
 - Kotlin + Jetpack Compose + Material 3
 - 单 Activity
+- 应用显示名为 `Moment Mark`，安装包标识为 `com.cch.momentmark.app`；启动器使用圆角自适应图标，支持常见圆形、圆角矩形和方形蒙版。
 - 主题与三态模式（跟随系统 / 浅色 / 深色；由 DataStore 恢复与保存）
 - 首页卡片列表、分类抽屉筛选和设置入口
 - 左侧暖白分类与分组抽屉：状态筛选、组合分组筛选、动态数量和分组管理
@@ -51,4 +52,4 @@ JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' \
 
 2026-08-19 使用 Android Studio 内置 JDK 执行 `testDebugUnitTest assembleDebug lintDebug`：14 个 JUnit 测试真实执行并通过，Debug APK 生成，lint 为 0 error、15 个非阻断的版本/工具提示（含 Kapt→KSP 建议）。另在 Pixel 9 Pro API 35 模拟器执行 `connectedDebugAndroidTest`：6 个 instrumentation tests 通过，并完成首页、搜索、设置、事件操作、新建事件、删除 Snackbar、立即撤销和返回键冒烟；130%/200% 字体缩放与 2856×1280 宽屏尺寸覆盖下的关键语义也已检查。
 
-2026-08-21 已执行 `testDebugUnitTest`（28 个 JVM 测试通过）、`assembleDebug`（Debug APK 已生成）和 `lintDebug`（成功）。模板手势、随机入位、拖拽避让仍需在模拟器/真机目测验收。仍未验证：真实设备、真实 TalkBack 朗读、完整错误/加载状态、Release 构建、物理旋转矩阵，以及删除撤销的跨重启行为；桌面组件刷新、通知或设备重启行为也尚未实现。
+2026-08-21 已执行 `testDebugUnitTest`（29 个 JVM 测试通过）、`assembleDebug`（Debug APK 已生成）、`lintDebug`（成功）和 `assembleRelease`（R8/资源压缩后的未签名 Release APK 已生成）。首页滚动已改为平台默认 fling，并避免逐卡入场动画和全屏模糊离屏渲染；模板手势、随机入位、拖拽避让和真实滚动帧率仍需在模拟器/真机目测与性能验收。仍未验证：真实设备、真实 TalkBack 朗读、完整错误/加载状态、物理旋转矩阵，以及删除撤销的跨重启行为；桌面组件刷新、通知或设备重启行为也尚未实现。

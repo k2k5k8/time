@@ -7,7 +7,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.cch.momentmark.domain.model.RelatedCountdown
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -31,13 +30,19 @@ class EventDetailStore(context: Context) {
     }
 
     suspend fun saveRelated(eventId: String, item: RelatedCountdown) {
-        val current = relatedCountdowns(eventId).first().filterNot { it.id == item.id } + item
-        dataStore.edit { it[stringPreferencesKey("related_$eventId")] = encodeRelated(current) }
+        dataStore.edit { preferences ->
+            val key = stringPreferencesKey("related_$eventId")
+            val current = decodeRelated(preferences[key].orEmpty()).filterNot { it.id == item.id }
+            preferences[key] = encodeRelated(current + item)
+        }
     }
 
     suspend fun deleteRelated(eventId: String, itemId: String) {
-        val current = relatedCountdowns(eventId).first().filterNot { it.id == itemId }
-        dataStore.edit { it[stringPreferencesKey("related_$eventId")] = encodeRelated(current) }
+        dataStore.edit { preferences ->
+            val key = stringPreferencesKey("related_$eventId")
+            val current = decodeRelated(preferences[key].orEmpty()).filterNot { it.id == itemId }
+            preferences[key] = encodeRelated(current)
+        }
     }
 
     private fun encodeRelated(items: List<RelatedCountdown>): String = JSONArray().apply {

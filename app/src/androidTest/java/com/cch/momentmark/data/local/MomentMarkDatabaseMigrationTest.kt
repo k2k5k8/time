@@ -210,6 +210,13 @@ class MomentMarkDatabaseMigrationTest {
                 updatedAt = 1,
             )
             repository.save(event)
+            repository.save(event.toDomain().copy(title = "Renamed mutation"))
+            val edited = repository.findById("mutation")!!
+            assertEquals("Renamed mutation", edited.title)
+            assertEquals(event.sortOrder, edited.sortOrder)
+            assertEquals(event.createdAt, edited.createdAt)
+            assertEquals(event.deletedAt, edited.deletedAt)
+
             repository.setPinned("mutation", true, 2)
             assertTrue(repository.findById("mutation")!!.isPinned)
 

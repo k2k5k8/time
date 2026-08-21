@@ -26,8 +26,34 @@ import org.json.JSONObject
 
 /** Converts persisted facts to the existing domain model without storing derived labels. */
 object TimeEventMapper {
-    fun TimeEvent.toEntity(nowMillis: Long = System.currentTimeMillis()): TimeEventEntity {
+    internal data class PersistenceMetadata(
+        val sortOrder: Long,
+        val deletedAt: Long?,
+        val createdAt: Long,
+        val updatedAt: Long,
+    )
+
+    internal fun persistenceMetadata(
+        previous: TimeEventEntity?,
+        nowMillis: Long,
+    ): PersistenceMetadata = PersistenceMetadata(
+        sortOrder = previous?.sortOrder ?: 0,
+        deletedAt = previous?.deletedAt,
+        createdAt = previous?.createdAt ?: nowMillis,
+        updatedAt = nowMillis,
+    )
+
+    /**
+     * Builds the persistence shape from editable event facts.  Existing
+     * ordering and lifecycle metadata must survive a content edit: callers
+     * use explicit archive/delete actions for those transitions.
+     */
+    fun TimeEvent.toEntity(
+        nowMillis: Long = System.currentTimeMillis(),
+        previous: TimeEventEntity? = null,
+    ): TimeEventEntity {
         val config = travelCardConfig
+        val metadata = persistenceMetadata(previous, nowMillis)
         return TimeEventEntity(
             id = id,
             title = title,
@@ -46,10 +72,10 @@ object TimeEventMapper {
                 .takeIf { it.isNotBlank() },
             isPinned = isPinned,
             isArchived = isArchived,
-            sortOrder = 0,
-            deletedAt = null,
-            createdAt = nowMillis,
-            updatedAt = nowMillis,
+            sortOrder = metadata.sortOrder,
+            deletedAt = metadata.deletedAt,
+            createdAt = metadata.createdAt,
+            updatedAt = metadata.updatedAt,
         )
     }
 

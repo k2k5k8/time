@@ -406,7 +406,7 @@ internal fun CollapsibleHomeTopBar(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "刻间",
+                    text = "Moment Mark",
                     color = topBarContentColor,
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = NotoSerifSc,

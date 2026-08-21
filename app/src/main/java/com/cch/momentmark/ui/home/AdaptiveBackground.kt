@@ -13,7 +13,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -193,45 +192,35 @@ internal fun AdaptiveTransitionLayer(
     modifier: Modifier = Modifier,
 ) {
     val imagePresence = (1f - collapseProgress * 0.18f).coerceIn(0.78f, 1f)
-    Box(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.00f to Color.Transparent,
-                            0.24f to palette.mutedEnvironmentColor.copy(alpha = 0.04f * imagePresence),
-                            0.46f to palette.mutedEnvironmentColor.copy(alpha = 0.10f * imagePresence),
-                            0.68f to palette.transitionColor.copy(alpha = 0.16f),
-                            0.88f to palette.uiBaseColor.copy(alpha = 0.18f),
-                            1.00f to palette.uiBaseColor.copy(alpha = 0.28f),
-                        ),
-                    ),
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(72.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            palette.environmentColor.copy(alpha = 0.06f * palette.quietStrength / 0.16f),
-                            palette.transitionColor.copy(alpha = 0.14f),
-                        ),
-                    ),
-                ),
-        )
-        if (palette.quietStrength > 0.2f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(palette.uiBaseColor.copy(alpha = palette.quietStrength * 0.28f)),
-            )
-        }
+    val quietOverlayAlpha = if (palette.quietStrength > 0.2f) {
+        palette.quietStrength * 0.28f
+    } else {
+        0f
     }
+    // This used to be two full-screen gradients plus an optional Quiet Zone
+    // overlay. A scrolling grid still has to composite each one, even though
+    // their inputs are static. Preserve the same low-frequency colour path in
+    // one draw pass so the card list keeps more GPU time during a fling.
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.00f to Color.Transparent,
+                        0.24f to palette.mutedEnvironmentColor.copy(alpha = 0.04f * imagePresence),
+                        0.46f to androidx.compose.ui.graphics.lerp(
+                            palette.mutedEnvironmentColor,
+                            palette.environmentColor,
+                            0.32f,
+                        ).copy(alpha = 0.15f * imagePresence),
+                        0.68f to palette.transitionColor.copy(alpha = 0.26f),
+                        0.88f to palette.uiBaseColor.copy(alpha = 0.34f + quietOverlayAlpha),
+                        1.00f to palette.uiBaseColor.copy(alpha = 0.42f + quietOverlayAlpha),
+                    ),
+                ),
+            ),
+    )
 }
 
 /** A soft paper mat; existing card renderers remain the content inside it. */

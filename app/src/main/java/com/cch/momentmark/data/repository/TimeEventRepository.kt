@@ -26,7 +26,15 @@ class TimeEventRepository(
         }
     }
 
-    suspend fun save(event: TimeEvent) = save(event.toEntity())
+    /**
+     * A user edit changes event facts, not its board position or lifecycle.
+     * Preserve those fields from the stored row so REPLACE cannot silently
+     * move a card or revive a deleted event.
+     */
+    suspend fun save(event: TimeEvent) {
+        val now = System.currentTimeMillis()
+        save(event.toEntity(nowMillis = now, previous = dao.findById(event.id)))
+    }
 
     suspend fun save(event: TimeEventEntity) {
         validateTimeShape(event)
