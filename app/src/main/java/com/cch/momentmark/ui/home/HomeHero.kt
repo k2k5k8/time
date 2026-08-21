@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -311,6 +312,7 @@ internal fun CollapsibleHomeTopBar(
     heroTextColor: Color,
     palette: AdaptiveBackgroundPalette,
     modifier: Modifier = Modifier,
+    onEditLayout: (() -> Unit)? = null,
 ) {
     val view = LocalView.current
     val context = LocalContext.current
@@ -427,6 +429,14 @@ internal fun CollapsibleHomeTopBar(
                         Icon(Icons.Outlined.Menu, contentDescription = "打开分类与分组")
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (onEditLayout != null) {
+                            IconButton(
+                                onClick = onEditLayout,
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Icon(Icons.Outlined.Edit, contentDescription = "编辑首页布局")
+                            }
+                        }
                         IconButton(
                             onClick = onOpenSearch,
                             modifier = Modifier.size(40.dp),

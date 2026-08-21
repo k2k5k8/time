@@ -27,10 +27,18 @@ data class HomeCardLayout(
     val gridHeight: Int = 1,
 )
 
+/**
+ * The card renderer's current size always drives its board slot width. A size
+ * change must reflow the grid immediately, so callers derive the span from the
+ * event itself instead of trusting a possibly stale stored [HomeCardLayout].
+ */
+internal fun cardGridWidth(event: TimeEvent): Int =
+    if (event.travelCardConfig?.size == TravelCardSize.WIDE) 2 else 1
+
 internal fun defaultCardLayout(event: TimeEvent, order: Int): HomeCardLayout = HomeCardLayout(
     cardId = event.id,
     order = order,
-    gridWidth = if (event.travelCardConfig?.size == TravelCardSize.WIDE) 2 else 1,
+    gridWidth = cardGridWidth(event),
     // The current two-column feed has Small and Wide renderers. Retaining a
     // height field now means a future 2 x 2 template will not need a migration.
     gridHeight = 1,

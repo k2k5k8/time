@@ -42,12 +42,14 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -88,6 +90,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -95,6 +98,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -111,11 +115,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -169,8 +176,15 @@ import com.cch.momentmark.ui.home.AdaptiveCardSurface
 import com.cch.momentmark.ui.home.homeHeroCollapseProgress
 import com.cch.momentmark.ui.home.CardLayoutStorage
 import com.cch.momentmark.ui.home.HomeCardLayout
+import com.cch.momentmark.ui.home.cardGridWidth
 import com.cch.momentmark.ui.home.defaultCardLayout
 import com.cch.momentmark.ui.home.reorderedCardLayouts
+import com.cch.momentmark.ui.home.edit.BoardDotBackground
+import com.cch.momentmark.ui.home.edit.BoardUndoStack
+import com.cch.momentmark.ui.home.edit.DragMotionTracker
+import com.cch.momentmark.ui.home.edit.DragSwapGovernor
+import com.cch.momentmark.ui.home.edit.GhostCardSlot
+import android.view.HapticFeedbackConstants
 
 private enum class AppScreen {
     HOME,
@@ -226,6 +240,9 @@ private val BlueHeaderContent = Color(0xFF0C2B38)
 private val OrangeHeaderContent = Color(0xFF3B2A00)
 
 private const val HomeGridColumns = 2
+
+/** 拖拽浮起时的放大增量（设计方案 §6.3：移动过程中不再缩放，只在拿/放时刻变化）。 */
+private const val CardLiftScaleDelta = 0.055f
 
 /**
  * 大卡（跨两列）的最大宽度。宽屏/平板上大卡不会被拉得过宽，
@@ -711,6 +728,21 @@ internal fun HomeScreen(
     // change while the grid scrolls.
     val cardBounds = remember { mutableMapOf<String, Rect>() }
     val boardScope = rememberCoroutineScope()
+    // Swap decisions (core-rect hit + debounce + hysteresis) live in a plain
+    // object so the gesture layer stays free of Compose state machinery.
+    val swapGovernor = remember { DragSwapGovernor() }
+    val motionTracker = remember { DragMotionTracker() }
+    val undoStack = remember { BoardUndoStack<Map<String, HomeCardLayout>>() }
+    var canUndoLayout by remember { mutableStateOf(false) }
+    var canRedoLayout by remember { mutableStateOf(false) }
+    // 1f while the card tracks the finger; animates to 0f on release so the
+    // card glides into its (possibly still moving) slot instead of jumping.
+    val settleProgress = remember { Animatable(1f) }
+    var isSettling by remember { mutableStateOf(false) }
+    var dragPointerId by remember { mutableStateOf<PointerId?>(null) }
+    var dragUndoRecorded by remember { mutableStateOf(false) }
+    var dragUndoSnapshot by remember { mutableStateOf<Map<String, HomeCardLayout>?>(null) }
+    val hapticView = LocalView.current
     LaunchedEffect(savedBoardLayouts) {
         if (!isLayoutEditing) workingBoardLayouts = savedBoardLayouts
     }
@@ -768,15 +800,108 @@ internal fun HomeScreen(
     }
     fun persistBoardLayout() {
         val layouts = displayEvents.mapIndexed { index, event ->
-            workingBoardLayouts[event.id] ?: defaultCardLayout(event, index)
+            val saved = workingBoardLayouts[event.id] ?: defaultCardLayout(event, index)
+            // Keep the stored width in sync with the renderer's current size so
+            // saved boards never carry a stale slot width.
+            val width = cardGridWidth(event)
+            if (saved.gridWidth != width) saved.copy(gridWidth = width) else saved
         }
         boardScope.launch { boardStorage.saveCardLayout(layouts) }
     }
+    // A size change made outside layout editing (event settings / size chips)
+    // must reach the board state immediately. Sync the stored slot width so
+    // both the in-memory board and DataStore stay aligned with the renderer.
+    LaunchedEffect(visibleEvents, savedBoardLayouts) {
+        if (isLayoutEditing) return@LaunchedEffect
+        val widthById = visibleEvents.associate { it.id to cardGridWidth(it) }
+        val stale = savedBoardLayouts.filterValues { layout ->
+            widthById[layout.cardId]?.let { it != layout.gridWidth } == true
+        }
+        if (stale.isEmpty()) return@LaunchedEffect
+        workingBoardLayouts = workingBoardLayouts.mapValues { (id, layout) ->
+            val width = widthById[id] ?: return@mapValues layout
+            if (width != layout.gridWidth) layout.copy(gridWidth = width) else layout
+        }
+        persistBoardLayout()
+    }
+    fun refreshUndoFlags() {
+        canUndoLayout = undoStack.canUndo
+        canRedoLayout = undoStack.canRedo
+    }
+
+    /** Commits one swap into [workingBoardLayouts]; records undo once per drag session. */
+    fun applyReorder(draggedId: String, targetId: String) {
+        val currentLayouts = orderedVisibleEvents.mapIndexed { index, visibleEvent ->
+            workingBoardLayouts[visibleEvent.id] ?: defaultCardLayout(visibleEvent, index)
+        }
+        val reordered = reorderedCardLayouts(currentLayouts, draggedId, targetId)
+        if (reordered == currentLayouts) return
+        if (!dragUndoRecorded) {
+            dragUndoSnapshot?.let { snapshot ->
+                undoStack.record(snapshot)
+                refreshUndoFlags()
+            }
+            dragUndoRecorded = true
+        }
+        workingBoardLayouts = workingBoardLayouts + reordered.associateBy { it.cardId }
+    }
+
+    /** Runs the debounced swap decision for the card's current visual center. */
+    fun attemptReorder(dragCenter: Offset, nowMs: Long) {
+        val draggedId = draggedCardId ?: return
+        dropTargetId = swapGovernor.candidateFor(dragCenter, cardBounds, draggedId)
+        val targetId = swapGovernor.targetFor(dragCenter, cardBounds, draggedId, nowMs)
+        if (targetId != null) applyReorder(draggedId, targetId)
+    }
+
+    /**
+     * Release: the card animates from wherever it was dropped onto its slot.
+     * The slot itself may still be travelling via animateItem, so the
+     * translation is scaled by [settleProgress] instead of targeting a fixed
+     * end position.
+     */
+    fun settleDraggedCard(cardId: String) {
+        if (draggedCardId != cardId) return
+        dropTargetId = null
+        isSettling = true
+        boardScope.launch {
+            settleProgress.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(dampingRatio = 0.85f, stiffness = 480f),
+            )
+            if (draggedCardId == cardId) {
+                draggedCardId = null
+                dragOffset = Offset.Zero
+                dragStartBounds = Rect.Zero
+                dragPointerId = null
+                isSettling = false
+                settleProgress.snapTo(1f)
+            }
+        }
+    }
+
+    fun undoLayout() {
+        val previous = undoStack.undo(workingBoardLayouts) ?: return
+        workingBoardLayouts = previous
+        refreshUndoFlags()
+        persistBoardLayout()
+    }
+
+    fun redoLayout() {
+        val next = undoStack.redo(workingBoardLayouts) ?: return
+        workingBoardLayouts = next
+        refreshUndoFlags()
+        persistBoardLayout()
+    }
+
     fun finishLayoutEditing() {
         draggedCardId = null
         dragOffset = Offset.Zero
         dragStartBounds = Rect.Zero
         dropTargetId = null
+        dragPointerId = null
+        isSettling = false
+        boardScope.launch { settleProgress.snapTo(1f) }
         onLayoutEditingChange(false)
         persistBoardLayout()
     }
@@ -805,6 +930,14 @@ internal fun HomeScreen(
             val contentHeightPx = with(LocalDensity.current) { maxHeight.toPx() }
             val topGuardPx = with(LocalDensity.current) { (collapsedHeaderHeight + 24.dp).toPx() }
             val bottomGuardPx = with(LocalDensity.current) { 200.dp.toPx() }
+            // 拖到守卫区附近时开始自动滚动的感应带宽（设计方案 §7.1）。
+            val edgeZonePx = with(LocalDensity.current) { 80.dp.toPx() }
+            // 进入编辑态时整板轻微缩放，配合点阵渐显形成「进入另一个模式」的体感。
+            val boardEditZoom by animateFloatAsState(
+                targetValue = if (isLayoutEditing) 0.985f else 1f,
+                animationSpec = tween(durationMillis = 260),
+                label = "board-edit-zoom",
+            )
             val collapseProgress by remember(collapseDistancePx) {
                 derivedStateOf {
                     homeHeroCollapseProgress(
@@ -827,11 +960,20 @@ internal fun HomeScreen(
                     .fillMaxSize(),
             )
 
-            // A quiet veil sits behind the editable wall. It softens the
-            // photographic scene without putting a utilitarian grid on top of
-            // the cards themselves.
-            if (isLayoutEditing) {
-                Box(
+            // A quiet veil plus the dot lattice sits behind the editable wall.
+            // The dots mark the snap units (two per grid column); both soften
+            // the photographic scene without covering the cards themselves.
+            // AnimatedVisibility owns the cross-fade so the exit also fades.
+            AnimatedVisibility(
+                visible = isLayoutEditing,
+                enter = fadeIn(animationSpec = tween(220)),
+                exit = fadeOut(animationSpec = tween(180)),
+            ) {
+                BoardDotBackground(
+                    columns = HomeGridColumns,
+                    horizontalPadding = 20.dp,
+                    cardSpacing = 12.dp,
+                    dotColor = heroPalette.cardContentColor,
                     modifier = Modifier
                         .fillMaxSize()
                         .background(heroPalette.uiBaseColor.copy(alpha = .16f)),
@@ -856,6 +998,11 @@ internal fun HomeScreen(
                         state = homeGridState,
                         modifier = Modifier
                             .fillMaxSize()
+                            // 编辑态整板缩放只在图形层发生，浏览时不产生额外节点。
+                            .graphicsLayer {
+                                scaleX = boardEditZoom
+                                scaleY = boardEditZoom
+                            }
                             .padding(horizontal = 20.dp),
                         contentPadding = PaddingValues(
                             top = heroHeight - heroOverlap,
@@ -873,9 +1020,10 @@ internal fun HomeScreen(
                             items = orderedVisibleEvents,
                             key = { it.id },
                             span = { event ->
-                                if ((workingBoardLayouts[event.id]?.gridWidth
-                                        ?: defaultCardLayout(event, 0).gridWidth) == HomeGridColumns
-                                ) {
+                                // The renderer's current size drives the slot so a size
+                                // change reflows the grid in real time; a stored layout
+                                // may still carry the previous width.
+                                if (cardGridWidth(event) == HomeGridColumns) {
                                     androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan)
                                 } else {
                                     androidx.compose.foundation.lazy.grid.GridItemSpan(1)
@@ -886,21 +1034,14 @@ internal fun HomeScreen(
                             // measure/layout work as rows enter the viewport.
                             contentType = { it.cardTemplateKey },
                         ) { event ->
-                            val isWideCard = (workingBoardLayouts[event.id]?.gridWidth
-                                ?: defaultCardLayout(event, 0).gridWidth) == HomeGridColumns
+                            val isWideCard = cardGridWidth(event) == HomeGridColumns
                             val isDragged = draggedCardId == event.id
                             val isDropTarget = dropTargetId == event.id && !isDragged
-                            val cardScale by animateFloatAsState(
+                            // 编辑态的轻微交替倾斜；拖拽中的倾斜量在图形层按
+                            // dragOffset 直接计算，避免每帧重组。
+                            val editTilt by animateFloatAsState(
                                 targetValue = when {
-                                    isDragged -> 1.055f
-                                    else -> 1f
-                                },
-                                animationSpec = spring(dampingRatio = .78f, stiffness = 460f),
-                                label = "card-board-scale",
-                            )
-                            val cardRotation by animateFloatAsState(
-                                targetValue = when {
-                                    isDragged -> (dragOffset.x / 110f).coerceIn(-3f, 3f)
+                                    isDragged -> 0f
                                     isLayoutEditing -> if (orderedVisibleEvents.indexOf(event) % 2 == 0) .35f else -.35f
                                     else -> 0f
                                 },
@@ -908,9 +1049,10 @@ internal fun HomeScreen(
                                 label = "card-board-tilt",
                             )
                             // 大卡跨满两列但限制最大宽度：宽屏设备上居中展示不至于过宽，
-                            // 手机上仍自然填满整行。交互与定位 modifier 全部挂在外层
-                            // Box 上，与原先 Surface 直接作为网格子项时占据完全相同的
-                            // 几何槽位，保证拖拽命中测试的坐标系不变。
+                            // 手机上仍自然填满整行。交互与定位 modifier 挂在外层 Box 上，
+                            // 与原先 Surface 直接作为网格子项时占据完全相同的几何槽位，
+                            // 保证拖拽命中测试的坐标系不变。拖拽变换移到内层 Box，
+                            // 让外层槽位可以独立渲染虚线占位符（Ghost）。
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -933,32 +1075,6 @@ internal fun HomeScreen(
                                     .onGloballyPositioned { coordinates ->
                                         cardBounds[event.id] = coordinates.boundsInParent()
                                     }
-                                    .then(
-                                        if (isLayoutEditing) {
-                                            Modifier.graphicsLayer {
-                                                // Compensate for layout shifts caused by reordering
-                                                // and animateItem so the card stays under the finger.
-                                                val currentBounds = cardBounds[event.id]
-                                                val layoutShift = if (isDragged && currentBounds != null && dragStartBounds != Rect.Zero) {
-                                                    currentBounds.topLeft - dragStartBounds.topLeft
-                                                } else {
-                                                    Offset.Zero
-                                                }
-                                                translationX = if (isDragged) dragOffset.x - layoutShift.x else 0f
-                                                translationY = if (isDragged) dragOffset.y - layoutShift.y - cardDragLiftPx else 0f
-                                                scaleX = cardScale
-                                                scaleY = cardScale
-                                                rotationZ = cardRotation
-                                                shadowElevation = if (isDragged) {
-                                                    cardDragShadowPx
-                                                } else {
-                                                    cardEditingShadowPx
-                                                }
-                                            }
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
                                     .pointerInput(event.id) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = {
@@ -967,25 +1083,46 @@ internal fun HomeScreen(
                                                     dragOffset = Offset.Zero
                                                     dragStartBounds = cardBounds[event.id] ?: Rect.Zero
                                                     dropTargetId = null
+                                                    dragPointerId = null
+                                                    dragUndoRecorded = false
+                                                    dragUndoSnapshot = workingBoardLayouts
+                                                    isSettling = false
+                                                    swapGovernor.begin()
+                                                    motionTracker.begin()
+                                                    boardScope.launch { settleProgress.snapTo(1f) }
+                                                    hapticView.performHapticFeedback(
+                                                        HapticFeedbackConstants.LONG_PRESS,
+                                                    )
                                                 },
                                                 onDragCancel = {
                                                     if (draggedCardId == event.id) {
-                                                        draggedCardId = null
-                                                        dragOffset = Offset.Zero
-                                                        dragStartBounds = Rect.Zero
-                                                        dropTargetId = null
+                                                        settleDraggedCard(event.id)
                                                     }
                                                 },
                                                 onDragEnd = {
                                                     if (draggedCardId == event.id) {
-                                                        draggedCardId = null
-                                                        dragOffset = Offset.Zero
-                                                        dragStartBounds = Rect.Zero
-                                                        dropTargetId = null
+                                                        // 高速甩动：用速度外推预测落点并做最后一次交换，
+                                                        // 卡片落在手指去的方向而不是停下的位置。
+                                                        if (motionTracker.isFling() && dragStartBounds != Rect.Zero) {
+                                                            val predictedCenter = dragStartBounds.center +
+                                                                dragOffset + motionTracker.velocity() * 120f
+                                                            val targetId = cardBounds.entries.firstOrNull { (id, bounds) ->
+                                                                id != event.id && bounds.contains(predictedCenter)
+                                                            }?.key
+                                                            if (targetId != null) applyReorder(event.id, targetId)
+                                                        }
+                                                        settleDraggedCard(event.id)
                                                     }
                                                 },
                                             ) { change, amount ->
                                                 if (draggedCardId != event.id) return@detectDragGesturesAfterLongPress
+                                                // 多指触控：只跟随抓取卡片的第一根手指。
+                                                val pointer = dragPointerId
+                                                if (pointer == null) {
+                                                    dragPointerId = change.id
+                                                } else if (pointer != change.id) {
+                                                    return@detectDragGesturesAfterLongPress
+                                                }
                                                 change.consume()
                                                 // Clamp Y so the card can't enter the top-bar or
                                                 // bottom-nav regions.
@@ -1001,50 +1138,114 @@ internal fun HomeScreen(
                                                 }
                                                 val newY = (dragOffset.y + amount.y).coerceIn(minY, maxY)
                                                 dragOffset = Offset(dragOffset.x + amount.x, newY)
+                                                val nowMs = System.currentTimeMillis()
+                                                motionTracker.addSample(nowMs, dragOffset)
                                                 // Hit-test using the card's visual center (initial
                                                 // position + drag offset), independent of layout
                                                 // shifts from reordering.
-                                                val pointerCenter = dragStartBounds.takeIf { it != Rect.Zero }?.center?.plus(dragOffset)
-                                                val targetId = pointerCenter?.let { point ->
-                                                    cardBounds.entries.firstOrNull { (id, bounds) ->
-                                                        id != event.id && bounds.contains(point)
-                                                    }?.key
-                                                }
-                                                dropTargetId = targetId
-                                                if (targetId != null) {
-                                                    val currentLayouts = orderedVisibleEvents.mapIndexed { index, visibleEvent ->
-                                                        workingBoardLayouts[visibleEvent.id]
-                                                            ?: defaultCardLayout(visibleEvent, index)
-                                                    }
-                                                    val reordered = reorderedCardLayouts(currentLayouts, event.id, targetId)
-                                                    if (reordered != currentLayouts) {
-                                                        workingBoardLayouts = workingBoardLayouts + reordered.associateBy { it.cardId }
-                                                    }
+                                                dragStartBounds.takeIf { it != Rect.Zero }?.center?.plus(dragOffset)?.let { pointerCenter ->
+                                                    attemptReorder(pointerCenter, nowMs)
                                                 }
                                             }
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
-                            AdaptiveCardSurface(
-                                palette = heroPalette,
-                                modifier = Modifier
-                                    .widthIn(max = if (isWideCard) WideCardMaxWidth else Dp.Unspecified)
-                                    .fillMaxWidth()
-                            ) {
-                                EventCardFeature(
-                                    event = event,
-                                    onClick = if (isLayoutEditing) null else ({ onOpenEventSettings(event) }),
-                                )
-                                if (isDropTarget) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(heroPalette.cardHighlightColor.copy(alpha = .12f)),
+                                // 占位符（Ghost）：留在当前槽位的虚线轮廓。槽位随每次预测
+                                // 重排实时移动，因此它标记的就是「现在松手会落下的位置」。
+                                if (isLayoutEditing && isDragged) {
+                                    GhostCardSlot(
+                                        alpha = settleProgress.value,
+                                        color = heroPalette.cardHighlightColor,
                                     )
                                 }
-                            }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (isLayoutEditing) {
+                                                Modifier.graphicsLayer {
+                                                    val currentBounds = cardBounds[event.id]
+                                                    // Compensate for layout shifts caused by reordering
+                                                    // and animateItem so the card stays under the finger;
+                                                    // settleProgress scales the whole offset to 0 on
+                                                    // release so the card glides onto its slot.
+                                                    val settle = settleProgress.value
+                                                    val layoutShift = if (isDragged && currentBounds != null && dragStartBounds != Rect.Zero) {
+                                                        currentBounds.topLeft - dragStartBounds.topLeft
+                                                    } else {
+                                                        Offset.Zero
+                                                    }
+                                                    val lift = if (isDragged) settle else 0f
+                                                    translationX = if (isDragged) (dragOffset.x - layoutShift.x) * settle else 0f
+                                                    translationY = if (isDragged) (dragOffset.y - layoutShift.y - cardDragLiftPx) * settle else 0f
+                                                    scaleX = 1f + CardLiftScaleDelta * lift
+                                                    scaleY = 1f + CardLiftScaleDelta * lift
+                                                    rotationZ = if (isDragged) {
+                                                        editTilt + (dragOffset.x / 110f).coerceIn(-3f, 3f) * settle
+                                                    } else {
+                                                        editTilt
+                                                    }
+                                                    shadowElevation = if (isDragged) {
+                                                        lerp(cardEditingShadowPx, cardDragShadowPx, lift)
+                                                    } else {
+                                                        cardEditingShadowPx
+                                                    }
+                                                }
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
+                                ) {
+                                    AdaptiveCardSurface(
+                                        palette = heroPalette,
+                                        modifier = Modifier
+                                            .widthIn(max = if (isWideCard) WideCardMaxWidth else Dp.Unspecified)
+                                            .fillMaxWidth()
+                                    ) {
+                                        EventCardFeature(
+                                            event = event,
+                                            onClick = if (isLayoutEditing) null else ({ onOpenEventSettings(event) }),
+                                        )
+                                        if (isDropTarget) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(heroPalette.cardHighlightColor.copy(alpha = .12f)),
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
+                    }
+                }
+
+                // 拖到顶/底守卫区附近时自动滚动（设计方案 §7.1）：程序滚动不受
+                // userScrollEnabled 限制；速度随贴近程度平方加速；滚动中持续
+                // 重跑命中检测，让内容在卡片下方流动时实时交换。
+                LaunchedEffect(draggedCardId, isSettling) {
+                    if (draggedCardId == null || isSettling) return@LaunchedEffect
+                    var lastFrameNs = 0L
+                    while (draggedCardId != null && !isSettling && dragStartBounds != Rect.Zero) {
+                        val frameNs = withFrameNanos { it }
+                        val dtMs = if (lastFrameNs == 0L) 16f else (frameNs - lastFrameNs) / 1_000_000f
+                        lastFrameNs = frameNs
+                        // 卡片视觉位置 = 初始槽位 + 拖拽偏移（补偿使其不随滚动移动）。
+                        val visualTop = dragStartBounds.top + dragOffset.y
+                        val visualBottom = dragStartBounds.bottom + dragOffset.y
+                        val topProximity = ((topGuardPx + edgeZonePx - visualTop) / edgeZonePx).coerceIn(0f, 1f)
+                        val bottomProximity =
+                            ((visualBottom - (contentHeightPx - bottomGuardPx - edgeZonePx)) / edgeZonePx).coerceIn(0f, 1f)
+                        val intensity = maxOf(topProximity, bottomProximity)
+                        if (intensity > 0f) {
+                            val speed = (4f + 20f * intensity * intensity) * dtMs
+                            if (topProximity > 0f) {
+                                homeGridState.scrollBy(-speed * topProximity)
+                            } else {
+                                homeGridState.scrollBy(speed * bottomProximity)
+                            }
+                        }
+                        attemptReorder(dragStartBounds.center + dragOffset, System.currentTimeMillis())
                     }
                 }
 
@@ -1061,6 +1262,7 @@ internal fun HomeScreen(
                     onOpenSearch = { isSearchVisible = true },
                     onOpenGroups = onOpenGroups,
                     onOpenSettings = onOpenSettings,
+                    onEditLayout = { onLayoutEditingChange(true) },
                     heroTextColor = heroScene.heroTextColor,
                     palette = heroPalette,
                     modifier = Modifier
@@ -1092,7 +1294,24 @@ internal fun HomeScreen(
                         ) {
                             Text("编辑布局", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                             Spacer(Modifier.width(8.dp))
-                            Text("拖动卡片，整理你的时间收藏", color = heroPalette.cardContentColor.copy(alpha = .62f), fontSize = 11.sp)
+                            Text(
+                                "拖动卡片整理布局",
+                                color = heroPalette.cardContentColor.copy(alpha = .62f),
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(
+                                onClick = ::undoLayout,
+                                enabled = canUndoLayout,
+                                contentPadding = PaddingValues(horizontal = 10.dp),
+                            ) { Text("撤销") }
+                            TextButton(
+                                onClick = ::redoLayout,
+                                enabled = canRedoLayout,
+                                contentPadding = PaddingValues(horizontal = 10.dp),
+                            ) { Text("重做") }
                             TextButton(onClick = ::finishLayoutEditing) { Text("完成") }
                         }
                     }

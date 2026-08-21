@@ -9,3 +9,7 @@ captures/
 .cxx/
 *.iml
 .DS_Store
+
+# Local agent workspace & generated previews
+.workbuddy/
+outputs/
