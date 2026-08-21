@@ -28,7 +28,7 @@ class DaybookDataSourceTest {
 
         assertTrue(dateEvents.any { it.source == DaybookEventSource.USER && it.title == "晚饭后散步" })
         assertTrue(dateEvents.any { it.id == "prototype-daybook-note" })
-        assertEquals(3, source.eventsForMonth(java.time.YearMonth.of(2026, 8)).size)
+        assertEquals(6, source.eventsForMonth(java.time.YearMonth.of(2026, 8)).size)
     }
 
     @Test

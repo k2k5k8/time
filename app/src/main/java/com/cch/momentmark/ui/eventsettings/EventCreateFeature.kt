@@ -43,7 +43,6 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TextFields
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -109,6 +108,7 @@ import com.cch.momentmark.domain.model.TravelCardConfig
 import com.cch.momentmark.domain.model.TravelCardSize
 import com.cch.momentmark.domain.time.EventTimeCalculator
 import com.cch.momentmark.ui.EventCard
+import com.cch.momentmark.ui.components.DeleteConfirmationDialog
 import com.cch.momentmark.ui.eventsettings.eventTemplateLabel
 import com.cch.momentmark.ui.home.HomeHeroScenes
 import com.cch.momentmark.ui.home.contentBackdropFor
@@ -313,28 +313,32 @@ internal fun EventCreateFeature(
                 Image(
                     bitmap = fixedBackgroundBitmap,
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    modifier = Modifier.fillMaxWidth().height(320.dp),
                     contentScale = ContentScale.Crop,
                 )
             } else {
                 Image(
                     painter = painterResource(scene.imageRes),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    modifier = Modifier.fillMaxWidth().height(320.dp),
                     contentScale = ContentScale.Crop,
                 )
             }
+            // Let the photo melt into the form background instead of ending at
+            // a hard edge: a light scene tint on top, clear through the middle,
+            // then fade into the solid color across the lower part of the image.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(340.dp)
+                    .height(320.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(
-                                scene.imageTint.copy(alpha = 0.30f),
-                                scene.bottomShade.copy(alpha = 0.12f),
-                                FormBackground.copy(alpha = 0.64f),
-                                FormBackground,
+                            colorStops = arrayOf(
+                                0.00f to scene.imageTint.copy(alpha = 0.30f),
+                                0.44f to Color.Transparent,
+                                0.72f to FormBackground.copy(alpha = 0.42f),
+                                0.88f to FormBackground.copy(alpha = 0.86f),
+                                1.00f to FormBackground,
                             ),
                         ),
                     ),
@@ -351,57 +355,57 @@ internal fun EventCreateFeature(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 4.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Spacer(Modifier.width(52.dp))
                     Spacer(Modifier.weight(1f))
                     Column(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(22.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(editorHeaderBackdrop)
-                            .padding(start = 18.dp, top = 10.dp, end = 14.dp, bottom = 12.dp),
+                            .padding(start = 16.dp, top = 7.dp, end = 12.dp, bottom = 9.dp),
                         horizontalAlignment = Alignment.End,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                text = if (initialEvent == null) "新增日期" else "修改日期",
+                                text = if (initialEvent == null) "新增日期" else "修改日期",
                                 fontFamily = NotoSerifSc,
-                                fontSize = 38.sp,
-                                lineHeight = 44.sp,
+                                fontSize = 28.sp,
+                                lineHeight = 32.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = editorTextColor,
                                 maxLines = 1,
                             )
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 text = "✦ 〰",
                                 modifier = Modifier.padding(end = 4.dp),
                                 color = editorTextColor.copy(alpha = 0.78f),
                                 fontFamily = NotoSerifSc,
-                                fontSize = 20.sp,
+                                fontSize = 15.sp,
                                 maxLines = 1,
                             )
                         }
                         Text(
                             text = "记录每一个重要时刻",
                             fontFamily = NotoSerifSc,
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             color = editorTextColor.copy(alpha = 0.84f),
                         )
                         Text(
                             text = scene.quote.replace("\n", " · "),
-                            modifier = Modifier.padding(top = 8.dp, end = 4.dp),
+                            modifier = Modifier.padding(top = 3.dp, end = 4.dp),
                             fontFamily = NotoSerifSc,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
+                            fontSize = 12.sp,
+                            lineHeight = 15.sp,
                             color = editorTextColor.copy(alpha = 0.72f),
                             textAlign = TextAlign.End,
-                            maxLines = 2,
+                            maxLines = 1,
                         )
                     }
                 }
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(10.dp))
 
                 SectionCard {
                     CountedInputRow(
@@ -432,7 +436,7 @@ internal fun EventCreateFeature(
                     )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
                 SectionCard {
                     FormRow(
                         icon = Icons.Outlined.AccessTime,
@@ -443,7 +447,7 @@ internal fun EventCreateFeature(
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
                     ) {
                         val stackDateTimeCells = maxWidth < 330.dp
                         if (stackDateTimeCells) {
@@ -477,7 +481,7 @@ internal fun EventCreateFeature(
                         }
                     }
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         FilterChip(
@@ -495,7 +499,7 @@ internal fun EventCreateFeature(
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
                 SectionCard {
                     ToggleRow(
                         icon = Icons.Outlined.PushPin,
@@ -515,7 +519,7 @@ internal fun EventCreateFeature(
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 SectionCard(
                     modifier = Modifier.clickable { showTemplateSheet = true },
                     color = Color(0xFFFFF4E9),
@@ -529,7 +533,7 @@ internal fun EventCreateFeature(
                     )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 SectionCard(
                     modifier = Modifier.clickable { advancedExpanded = !advancedExpanded },
                     color = Color(0xFFFFF4E9),
@@ -646,7 +650,7 @@ internal fun EventCreateFeature(
                         fontSize = 13.sp,
                     )
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(10.dp))
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -696,9 +700,9 @@ internal fun EventCreateFeature(
                 ) {
                     Text(
                         "保存",
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 17.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
                         color = Color.White,
-                        fontSize = 21.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     )
@@ -711,7 +715,7 @@ internal fun EventCreateFeature(
                         Text("删除此事件", color = MaterialTheme.colorScheme.error)
                     }
                 }
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(16.dp))
             }
             IconButton(
                 onClick = onBack,
@@ -734,21 +738,14 @@ internal fun EventCreateFeature(
     }
 
     if (showDeleteConfirmation && initialEvent != null && onDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("删除事件？") },
-            text = { Text("删除后会从主页移除，但可以在短时间内撤销。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteConfirmation = false
-                    onDelete()
-                }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
-                }
+        DeleteConfirmationDialog(
+            title = "删除事件？",
+            message = "删除后会从主页移除，但可以在短时间内撤销。",
+            onConfirm = {
+                showDeleteConfirmation = false
+                onDelete()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) { Text("取消") }
-            },
+            onDismiss = { showDeleteConfirmation = false },
         )
     }
 
@@ -852,28 +849,28 @@ private fun CountedInputRow(
     lowerCaseIcon: Boolean = false,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 13.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             icon,
             contentDescription = null,
-            modifier = Modifier.size(38.dp),
+            modifier = Modifier.size(30.dp),
             tint = WarmAccentDark.copy(alpha = 0.74f),
         )
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(label, color = WarmBrown, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = WarmBrown, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             BasicTextField(
                 value = value,
                 onValueChange = { onValueChange(it.take(maxLength)) },
-                modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
                 singleLine = true,
-                textStyle = TextStyle(color = WarmBrown, fontSize = 16.sp),
+                textStyle = TextStyle(color = WarmBrown, fontSize = 15.sp),
                 cursorBrush = SolidColor(WarmAccentDark),
                 decorationBox = { inner ->
                     Box {
-                        if (value.isBlank()) Text(hint, color = WarmMuted, fontSize = 16.sp)
+                        if (value.isBlank()) Text(hint, color = WarmMuted, fontSize = 15.sp)
                         inner()
                     }
                 },
@@ -898,16 +895,16 @@ private fun FormRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = if (compact) 4.dp else 18.dp, vertical = if (compact) 7.dp else 16.dp),
+            .padding(horizontal = if (compact) 4.dp else 18.dp, vertical = if (compact) 6.dp else 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 28.dp else 38.dp), tint = WarmAccentDark.copy(alpha = 0.74f))
-        Spacer(Modifier.width(if (compact) 10.dp else 14.dp))
+        Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 26.dp else 30.dp), tint = WarmAccentDark.copy(alpha = 0.74f))
+        Spacer(Modifier.width(if (compact) 10.dp else 12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = WarmBrown, fontSize = if (compact) 15.sp else 17.sp, fontWeight = FontWeight.Bold)
-            subtitle?.let { Text(it, color = WarmMuted, fontSize = if (compact) 12.sp else 14.sp, modifier = Modifier.padding(top = 3.dp)) }
+            Text(title, color = WarmBrown, fontSize = if (compact) 15.sp else 16.sp, fontWeight = FontWeight.Bold)
+            subtitle?.let { Text(it, color = WarmMuted, fontSize = if (compact) 12.sp else 13.sp, modifier = Modifier.padding(top = 2.dp)) }
         }
-        value?.let { Text(it, color = WarmMuted, fontSize = if (compact) 14.sp else 16.sp) }
+        value?.let { Text(it, color = WarmMuted, fontSize = if (compact) 14.sp else 15.sp) }
         trailing?.let { Icon(it, contentDescription = null, tint = WarmMuted, modifier = Modifier.padding(start = 10.dp)) }
     }
 }
@@ -920,13 +917,13 @@ private fun ToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(38.dp), tint = WarmAccentDark.copy(alpha = 0.74f))
-        Spacer(Modifier.width(14.dp))
+    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(30.dp), tint = WarmAccentDark.copy(alpha = 0.74f))
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = WarmBrown, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = WarmBrown, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             subtitle?.let {
-                Text(it, color = WarmMuted, fontSize = 14.sp, modifier = Modifier.padding(top = 3.dp))
+                Text(it, color = WarmMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
             }
         }
         Switch(
@@ -953,7 +950,7 @@ private fun DateTimeSelectionCell(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(48.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White.copy(alpha = 0.72f))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)

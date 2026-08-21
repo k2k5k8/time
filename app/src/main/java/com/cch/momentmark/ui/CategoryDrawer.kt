@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cch.momentmark.domain.model.EventColorRole
 import com.cch.momentmark.domain.model.TimeEvent
+import com.cch.momentmark.ui.components.DeleteConfirmationDialog
 
 private val DrawerCream = Color(0xFFFFF9F3)
 private val DrawerCard = Color(0xFFFFFCF8)
@@ -543,19 +544,14 @@ internal fun GroupManagementScreen(
     }
 
     deleteGroup?.let { name ->
-        AlertDialog(
-            onDismissRequest = { deleteGroup = null },
-            title = { Text("删除分组？") },
-            text = { Text("确定删除“$name”分组吗？其中的事件会保留并回到未分组。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDelete(name)
-                    deleteGroup = null
-                }) { Text("删除") }
+        DeleteConfirmationDialog(
+            title = "删除分组？",
+            message = "确定删除“$name”分组吗？其中的事件会保留并回到未分组。",
+            onConfirm = {
+                onDelete(name)
+                deleteGroup = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteGroup = null }) { Text("取消") }
-            },
+            onDismiss = { deleteGroup = null },
         )
     }
 }

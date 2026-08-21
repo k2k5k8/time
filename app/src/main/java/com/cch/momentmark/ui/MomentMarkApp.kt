@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.BackHandler
@@ -57,7 +58,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FlightTakeoff
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.AlertDialog
+import com.cch.momentmark.ui.components.DeleteConfirmationDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -70,7 +71,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Snackbar
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -109,6 +110,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -224,6 +226,13 @@ private val BlueHeaderContent = Color(0xFF0C2B38)
 private val OrangeHeaderContent = Color(0xFF3B2A00)
 
 private const val HomeGridColumns = 2
+
+/**
+ * 大卡（跨两列）的最大宽度。宽屏/平板上大卡不会被拉得过宽，
+ * 手机上依旧自然占满整行。
+ */
+private val WideCardMaxWidth = 400.dp
+
 private val LantingheiTcHeavy = FontFamily(
     Font(com.cch.momentmark.R.font.lantinghei_tc_heavy, FontWeight.Black),
 )
@@ -265,6 +274,9 @@ fun MomentMarkApp() {
     }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    // Layout editing lives above HomeScreen so the drawer gesture can be
+    // disabled while the user is arranging cards.
+    var isLayoutEditing by rememberSaveable { mutableStateOf(false) }
     var pendingUndoId by rememberSaveable { mutableStateOf<String?>(null) }
 
     DisposableEffect(database) {
@@ -284,12 +296,12 @@ fun MomentMarkApp() {
     }
     LaunchedEffect(pendingUndoId) {
         if (pendingUndoId != null) {
-            // Match Material's long snackbar duration while leaving enough time for a real tap.
-            delay(10_000)
+            // Give the user a brief window to tap undo without lingering on screen.
+            delay(4_000)
             pendingUndoId = null
         }
     }
-    val homeEvents = persistedEvents ?: SampleEvents.all
+    val homeEvents = persistedEvents ?: emptyList()
     val groupItems = drawerGroups(homeEvents, savedGroups.orEmpty())
     LaunchedEffect(selectedGroup, groupItems) {
         if (selectedGroup != null && groupItems.none { it.name == selectedGroup }) {
@@ -318,7 +330,7 @@ fun MomentMarkApp() {
                     onClose = { scope.launch { drawerState.close() } },
                 )
             },
-            gesturesEnabled = screen == AppScreen.HOME,
+            gesturesEnabled = screen == AppScreen.HOME && !isLayoutEditing,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 AnimatedContent(
@@ -337,6 +349,8 @@ fun MomentMarkApp() {
                     selectedGroup = selectedGroup,
                     templateOverrides = templateOverrides,
                     travelConfigOverrides = travelConfigOverrides,
+                    isLayoutEditing = isLayoutEditing,
+                    onLayoutEditingChange = { isLayoutEditing = it },
                     onOpenGroups = { scope.launch { drawerState.open() } },
                     onOpenSettings = { screen = AppScreen.SETTINGS },
                     onOpenCreateEvent = {
@@ -358,6 +372,10 @@ fun MomentMarkApp() {
                         selectedDaybookDateText = date.toString()
                         eventCreateReturnScreenName = AppScreen.DAYBOOK.name
                         screen = AppScreen.EVENT_CREATE
+                    },
+                    onOpenEventDetail = { event ->
+                        selectedEventId = event.id
+                        screen = AppScreen.EVENT_DETAIL
                     },
                 )
 
@@ -638,29 +656,20 @@ fun MomentMarkApp() {
                 }
                 }
                 pendingUndoId?.let { deletedId ->
-                    Snackbar(
+                    UndoDeleteToast(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            // Keep the undo action clear of the bottom navigation add target.
                             .padding(bottom = 156.dp),
-                        action = {
-                            TextButton(
-                                onClick = {
-                                    pendingUndoId = null
-                                    scope.launch {
-                                        repository.restoreDeleted(
-                                            id = deletedId,
-                                            updatedAt = System.currentTimeMillis(),
-                                        )
-                                    }
-                                },
-                            ) {
-                                Text("撤销")
+                        onUndo = {
+                            pendingUndoId = null
+                            scope.launch {
+                                repository.restoreDeleted(
+                                    id = deletedId,
+                                    updatedAt = System.currentTimeMillis(),
+                                )
                             }
                         },
-                    ) {
-                        Text("事件已删除")
-                    }
+                    )
                 }
             }
         }
@@ -675,6 +684,8 @@ internal fun HomeScreen(
     selectedGroup: String?,
     templateOverrides: Map<String, EventCardTemplateKey>,
     travelConfigOverrides: Map<String, TravelCardConfig>,
+    isLayoutEditing: Boolean,
+    onLayoutEditingChange: (Boolean) -> Unit,
     onOpenGroups: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenCreateEvent: () -> Unit,
@@ -688,10 +699,13 @@ internal fun HomeScreen(
     val boardStorage = remember(context) { CardLayoutStorage(context) }
     val savedBoardLayouts by boardStorage.loadCardLayout.collectAsState(initial = emptyMap())
     var workingBoardLayouts by remember { mutableStateOf<Map<String, HomeCardLayout>>(emptyMap()) }
-    var isLayoutEditing by rememberSaveable { mutableStateOf(false) }
     var draggedCardId by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
     var dropTargetId by remember { mutableStateOf<String?>(null) }
+    // Snapshot of the dragged card's bounds at drag start, used for both
+    // layout-shift compensation and Y clamping so the card never enters the
+    // top-bar / bottom-nav regions.
+    var dragStartBounds by remember { mutableStateOf(Rect.Zero) }
     // Bounds are imperative drag hit-test data, not UI state. Keeping them out
     // of Compose snapshot state avoids a recomposition for every card layout
     // change while the grid scrolls.
@@ -761,8 +775,9 @@ internal fun HomeScreen(
     fun finishLayoutEditing() {
         draggedCardId = null
         dragOffset = Offset.Zero
+        dragStartBounds = Rect.Zero
         dropTargetId = null
-        isLayoutEditing = false
+        onLayoutEditingChange(false)
         persistBoardLayout()
     }
     BackHandler(enabled = isLayoutEditing) { finishLayoutEditing() }
@@ -786,6 +801,10 @@ internal fun HomeScreen(
             val cardDragLiftPx = with(LocalDensity.current) { 6.dp.toPx() }
             val cardDragShadowPx = with(LocalDensity.current) { 25.dp.toPx() }
             val cardEditingShadowPx = with(LocalDensity.current) { 11.dp.toPx() }
+            // Keep dragged cards out of the top-bar and bottom-nav zones.
+            val contentHeightPx = with(LocalDensity.current) { maxHeight.toPx() }
+            val topGuardPx = with(LocalDensity.current) { (collapsedHeaderHeight + 24.dp).toPx() }
+            val bottomGuardPx = with(LocalDensity.current) { 200.dp.toPx() }
             val collapseProgress by remember(collapseDistancePx) {
                 derivedStateOf {
                     homeHeroCollapseProgress(
@@ -867,6 +886,8 @@ internal fun HomeScreen(
                             // measure/layout work as rows enter the viewport.
                             contentType = { it.cardTemplateKey },
                         ) { event ->
+                            val isWideCard = (workingBoardLayouts[event.id]?.gridWidth
+                                ?: defaultCardLayout(event, 0).gridWidth) == HomeGridColumns
                             val isDragged = draggedCardId == event.id
                             val isDropTarget = dropTargetId == event.id && !isDragged
                             val cardScale by animateFloatAsState(
@@ -886,8 +907,11 @@ internal fun HomeScreen(
                                 animationSpec = spring(dampingRatio = .82f, stiffness = 430f),
                                 label = "card-board-tilt",
                             )
-                            AdaptiveCardSurface(
-                                palette = heroPalette,
+                            // 大卡跨满两列但限制最大宽度：宽屏设备上居中展示不至于过宽，
+                            // 手机上仍自然填满整行。交互与定位 modifier 全部挂在外层
+                            // Box 上，与原先 Surface 直接作为网格子项时占据完全相同的
+                            // 几何槽位，保证拖拽命中测试的坐标系不变。
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     // Placement animation and the transform layer are useful
@@ -912,8 +936,16 @@ internal fun HomeScreen(
                                     .then(
                                         if (isLayoutEditing) {
                                             Modifier.graphicsLayer {
-                                                translationX = if (isDragged) dragOffset.x else 0f
-                                                translationY = if (isDragged) dragOffset.y - cardDragLiftPx else 0f
+                                                // Compensate for layout shifts caused by reordering
+                                                // and animateItem so the card stays under the finger.
+                                                val currentBounds = cardBounds[event.id]
+                                                val layoutShift = if (isDragged && currentBounds != null && dragStartBounds != Rect.Zero) {
+                                                    currentBounds.topLeft - dragStartBounds.topLeft
+                                                } else {
+                                                    Offset.Zero
+                                                }
+                                                translationX = if (isDragged) dragOffset.x - layoutShift.x else 0f
+                                                translationY = if (isDragged) dragOffset.y - layoutShift.y - cardDragLiftPx else 0f
                                                 scaleX = cardScale
                                                 scaleY = cardScale
                                                 rotationZ = cardRotation
@@ -927,18 +959,20 @@ internal fun HomeScreen(
                                             Modifier
                                         },
                                     )
-                                    .pointerInput(event.id, isLayoutEditing) {
+                                    .pointerInput(event.id) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = {
-                                                    isLayoutEditing = true
+                                                    onLayoutEditingChange(true)
                                                     draggedCardId = event.id
                                                     dragOffset = Offset.Zero
+                                                    dragStartBounds = cardBounds[event.id] ?: Rect.Zero
                                                     dropTargetId = null
                                                 },
                                                 onDragCancel = {
                                                     if (draggedCardId == event.id) {
                                                         draggedCardId = null
                                                         dragOffset = Offset.Zero
+                                                        dragStartBounds = Rect.Zero
                                                         dropTargetId = null
                                                     }
                                                 },
@@ -946,14 +980,31 @@ internal fun HomeScreen(
                                                     if (draggedCardId == event.id) {
                                                         draggedCardId = null
                                                         dragOffset = Offset.Zero
+                                                        dragStartBounds = Rect.Zero
                                                         dropTargetId = null
                                                     }
                                                 },
                                             ) { change, amount ->
                                                 if (draggedCardId != event.id) return@detectDragGesturesAfterLongPress
                                                 change.consume()
-                                                dragOffset += amount
-                                                val pointerCenter = cardBounds[event.id]?.center?.plus(dragOffset)
+                                                // Clamp Y so the card can't enter the top-bar or
+                                                // bottom-nav regions.
+                                                val minY = if (dragStartBounds != Rect.Zero) {
+                                                    topGuardPx - dragStartBounds.top
+                                                } else {
+                                                    Float.NEGATIVE_INFINITY
+                                                }
+                                                val maxY = if (dragStartBounds != Rect.Zero) {
+                                                    contentHeightPx - bottomGuardPx - dragStartBounds.bottom
+                                                } else {
+                                                    Float.POSITIVE_INFINITY
+                                                }
+                                                val newY = (dragOffset.y + amount.y).coerceIn(minY, maxY)
+                                                dragOffset = Offset(dragOffset.x + amount.x, newY)
+                                                // Hit-test using the card's visual center (initial
+                                                // position + drag offset), independent of layout
+                                                // shifts from reordering.
+                                                val pointerCenter = dragStartBounds.takeIf { it != Rect.Zero }?.center?.plus(dragOffset)
                                                 val targetId = pointerCenter?.let { point ->
                                                     cardBounds.entries.firstOrNull { (id, bounds) ->
                                                         id != event.id && bounds.contains(point)
@@ -972,6 +1023,13 @@ internal fun HomeScreen(
                                                 }
                                             }
                                     },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                            AdaptiveCardSurface(
+                                palette = heroPalette,
+                                modifier = Modifier
+                                    .widthIn(max = if (isWideCard) WideCardMaxWidth else Dp.Unspecified)
+                                    .fillMaxWidth()
                             ) {
                                 EventCardFeature(
                                     event = event,
@@ -984,6 +1042,7 @@ internal fun HomeScreen(
                                             .background(heroPalette.cardHighlightColor.copy(alpha = .12f)),
                                     )
                                 }
+                            }
                             }
                         }
                     }
@@ -1132,25 +1191,46 @@ private fun MinimalEditorialTravelCard(
         color = Color(0xFFF9F2E8),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.92f)),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // 以卡片实际宽度驱动全部尺寸：小卡 / 大卡 / 宽屏共用同一套比例，
+            // 不再依赖写死的字号，文字也不会因换行破坏版式。
+            val cardWidth = maxWidth.value
+            val horizontalPadding = (cardWidth * 0.103f).coerceIn(16f, 30f).dp
+            val verticalPadding = (cardWidth * 0.115f).coerceIn(16f, 30f).dp
+            val titleFontSize = (cardWidth * 0.12f).coerceIn(18f, 33f).sp
+            val titleLineHeight = (cardWidth * 0.145f).coerceIn(23f, 40f).sp
+            val metaFontSize = (cardWidth * 0.052f).coerceIn(9f, 11.5f).sp
+            val headlineGap = (cardWidth * 0.098f).coerceIn(12f, 26f).dp
+            val sectionGap = (cardWidth * 0.069f).coerceIn(10f, 18f).dp
+            val panelGap = (cardWidth * 0.08f).coerceIn(11f, 22f).dp
+            // 位数越多数字越收敛，保证倒计时永远单行完整展示。
+            val digitFactor = when (countdown.amount.toString().length) {
+                1, 2, 3 -> 1f
+                4 -> 0.8f
+                else -> 0.66f
+            }
+            val numberFontSize = (cardWidth * 0.38f * digitFactor).coerceIn(56f, 112f).sp
+            val unitFontSize = (cardWidth * 0.098f).coerceIn(15f, 25f).sp
+            val unitStartPadding = (cardWidth * 0.046f).coerceIn(6f, 11f).dp
+            val unitBottomPadding = (cardWidth * 0.04f).coerceIn(6f, 15f).dp
             MinimalCreamBackground()
             Icon(
                 imageVector = Icons.Outlined.FlightTakeoff,
                 contentDescription = "旅行装饰",
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = if (compact) 22.dp else 30.dp, end = if (compact) 20.dp else 30.dp)
-                    .size(if (compact) 17.dp else 22.dp)
+                    .padding(
+                        top = (cardWidth * 0.115f).coerceIn(18f, 30f).dp,
+                        end = (cardWidth * 0.103f).coerceIn(16f, 30f).dp,
+                    )
+                    .size((cardWidth * 0.098f).coerceIn(14f, 22f).dp)
                     .rotate(18f),
                 tint = Color(0xFFB89D78).copy(alpha = 0.58f),
             )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        horizontal = if (compact) 18.dp else 30.dp,
-                        vertical = if (compact) 20.dp else 30.dp,
-                    ),
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1166,52 +1246,55 @@ private fun MinimalEditorialTravelCard(
                         Text(
                             text = fields.groupLabel,
                             color = mutedColor,
-                            fontSize = if (compact) 9.sp else 11.sp,
+                            fontSize = metaFontSize,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
-                Spacer(Modifier.height(if (compact) 17.dp else 26.dp))
+                Spacer(Modifier.height(headlineGap))
                 Text(
                     text = fields.title,
                     color = contentColor,
-                    fontSize = if (compact) 21.sp else 32.sp,
-                    lineHeight = if (compact) 26.sp else 38.sp,
+                    fontSize = titleFontSize,
+                    lineHeight = titleLineHeight,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(if (compact) 12.dp else 18.dp))
+                Spacer(Modifier.height(sectionGap))
                 TemplateDivider(showDot = true, compact = compact, color = lineColor)
-                Spacer(Modifier.height(if (compact) 14.dp else 22.dp))
+                Spacer(Modifier.height(panelGap))
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = countdown.amount.toString(),
                         style = TextStyle(
                             fontFamily = LantingheiTcHeavy,
-                            fontSize = if (compact) 66.sp else 112.sp,
-                            lineHeight = if (compact) 68.sp else 112.sp,
+                            fontSize = numberFontSize,
+                            lineHeight = numberFontSize,
                             fontWeight = FontWeight.Black,
                             color = contentColor,
                         ),
                         maxLines = 1,
+                        softWrap = false,
                     )
                     Text(
                         text = config.countdownUnit,
                         modifier = Modifier.padding(
-                            start = if (compact) 8.dp else 11.dp,
-                            bottom = if (compact) 7.dp else 15.dp,
+                            start = unitStartPadding,
+                            bottom = unitBottomPadding,
                         ),
                         color = contentColor,
-                        fontSize = if (compact) 17.sp else 25.sp,
+                        fontSize = unitFontSize,
                         fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
                 Spacer(Modifier.weight(1f))
                 TemplateDivider(showDot = false, compact = compact, color = lineColor)
-                Spacer(Modifier.height(if (compact) 12.dp else 18.dp))
+                Spacer(Modifier.height(sectionGap))
                 TemplateDateRow(
                     dateLabel = fields.startTimeLabel,
                     dateIcon = travelIconVector(config.dateIcon),
@@ -1253,6 +1336,8 @@ private fun MinimalBadge(
                 color = Color(0xFF5F5044),
                 fontSize = if (compact) 10.sp else 13.sp,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1310,13 +1395,31 @@ private fun SunsetTravelCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(if (compact) 0.84f else 1.18f)
+            .aspectRatio(if (compact) 0.84f else 1.02f)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = shape,
         color = Color.Transparent,
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.86f)),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // 尺寸随卡片宽度缩放，小卡与大卡共用同一套比例，避免写死。
+            val cardWidth = maxWidth.value
+            val horizontalPadding = (cardWidth * 0.08f).coerceIn(12f, 26f).dp
+            val verticalPadding = (cardWidth * 0.075f).coerceIn(11f, 22f).dp
+            val titleFontSize = (cardWidth * 0.09f).coerceIn(15f, 28f).sp
+            val metaFontSize = (cardWidth * 0.052f).coerceIn(9f, 11f).sp
+            val metaGap = (cardWidth * 0.028f).coerceIn(3f, 10f).dp
+            val noMetaGap = (cardWidth * 0.046f).coerceIn(6f, 16f).dp
+            val titleGap = (cardWidth * 0.04f).coerceIn(6f, 12f).dp
+            val dividerGap = (cardWidth * 0.02f).coerceIn(3f, 7f).dp
+            val footerGap = (cardWidth * 0.034f).coerceIn(4f, 12f).dp
+            val unitFontSize = (cardWidth * 0.07f).coerceIn(13f, 22f).sp
+            val digitFactor = when (countdown.amount.toString().length) {
+                1, 2, 3 -> 1f
+                4 -> 0.8f
+                else -> 0.66f
+            }
+            val numberFontSize = (cardWidth * 0.27f * digitFactor).coerceIn(40f, 96f).sp
             Image(
                 painter = painterResource(com.cch.momentmark.R.drawable.tokyo_sunset_soft),
                 contentDescription = null,
@@ -1339,10 +1442,7 @@ private fun SunsetTravelCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        horizontal = if (compact) 14.dp else 24.dp,
-                        vertical = if (compact) 13.dp else 22.dp,
-                    ),
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding),
             ) {
                 TemplateBadge(
                     fields.subtitle,
@@ -1351,56 +1451,60 @@ private fun SunsetTravelCard(
                     glass = true,
                 )
                 if (fields.groupLabel.isNotBlank()) {
-                    Spacer(Modifier.height(if (compact) 5.dp else 10.dp))
+                    Spacer(Modifier.height(metaGap))
                     Text(
                         text = fields.groupLabel,
                         color = Color(0xFF8E7480),
-                        fontSize = if (compact) 9.sp else 11.sp,
+                        fontSize = metaFontSize,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
+                    Spacer(Modifier.height(metaGap * 0.6f))
                 } else {
-                    Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
+                    Spacer(Modifier.height(noMetaGap))
                 }
                 Text(
                     text = fields.title,
                     color = Color(0xFF5C4C58),
-                    fontSize = if (compact) 17.sp else 28.sp,
+                    fontSize = titleFontSize,
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
                 )
-                Spacer(Modifier.height(if (compact) 7.dp else 12.dp))
+                Spacer(Modifier.height(titleGap))
                 TemplateDivider(showDot = true, compact = compact, color = Color.White.copy(alpha = 0.58f))
-                Spacer(Modifier.height(if (compact) 3.dp else 7.dp))
+                Spacer(Modifier.height(dividerGap))
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = countdown.amount.toString(),
                         style = TextStyle(
                             fontFamily = LantingheiTcHeavy,
-                            fontSize = if (compact) 44.sp else 96.sp,
-                            lineHeight = if (compact) 44.sp else 96.sp,
+                            fontSize = numberFontSize,
+                            lineHeight = numberFontSize,
                             fontWeight = FontWeight.Light,
                             brush = Brush.horizontalGradient(
                                 listOf(Color(0xFF5B536C), Color(0xFFD08080)),
                             ),
                         ),
                         maxLines = 1,
+                        softWrap = false,
                     )
                     Text(
                         text = config.countdownUnit,
                         modifier = Modifier.padding(
-                            start = 7.dp,
-                            bottom = if (compact) 5.dp else 12.dp,
+                            start = footerGap * 0.6f,
+                            bottom = footerGap,
                         ),
                         color = Color(0xFFB56F75),
-                        fontSize = if (compact) 15.sp else 22.sp,
+                        fontSize = unitFontSize,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
                 Spacer(Modifier.weight(1f))
                 TemplateDivider(showDot = false, compact = compact, color = Color.White.copy(alpha = 0.58f))
-                Spacer(Modifier.height(if (compact) 5.dp else 12.dp))
+                Spacer(Modifier.height(footerGap))
                 TemplateDateRow(
                     dateLabel = fields.startTimeLabel,
                     dateIcon = travelIconVector(config.dateIcon),
@@ -1451,6 +1555,8 @@ private fun TemplateBadge(
                 color = if (glass) Color(0xFF5C4C58) else TravelChocolate,
                 fontSize = if (compact) 11.sp else 14.sp,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1578,7 +1684,7 @@ private fun TravelCountdownCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(if (config.size == TravelCardSize.WIDE) 1.18f else 0.84f)
+            .aspectRatio(if (config.size == TravelCardSize.WIDE) 1.02f else 0.84f)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = TravelCardShape,
         color = TravelCardBackground,
@@ -1631,51 +1737,62 @@ private fun WideTravelCardContent(
     badgeIcon: androidx.compose.ui.graphics.vector.ImageVector,
     dateIcon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 19.dp),
-    ) {
-        TravelTapeBadge(fields.subtitle, badgeIcon)
-        Spacer(Modifier.height(6.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(34.dp)) {
-            Text(
-                text = fields.title,
-                modifier = Modifier.fillMaxWidth(),
-                color = TravelTextColor,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // 尺寸随卡片宽度缩放，宽屏大卡不会出现写死字号导致的空旷或溢出。
+        val cardWidth = maxWidth.value
+        val horizontalPadding = (cardWidth * 0.057f).coerceIn(16f, 24f).dp
+        val verticalPadding = (cardWidth * 0.055f).coerceIn(14f, 20f).dp
+        val titleFontSize = (cardWidth * 0.074f).coerceIn(20f, 28f).sp
+        val titleRowHeight = (cardWidth * 0.097f).coerceIn(28f, 38f).dp
+        val rowGap = (cardWidth * 0.02f).coerceIn(5f, 8f).dp
+        val waveHeight = (cardWidth * 0.034f).coerceIn(10f, 14f).dp
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        ) {
+            TravelTapeBadge(fields.subtitle, badgeIcon)
+            Spacer(Modifier.height(rowGap * 0.75f))
+            Box(modifier = Modifier.fillMaxWidth().height(titleRowHeight)) {
+                Text(
+                    text = fields.title,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = TravelTextColor,
+                    fontSize = titleFontSize,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    softWrap = false,
+                )
+                Text(
+                    text = "♥",
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 18.dp),
+                    color = TravelPink,
+                    fontSize = 13.sp,
+                )
+                Text(
+                    text = "〰",
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 22.dp),
+                    color = TravelPink.copy(alpha = 0.75f),
+                    fontSize = 17.sp,
+                )
+            }
+            HandDrawnWave(modifier = Modifier.fillMaxWidth().height(waveHeight))
+            Spacer(Modifier.height(rowGap))
+            TravelCountdownPanel(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                countdown = countdown,
+                unit = config.countdownUnit,
+                compact = false,
             )
-            Text(
-                text = "♥",
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 18.dp),
-                color = TravelPink,
-                fontSize = 13.sp,
-            )
-            Text(
-                text = "〰",
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 22.dp),
-                color = TravelPink.copy(alpha = 0.75f),
-                fontSize = 17.sp,
+            Spacer(Modifier.height(rowGap))
+            TravelDateSticker(
+                dateLabel = fields.startTimeLabel,
+                dateIcon = dateIcon,
+                compact = false,
             )
         }
-        HandDrawnWave(modifier = Modifier.fillMaxWidth().height(12.dp))
-        Spacer(Modifier.height(7.dp))
-        TravelCountdownPanel(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            countdown = countdown,
-            unit = config.countdownUnit,
-            compact = false,
-        )
-        Spacer(Modifier.height(7.dp))
-        TravelDateSticker(
-            dateLabel = fields.startTimeLabel,
-            dateIcon = dateIcon,
-            compact = false,
-        )
     }
 }
 
@@ -1687,37 +1804,47 @@ private fun SmallTravelCardContent(
     badgeIcon: androidx.compose.ui.graphics.vector.ImageVector,
     dateIcon: androidx.compose.ui.graphics.vector.ImageVector,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 11.dp, vertical = 10.dp),
-    ) {
-        TravelTapeBadge(fields.subtitle, badgeIcon, compact = true)
-        Spacer(Modifier.height(3.dp))
-        Text(
-            text = fields.title,
-            modifier = Modifier.fillMaxWidth(),
-            color = TravelTextColor,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        HandDrawnWave(modifier = Modifier.fillMaxWidth().height(8.dp), compact = true)
-        Spacer(Modifier.height(3.dp))
-        TravelCountdownPanel(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            countdown = countdown,
-            unit = config.countdownUnit,
-            compact = true,
-        )
-        Spacer(Modifier.height(3.dp))
-        TravelDateSticker(
-            dateLabel = fields.startTimeLabel,
-            dateIcon = dateIcon,
-            compact = true,
-        )
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // 小卡内容同样按宽度缩放，窄屏设备上不会溢出或换行。
+        val cardWidth = maxWidth.value
+        val horizontalPadding = (cardWidth * 0.063f).coerceIn(8f, 14f).dp
+        val verticalPadding = (cardWidth * 0.057f).coerceIn(8f, 12f).dp
+        val titleFontSize = (cardWidth * 0.086f).coerceIn(12f, 17f).sp
+        val rowGap = (cardWidth * 0.017f).coerceIn(2f, 4f).dp
+        val waveHeight = (cardWidth * 0.046f).coerceIn(6f, 9f).dp
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        ) {
+            TravelTapeBadge(fields.subtitle, badgeIcon, compact = true)
+            Spacer(Modifier.height(rowGap))
+            Text(
+                text = fields.title,
+                modifier = Modifier.fillMaxWidth(),
+                color = TravelTextColor,
+                fontSize = titleFontSize,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = false,
+            )
+            HandDrawnWave(modifier = Modifier.fillMaxWidth().height(waveHeight), compact = true)
+            Spacer(Modifier.height(rowGap))
+            TravelCountdownPanel(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                countdown = countdown,
+                unit = config.countdownUnit,
+                compact = true,
+            )
+            Spacer(Modifier.height(rowGap))
+            TravelDateSticker(
+                dateLabel = fields.startTimeLabel,
+                dateIcon = dateIcon,
+                compact = true,
+            )
+        }
     }
 }
 
@@ -1772,6 +1899,8 @@ private fun TravelTapeBadge(
                 color = Color.White,
                 fontSize = if (compact) 10.sp else 13.sp,
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1837,10 +1966,16 @@ private fun TravelCountdownPanel(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
+            // 位数越多数字越收敛，倒计时永远单行完整展示在面板内。
+            val digitFactor = when (countdown.amount.toString().length) {
+                1, 2, 3 -> 1f
+                4 -> 0.8f
+                else -> 0.66f
+            }
             val numberSize = if (compact) {
-                (maxWidth.value * 0.28f).coerceIn(38f, 50f).sp
+                (maxWidth.value * 0.28f * digitFactor).coerceIn(38f, 50f).sp
             } else {
-                (maxWidth.value * 0.29f).coerceIn(78f, 116f).sp
+                (maxWidth.value * 0.29f * digitFactor).coerceIn(78f, 116f).sp
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -1851,6 +1986,8 @@ private fun TravelCountdownPanel(
                     color = TravelMutedColor,
                     fontSize = if (compact) 9.sp else 12.sp,
                     fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
@@ -1863,6 +2000,7 @@ private fun TravelCountdownPanel(
                             color = TravelPink,
                         ),
                         maxLines = 1,
+                        softWrap = false,
                     )
                     Text(
                         text = unit,
@@ -1873,6 +2011,8 @@ private fun TravelCountdownPanel(
                         color = TravelPink,
                         fontSize = if (compact) 14.sp else 23.sp,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
             }
@@ -2201,9 +2341,11 @@ private fun ClassicEventCard(
             .fillMaxWidth()
             .aspectRatio(
                 when (event.travelCardConfig?.size) {
-                    TravelCardSize.WIDE -> 1.18f
+                    TravelCardSize.WIDE -> 1.02f
+                    // 无旅行配置的普通事件默认落在单列小卡槽位，比例与小卡一致，
+                    // 不再出现 1.28 的扁平比例。
                     TravelCardSize.SMALL -> 0.90f
-                    null -> 1.28f
+                    null -> 0.90f
                 },
             )
             .then(
@@ -2216,82 +2358,102 @@ private fun ClassicEventCard(
         shape = RoundedCornerShape(18.dp),
         color = palette.body,
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .background(palette.header)
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // 头部高度与内边距随卡片宽度缩放，大小卡共用同一比例。
+            val cardWidth = maxWidth.value
+            val headerHeight = (cardWidth * 0.125f).coerceIn(38f, 52f).dp
+            val headerPadding = (cardWidth * 0.09f).coerceIn(10f, 20f).dp
+            Column(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(headerHeight)
+                        .background(palette.header)
+                        .padding(horizontal = headerPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = event.icon,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.headerContent,
+                            maxLines = 1,
+                        )
+                        Spacer(Modifier.width(headerPadding * 0.5f))
+                        Text(
+                            text = fields.title,
+                            // 标题占据剩余空间并省略，状态词永远不会被挤出屏幕。
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.headerContent,
+                        )
+                        Spacer(Modifier.width(headerPadding * 0.5f))
+                        Text(
+                            text = statusWord,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.headerContent,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                }
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(palette.body)
+                        .weight(1f)
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // 位数越多数字越收敛；宽卡上字号随宽度放大，不再写死 38sp。
+                    val digitFactor = when (amount.length) {
+                        1, 2, 3 -> 1f
+                        4 -> 0.85f
+                        else -> 0.72f
+                    }
+                    val baseFontSize = when {
+                        maxWidth < 120.dp -> 26f
+                        maxWidth < 170.dp -> 32f
+                        else -> (maxWidth.value * 0.115f).coerceIn(38f, 56f)
+                    }
+                    Text(
+                        text = amount,
+                        fontFamily = LantingheiTcHeavy,
+                        fontSize = (baseFontSize * digitFactor).sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.bodyContent,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                        softWrap = false,
+                    )
+                }
                 Row(
-                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(palette.footer)
+                        .padding(horizontal = headerPadding, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = event.icon,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.headerContent,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = fields.title,
+                        text = fields.startTimeLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.footerContent,
+                        textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = palette.headerContent,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = statusWord,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.headerContent,
+                        softWrap = false,
                     )
                 }
-            }
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(palette.body)
-                    .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                val timeFontSize = when {
-                    maxWidth < 120.dp -> 26.sp
-                    maxWidth < 170.dp -> 32.sp
-                    else -> 38.sp
-                }
-                Text(
-                    text = amount,
-                    fontFamily = LantingheiTcHeavy,
-                    fontSize = timeFontSize,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.bodyContent,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(palette.footer)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = fields.startTimeLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.footerContent,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
@@ -2737,21 +2899,14 @@ internal fun EventSettingsScreen(
         }
     }
     if (showDeleteConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("删除这个事件？") },
-            text = { Text("事件会移入回收状态，不再显示在首页。") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirmation = false
-                        onDelete()
-                    },
-                ) { Text("删除") }
+        DeleteConfirmationDialog(
+            title = "删除这个事件？",
+            message = "事件会移入回收状态，不再显示在首页。",
+            onConfirm = {
+                showDeleteConfirmation = false
+                onDelete()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) { Text("取消") }
-            },
+            onDismiss = { showDeleteConfirmation = false },
         )
     }
 }
@@ -2823,6 +2978,61 @@ internal fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             TextButton(onClick = onBack) { Text("返回首页") }
+        }
+    }
+}
+
+private val UndoToastSurface = Color(0xFFFFFCF9)
+private val UndoToastInk = Color(0xFF4F4036)
+private val UndoToastMuted = Color(0xFF9E8D7D)
+private val UndoToastAccent = Color(0xFFCC6B4F)
+private val UndoToastLine = Color(0xFFE9DCD0)
+private val UndoToastFont = FontFamily(
+    Font(com.cch.momentmark.R.font.noto_serif_sc_vf, FontWeight.Normal),
+)
+
+@Composable
+private fun UndoDeleteToast(
+    modifier: Modifier = Modifier,
+    onUndo: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(UndoToastSurface)
+            .border(0.5.dp, UndoToastLine, RoundedCornerShape(20.dp))
+            .padding(horizontal = 20.dp, vertical = 13.dp)
+            .semantics {
+                contentDescription = "事件已删除，可撤销"
+            },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            "事件已删除",
+            fontFamily = UndoToastFont,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Normal,
+            color = UndoToastInk,
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .border(0.5.dp, UndoToastLine, RoundedCornerShape(12.dp))
+                .clickable(onClick = onUndo)
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "撤销删除"
+                },
+        ) {
+            Text(
+                "撤销",
+                fontFamily = UndoToastFont,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = UndoToastAccent,
+            )
         }
     }
 }

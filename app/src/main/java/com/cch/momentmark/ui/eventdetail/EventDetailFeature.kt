@@ -49,7 +49,6 @@ import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -107,6 +106,7 @@ import com.cch.momentmark.domain.time.EventTimeStatus
 import com.cch.momentmark.domain.time.InterestingCard
 import com.cch.momentmark.domain.time.TimeInterestingGenerator
 import com.cch.momentmark.utils.BackgroundManager
+import com.cch.momentmark.ui.components.DeleteConfirmationDialog
 import com.cch.momentmark.ui.home.HomeHeroScenes
 import java.time.Clock
 import java.time.LocalDate
@@ -572,19 +572,14 @@ fun RelatedCountdownEditorFeature(
     }
 
     if (showDeleteConfirmation && item != null && onDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("删除小倒计时？") },
-            text = { Text("删除后只会从当前事件详情页移除，不影响主事件。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteConfirmation = false
-                    onDelete()
-                }) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
-                }
+        DeleteConfirmationDialog(
+            title = "删除小倒计时？",
+            message = "删除后只会从当前事件详情页移除，不影响主事件。",
+            onConfirm = {
+                showDeleteConfirmation = false
+                onDelete()
             },
-            dismissButton = { TextButton(onClick = { showDeleteConfirmation = false }) { Text("取消") } },
+            onDismiss = { showDeleteConfirmation = false },
         )
     }
 }

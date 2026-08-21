@@ -49,6 +49,8 @@ class HomeScreenAccessibilityTest {
                         selectedGroup = null,
                         templateOverrides = emptyMap(),
                         travelConfigOverrides = emptyMap(),
+                        isLayoutEditing = false,
+                        onLayoutEditingChange = {},
                         onOpenGroups = {},
                         onOpenSettings = {},
                         onOpenCreateEvent = {},
