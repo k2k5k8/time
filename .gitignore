@@ -16,3 +16,6 @@ outputs/
 
 # ZCode local workspace
 .zcode/
+
+# 已归档的旧方案文档（git 历史中仍可找回）
+nouse/
