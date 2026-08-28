@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 M · 地铁线路图 — 刻间设计语言提案</title>
+<style>
+  :root{
+    --bg:#F8F8F4; --bg-2:#F0F0EA;
+    --panel:#FFFFFF;
+    --ink:#1F2430; --ink-2:#5C6470; --ink-3:#9AA1AB;
+    --line-bg:#E7E7E0;
+    /* 线路色（= 分组） */
+    --l-red:#E4467B; --l-blue:#2E86DE; --l-green:#27AE60; --l-orange:#F39C12; --l-purple:#8E5BD9;
+    --r-card:12px; --r-sheet:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bg),var(--bg-2));
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+    color:var(--ink);padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;background:var(--ink);color:#fff;font-size:12px;font-weight:700;letter-spacing:.3em;padding:6px 14px 6px 18px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:800;letter-spacing:-.01em}
+  h1 .en{display:block;font-size:12px;letter-spacing:.45em;color:var(--ink-3);font-weight:600;margin-top:8px}
+  .positioning{font-size:18px;color:var(--ink-2);margin-top:14px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--panel);border:1px solid var(--line-bg);border-radius:999px;padding:7px 16px;font-size:13px;color:var(--ink-2)}
+
+  section{margin-top:56px}
+  h2{font-size:13px;letter-spacing:.4em;color:var(--ink-3);text-align:center;margin-bottom:28px;font-weight:700}
+  h2::before,h2::after{content:"—";margin:0 12px;color:var(--line-bg)}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:44px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid #1F2430;box-shadow:0 20px 50px rgba(31,36,48,.25);
+    background:var(--bg);
+  }
+  .phone.night{background:#101318}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--ink-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 24px 6px;font-size:12px;color:var(--ink-2)}
+  .night .statusbar{color:#7A828E}
+
+  /* 线路 Hero：下一站 */
+  .hero{padding:18px 18px 0;text-align:center}
+  .hero .roundel{display:inline-flex;align-items:center;gap:10px;margin-bottom:8px}
+  .hero .roundel .ring{width:30px;height:30px;border-radius:50%;border:3.5px solid var(--l-blue);display:flex;align-items:center;justify-content:center}
+  .hero .roundel .ring i{width:11px;height:11px;border-radius:50%;background:var(--l-blue)}
+  .hero .roundel .name{font-size:13px;font-weight:800;letter-spacing:.2em}
+  .hero .next{font-size:11px;color:var(--ink-3);letter-spacing:.35em;margin-top:2px}
+  .hero .num{font-size:84px;font-weight:800;letter-spacing:-.03em;line-height:1.02;color:var(--l-blue)}
+  .hero .num small{font-size:18px;font-weight:700;color:var(--ink-2);letter-spacing:0;margin-left:6px}
+  .hero .title{font-size:15px;font-weight:700;margin-top:2px}
+  /* 线路带站点 */
+  .metroline{position:relative;height:44px;margin:14px 10px 0}
+  .metroline .rail{position:absolute;left:8px;right:8px;top:50%;height:7px;transform:translateY(-50%);border-radius:4px;
+    background:linear-gradient(90deg,var(--l-red) 0 34%,var(--l-blue) 34% 100%)}
+  .metroline .st{position:absolute;top:50%;transform:translate(-50%,-50%);width:15px;height:15px;border-radius:50%;background:#fff;border:4px solid var(--l-red)}
+  .metroline .st.b{border-color:var(--l-blue)}
+  .metroline .st.now{width:21px;height:21px;border:5px solid var(--l-blue);box-shadow:0 0 0 4px rgba(46,134,222,.25)}
+  .metroline .lb{position:absolute;top:100%;margin-top:5px;font-size:8px;color:var(--ink-3);transform:translateX(-50%);white-space:nowrap}
+
+  .cards{padding:18px 16px 0;display:flex;flex-direction:column;gap:10px}
+  .station{background:var(--panel);border-radius:var(--r-card);padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(31,36,48,.06)}
+  .station .bar{width:7px;align-self:stretch;border-radius:4px}
+  .station .dotc{width:17px;height:17px;border-radius:50%;background:#fff;border:5px solid currentColor;flex:none}
+  .station .info{flex:1;min-width:0}
+  .station .name{font-size:14px;font-weight:700}
+  .station .route{font-size:9px;color:var(--ink-3);margin-top:2px;letter-spacing:.05em}
+  .station .eta{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .station .eta small{font-size:10px;color:var(--ink-2);font-weight:700}
+  .station .inter{font-size:8px;font-weight:800;color:var(--l-orange);border:1.2px solid var(--l-orange);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:2px;letter-spacing:.05em}
+
+  .nav{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:0;padding:8px 30px 22px}
+  .nav .rail{position:relative;flex:1;height:6px;background:var(--line-bg);border-radius:3px}
+  .night .nav .rail{background:#2A3038}
+  .nav .stop{width:56px;text-align:center;position:relative;z-index:1}
+  .nav .stop .nd{width:16px;height:16px;border-radius:50%;background:var(--panel);border:4px solid var(--ink-3);margin:0 auto}
+  .nav .stop.on .nd{border-color:var(--l-blue);box-shadow:0 0 0 4px rgba(46,134,222,.2)}
+  .nav .stop .nl{font-size:10px;margin-top:4px;color:var(--ink-3);font-weight:700}
+  .nav .stop.on .nl{color:var(--l-blue)}
+  .nav .plus{width:46px;height:46px;border-radius:50%;background:var(--l-blue);color:#fff;font-size:23px;display:flex;align-items:center;justify-content:center;margin:0 14px -8px;box-shadow:0 6px 16px rgba(46,134,222,.4)}
+
+  /* 夜间时刻表 */
+  .cal{padding:12px 18px 0;flex:1}
+  .cal .timetable{background:#171C23;border-radius:var(--r-sheet);padding:14px 16px 12px;height:100%;box-shadow:inset 0 0 0 1px #242B35}
+  .cal .month{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 10px;border-bottom:1px solid #2A323D}
+  .cal .month .m{font-size:21px;font-weight:800;color:#ECF0F4}
+  .cal .month .meta{font-size:9px;color:#7A828E;letter-spacing:.2em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;color:#7A828E;margin:10px 0 4px;font-weight:700}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:5px}
+  .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:#B8C0CB;border-radius:8px;position:relative;font-weight:500}
+  .day.dim{color:#39424E}
+  .day.today{background:var(--l-blue);color:#fff;font-weight:800}
+  .day .dotm{position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%}
+  .dep{margin:12px 2px 0;border-top:1px solid #2A323D;padding-top:9px}
+  .dep .h{font-size:9px;letter-spacing:.3em;color:#7A828E;margin-bottom:4px;font-weight:700}
+  .dep .row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #242B35}
+  .dep .time{font-size:13px;font-weight:700;color:#ECF0F4;width:44px}
+  .dep .dest{flex:1;font-size:13px;color:#C4CBD4}
+  .dep .plat{font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--panel);border-radius:var(--r-sheet);padding:26px 30px;min-width:320px;box-shadow:0 3px 12px rgba(31,36,48,.08)}
+  .comp-card h3{font-size:11px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:700}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer;margin:0 8px 10px 0;border-radius:999px}
+  .btn.primary{background:var(--l-blue);color:#fff}
+  .btn.ghost{border:1.5px solid var(--line-bg);color:var(--ink-2)}
+  .linechips{display:flex;gap:8px;margin-top:6px}
+  .lchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink-2);border:1.5px solid var(--line-bg);border-radius:999px;padding:6px 14px}
+  .lchip i{width:9px;height:9px;border-radius:50%}
+  .toast{margin-top:14px;background:var(--ink);color:#fff;border-radius:12px;padding:12px 18px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:#7EB5F5;font-weight:700}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:52px;height:52px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(31,36,48,.1)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border-radius:var(--r-sheet);padding:28px 32px;box-shadow:0 3px 12px rgba(31,36,48,.08)}
+  .panel h3{font-size:12px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:18px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-3);font-weight:700;padding:6px 8px;border-bottom:1.5px solid var(--line-bg);font-size:11px;letter-spacing:.08em}
+  td{padding:8px;border-bottom:1px solid #F0F0EA;color:var(--ink-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;border-radius:50%;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(31,36,48,.12)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid #F0F0EA}
+  .type-row .meta{width:200px;font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0F0EA;font-size:13px;color:var(--ink-2)}
+  .motion-row b{color:var(--ink);font-weight:700}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--ink-3);letter-spacing:.25em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 M</div>
+    <h1>地铁线路图<span class="en mono">METRO MAP · NEXT STOP</span></h1>
+    <p class="positioning">"人生是一条条线路，每个期待的日子都是途中一站。"</p>
+    <div class="chips">
+      <span class="chip">分组=线路色</span><span class="chip">事件=站点</span><span class="chip">下一站播报</span>
+      <span class="chip">换乘标记</span><span class="chip">圆标 Roundel</span><span class="chip">时刻表日历</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左线路首页 · 右夜间时刻表月历）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">LINE MAP · AM 9:41</span></div>
+        <div class="hero">
+          <div class="roundel"><span class="ring"><i></i></span><span class="name">刻间线 MOMENT LINE</span></div>
+          <div class="next mono">下一站 · NEXT STOP</div>
+          <div class="num">148<small>天后到站</small></div>
+          <div class="title">春节 · 回家的日子</div>
+        </div>
+        <div class="metroline">
+          <span class="rail"></span>
+          <span class="st" style="left:12%"></span><span class="lb" style="left:12%">已过站</span>
+          <span class="st" style="left:34%"></span><span class="lb" style="left:34%">夏天结束</span>
+          <span class="st now b" style="left:50%"></span><span class="lb" style="left:50%;color:var(--l-blue);font-weight:800">今天</span>
+          <span class="st b" style="left:72%"></span><span class="lb" style="left:72%">演唱会</span>
+          <span class="st b" style="left:90%"></span><span class="lb" style="left:90%">春节</span>
+        </div>
+        <div class="cards">
+          <div class="station">
+            <span class="bar" style="background:var(--l-blue)"></span>
+            <span class="dotc" style="color:var(--l-blue)"></span>
+            <div class="info"><div class="name">考研初试<span class="inter">换乘·置顶</span></div><div class="route mono">学业线 → 考场站 · 2026.12.19</div></div>
+            <div class="eta" style="color:var(--l-blue)">96<small> 站·天</small></div>
+          </div>
+          <div class="station">
+            <span class="bar" style="background:var(--l-red)"></span>
+            <span class="dotc" style="color:var(--l-red)"></span>
+            <div class="info"><div class="name">演唱会</div><div class="route mono">生活线 → 体育馆站 · 2026.09.20</div></div>
+            <div class="eta" style="color:var(--l-red)">32<small> 站·天</small></div>
+          </div>
+          <div class="station">
+            <span class="bar" style="background:var(--l-green)"></span>
+            <span class="dotc" style="color:var(--l-green)"></span>
+            <div class="info"><div class="name">毕业旅行 · 东京</div><div class="route mono">旅行线 → 羽田机场站 · 2027.03.28</div></div>
+            <div class="eta" style="color:var(--l-green)">214<small> 站·天</small></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="stop on"><div class="nd"></div><div class="nl">大事件</div></div>
+          <div class="rail"></div>
+          <div class="plus">+</div>
+          <div class="rail"></div>
+          <div class="stop"><div class="nd"></div><div class="nl">日子簿</div></div>
+        </div>
+        <div class="phone-label">首页 · 分组即线路，事件即站点</div>
+      </div>
+
+      <div class="phone night">
+        <div class="statusbar"><span>9:41</span><span class="mono">TIMETABLE · NIGHT</span></div>
+        <div class="cal">
+          <div class="timetable">
+            <div class="month"><span class="m">八月 2026</span><span class="meta mono">DEPARTURES</span></div>
+            <div class="weekdays mono"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+            <div class="days">
+              <span class="day dim mono">26</span><span class="day dim mono">27</span><span class="day dim mono">28</span><span class="day dim mono">29</span><span class="day dim mono">30</span><span class="day dim mono">31</span><span class="day mono">1</span>
+              <span class="day mono">2</span><span class="day mono">3</span><span class="day mono">4</span><span class="day mono">5</span><span class="day mono">6</span><span class="day mono">7</span><span class="day mono">8</span>
+              <span class="day mono">9</span><span class="day mono">10</span><span class="day mono">11</span><span class="day today mono">12</span><span class="day mono">13</span><span class="day mono">14</span><span class="day mono">15</span>
+              <span class="day mono">16<i class="dotm" style="background:var(--l-purple)"></i></span><span class="day mono">17</span><span class="day mono">18</span><span class="day mono">19</span><span class="day mono">20<i class="dotm" style="background:var(--l-orange)"></i></span><span class="day mono">21</span><span class="day mono">22</span>
+              <span class="day mono">23</span><span class="day mono">24</span><span class="day mono">25</span><span class="day mono">26<i class="dotm" style="background:var(--l-blue)"></i></span><span class="day mono">27</span><span class="day mono">28</span><span class="day mono">29</span>
+              <span class="day mono">30</span><span class="day mono">31</span><span class="day dim mono">1</span><span class="day dim mono">2</span><span class="day dim mono">3</span><span class="day dim mono">4</span><span class="day dim mono">5</span>
+            </div>
+            <div class="dep">
+              <div class="h mono">▸ 08.12 WED · 当日发车</div>
+              <div class="row"><span class="time mono">全天</span><span class="dest">七夕节 · 节日专列</span><span class="plat mono" style="color:var(--l-purple);border:1.2px solid var(--l-purple)">FEST</span></div>
+              <div class="row"><span class="time mono">08:00</span><span class="dest">英语六级出分</span><span class="plat mono" style="color:var(--l-orange);border:1.2px solid var(--l-orange)">P2</span></div>
+              <div class="row"><span class="time mono">＋ </span><span class="dest" style="color:#7A828E">新增一条记录…</span><span class="plat mono" style="color:var(--l-blue);border:1.2px solid var(--l-blue)">NEW</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="stop"><div class="nd"></div><div class="nl" style="color:#7A828E">大事件</div></div>
+          <div class="rail"></div>
+          <div class="plus">+</div>
+          <div class="rail"></div>
+          <div class="stop on"><div class="nd"></div><div class="nl">日子簿</div></div>
+        </div>
+        <div class="phone-label">日子簿 · 夜间发车时刻表</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 线路筛选 · 撤销</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn ghost">次操作</span>
+        </div>
+        <div class="linechips">
+          <span class="lchip"><i style="background:var(--l-blue)"></i>学业</span>
+          <span class="lchip"><i style="background:var(--l-red)"></i>生活</span>
+          <span class="lchip"><i style="background:var(--l-green)"></i>旅行</span>
+          <span class="lchip"><i style="background:var(--l-orange)"></i>工作</span>
+        </div>
+        <div class="toast"><span>「演唱会」站已从线路移除</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板（地铁图经典五线）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#F8F8F4" title="底"></span>
+          <span class="swatch" style="background:#FFFFFF" title="站面"></span>
+          <span class="swatch" style="background:#1F2430" title="墨"></span>
+          <span class="swatch" style="background:#2E86DE" title="学业蓝"></span>
+          <span class="swatch" style="background:#E4467B" title="生活红"></span>
+          <span class="swatch" style="background:#27AE60" title="旅行绿"></span>
+          <span class="swatch" style="background:#F39C12" title="工作橙"></span>
+          <span class="swatch" style="background:#8E5BD9" title="节日紫"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>浅色</th><th>深色</th></tr>
+          <tr><td><span class="c-well" style="background:#F8F8F4"></span>页面底（图板白）</td><td class="hex">#F8F8F4</td><td class="hex">#101318</td></tr>
+          <tr><td><span class="c-well" style="background:#FFFFFF"></span>卡片 / 站面</td><td class="hex">#FFFFFF</td><td class="hex">#171C23</td></tr>
+          <tr><td><span class="c-well" style="background:#1F2430"></span>文字 · 主</td><td class="hex">#1F2430</td><td class="hex">#ECF0F4</td></tr>
+          <tr><td><span class="c-well" style="background:#5C6470"></span>文字 · 次</td><td class="hex">#5C6470</td><td class="hex">#7A828E</td></tr>
+          <tr><td><span class="c-well" style="background:#2E86DE"></span>线路色 · 学业（默认主色）</td><td class="hex">#2E86DE</td><td class="hex">#5CA0F2</td></tr>
+          <tr><td><span class="c-well" style="background:#E4467B"></span>线路色 · 生活</td><td class="hex">#E4467B</td><td class="hex">#F06E9B</td></tr>
+          <tr><td><span class="c-well" style="background:#27AE60"></span>线路色 · 旅行</td><td class="hex">#27AE60</td><td class="hex">#4DC585</td></tr>
+          <tr><td><span class="c-well" style="background:#F39C12"></span>线路色 · 工作</td><td class="hex">#F39C12</td><td class="hex">#F7B03F</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（导视系统风）</h3>
+        <div class="type-row"><span class="meta">display / 84sp / extrabold</span><span style="font-size:42px;font-weight:800;color:#2E86DE">148</span></div>
+        <div class="type-row"><span class="meta">station-title / 14sp / bold</span><span style="font-size:14px;font-weight:700">考研初试</span></div>
+        <div class="type-row"><span class="meta">route-label / 9sp / mono</span><span class="mono" style="font-size:9px;color:#9AA1AB;letter-spacing:.05em">学业线 → 考场站 · 2026.12.19</span></div>
+        <div class="type-row"><span class="meta">announce / 11sp / 宽字距</span><span class="mono" style="font-size:11px;letter-spacing:.35em;color:#9AA1AB">下一站 · NEXT STOP</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与导视元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">12dp</td><td>站点卡</td></tr>
+          <tr><td class="hex">line_thickness</td><td class="hex">7dp 圆头线</td><td>线路轨</td></tr>
+          <tr><td class="hex">station_dot</td><td class="hex">17dp 白芯 + 5dp 线路色环</td><td>普通站</td></tr>
+          <tr><td class="hex">current_dot</td><td class="hex">21dp + 4dp 光环</td><td>今天/当前选中</td></tr>
+          <tr><td class="hex">roundel</td><td class="hex">30dp 双环圆标</td><td>品牌/线路标识</td></tr>
+          <tr><td class="hex">interchange</td><td class="hex">换乘框徽章（置顶事件）</td><td>跨分组事件</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>阴影</span><b>轻（2dp），图板平面感</b></div>
+        <div class="motion-row"><span>列车到站</span><b>日期临近：站点光环脉冲（周期 2s）</b></div>
+        <div class="motion-row"><span>页面切换</span><b>线路"行驶"过渡 350ms</b></div>
+        <div class="motion-row"><span>新事件入场</span><b>新站点"钉入"线路 300ms</b></div>
+        <div class="motion-row"><span>删除动效</span><b>站点从线路摘除，线路愈合</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>线路色严格绑定分组语义</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 M · 地铁线路图叙事</footer>
+</div>
+</body>
+</html>

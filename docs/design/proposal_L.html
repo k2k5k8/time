@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 L · 蓝图制图 — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 晒图蓝（主模式） */
+    --bp:#0F2E55; --bp-2:#0B2545;
+    --line:#BFD7F2;                 /* 图线 */
+    --line-dim:rgba(191,215,242,.34);
+    --grid:rgba(191,215,242,.08);
+    --grid-major:rgba(191,215,242,.16);
+    --text:#E3EEFB; --text-2:#8FABD4; --text-3:#5F7BA6;
+    --pencil-red:#FF7A6B;           /* 红笔批注 */
+    --stamp:#FFD86B;                /* 审核章 */
+    /* 昼间：绘图纸 */
+    --draft:#F6F8F6; --draft-ink:#1D4E89; --draft-2:#5E7BA6;
+    --r:0px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bp),var(--bp-2));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--text);padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:44px;position:relative}
+  .badge{display:inline-block;border:1px solid var(--line);color:var(--line);font-size:12px;letter-spacing:.4em;padding:6px 14px 6px 20px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:500;letter-spacing:.1em}
+  h1 .en{display:block;font-size:12px;letter-spacing:.5em;color:var(--text-3);font-weight:600;margin-top:8px}
+  .positioning{font-size:18px;color:var(--text-2);margin-top:14px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line-dim);border-radius:0;padding:6px 16px;font-size:13px;color:var(--text-2)}
+
+  section{margin-top:56px}
+  h2{font-size:13px;letter-spacing:.5em;color:var(--text-3);text-align:center;margin-bottom:28px}
+  h2::before,h2::after{content:"⌖";margin:0 14px;color:var(--line-dim)}
+
+  /* 尺寸标注线 */
+  .dim{position:relative;height:26px}
+  .dim .bar{position:absolute;left:0;right:0;top:12px;height:1.5px;background:var(--line)}
+  .dim .arrow-l,.dim .arrow-r{position:absolute;top:8px;font-size:14px;color:var(--line)}
+  .dim .arrow-l{left:-4px}.dim .arrow-r{right:-4px}
+  .dim .ext{position:absolute;top:4px;bottom:4px;width:1px;background:var(--line-dim)}
+  .dim .lbl{position:absolute;left:50%;top:-6px;transform:translateX(-50%);background:transparent;padding:0 10px;font-size:11px;color:var(--line);letter-spacing:.2em}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:20px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid #081B36;box-shadow:0 22px 55px rgba(0,0,0,.5);
+    background:
+      linear-gradient(180deg,var(--bp),var(--bp-2));
+  }
+  /* 图纸网格 */
+  .phone::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+      linear-gradient(var(--grid-major) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid-major) 1px,transparent 1px);
+    background-size:16px 16px,16px 16px,80px 80px,80px 80px;}
+  .phone.draft{background:var(--draft)}
+  .phone.draft::before{background-image:
+      linear-gradient(rgba(29,78,137,.08) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(29,78,137,.08) 1px,transparent 1px),
+      linear-gradient(rgba(29,78,137,.16) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(29,78,137,.16) 1px,transparent 1px);}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--text-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 22px 4px;font-size:11px;color:var(--text-2);position:relative;z-index:1}
+  .draft .statusbar{color:var(--draft-2)}
+
+  .hero{padding:20px 20px 0;position:relative;z-index:1}
+  .hero .sheet{border:1.5px solid var(--line);padding:18px 16px 12px;position:relative}
+  .hero .sheet .corner{position:absolute;width:10px;height:10px;border:1.5px solid var(--line)}
+  .hero .project{font-size:10px;letter-spacing:.3em;color:var(--text-2)}
+  .hero .num{font-size:76px;font-weight:300;letter-spacing:.01em;color:var(--text);line-height:1.05;text-align:center;margin-top:6px}
+  .hero .num small{font-size:16px;color:var(--text-2);letter-spacing:.3em;margin-left:8px}
+  .hero .title{text-align:center;font-size:14px;letter-spacing:.35em;color:var(--text);margin-top:2px}
+  .hero .dim{margin:14px 6px 2px}
+  .hero .tblock{display:flex;justify-content:space-between;margin-top:12px;padding-top:9px;border-top:1px solid var(--line-dim);font-size:8px;color:var(--text-3);letter-spacing:.1em}
+
+  .sheets{padding:12px 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;z-index:1}
+  .sheet-s{border:1px solid var(--line-dim);padding:10px 11px 9px;position:relative;background:rgba(15,46,85,.35)}
+  .draft .sheet-s{background:rgba(255,255,255,.6)}
+  .sheet-s .t{font-size:11px;color:var(--text-2);letter-spacing:.08em}
+  .sheet-s .d{font-size:26px;font-weight:300;margin-top:4px}
+  .sheet-s .d small{font-size:10px;color:var(--text-3)}
+  .sheet-s .dim2{display:flex;align-items:center;gap:5px;margin-top:7px;font-size:8px;color:var(--text-3);letter-spacing:.08em}
+  .sheet-s .dim2 .dl{flex:1;border-top:1px dashed var(--line-dim)}
+  .sheet-s.wide{grid-column:span 2;display:flex;align-items:center;justify-content:space-between}
+  .sheet-s .approved{
+    position:absolute;right:10px;top:8px;font-size:8px;font-weight:700;color:var(--stamp);
+    border:1.2px solid var(--stamp);padding:2px 6px;transform:rotate(4deg);letter-spacing:.2em;
+  }
+
+  .nav{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding:10px 24px 20px;position:relative;z-index:1;border-top:1px solid var(--line-dim)}
+  .nav .item{font-size:11px;letter-spacing:.2em;color:var(--text-3);padding:8px 16px;border:1px solid transparent}
+  .nav .item.on{color:var(--text);border:1px solid var(--line)}
+  .nav .plus{width:44px;height:44px;border:1.5px solid var(--line);color:var(--text);font-size:22px;display:flex;align-items:center;justify-content:center;margin-top:-26px;background:var(--bp)}
+
+  /* 昼间图纸月历 */
+  .cal{padding:12px 18px 0;flex:1;position:relative;z-index:1}
+  .cal .frame{border:1.5px solid var(--draft-ink);padding:12px 12px 10px;position:relative;height:100%}
+  .cal .month{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 10px;border-bottom:1.5px solid var(--draft-ink)}
+  .cal .month .m{font-size:22px;font-weight:500;color:var(--draft-ink);letter-spacing:.08em}
+  .cal .month .dwg{font-size:8px;color:var(--draft-2);letter-spacing:.2em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;color:var(--draft-2);margin:9px 0 4px;letter-spacing:.05em}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:1px}
+  .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:#33475F;border-right:1px dashed rgba(29,78,137,.18);border-bottom:1px dashed rgba(29,78,137,.18);position:relative}
+  .day:nth-child(7n){border-right:0}
+  .day.dim{color:#B4C2D4}
+  .day.today{position:relative;color:var(--draft-ink);font-weight:700}
+  .day.today::after{content:"";position:absolute;inset:3px;border:1.5px solid var(--pencil-red);border-radius:50%;transform:rotate(-4deg)}
+  .day .mark{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:10px;height:2px;background:var(--draft-ink)}
+  .bom{margin:10px 4px 0;border-top:1.5px solid var(--draft-ink);padding-top:8px}
+  .bom .h{font-size:8px;letter-spacing:.3em;color:var(--draft-2);margin-bottom:4px}
+  .bom .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed rgba(29,78,137,.2);font-size:12px;color:#2A3E58}
+  .bom .row .no{font-size:9px;color:var(--draft-2);width:34px}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{border:1.5px solid var(--line);padding:26px 30px;min-width:320px;background:rgba(15,46,85,.35)}
+  .comp-card h3{font-size:11px;letter-spacing:.35em;color:var(--text-3);margin-bottom:16px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;font-size:14px;letter-spacing:.15em;cursor:pointer;margin:0 8px 10px 0}
+  .btn.primary{background:var(--line);color:var(--bp);font-weight:600}
+  .btn.ghost{border:1px solid var(--line);color:var(--line)}
+  .btn.stamp{border:1.2px solid var(--stamp);color:var(--stamp);transform:rotate(-1deg)}
+  .seg{display:inline-flex;border:1px solid var(--line-dim)}
+  .seg span{padding:7px 16px;font-size:12px;color:var(--text-2);border-right:1px solid var(--line-dim);letter-spacing:.1em}
+  .seg span:last-child{border-right:0}
+  .seg .on{background:var(--line);color:var(--bp);font-weight:600}
+  .toast{margin-top:14px;background:#081B36;border:1px solid var(--line-dim);color:var(--text);padding:12px 16px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:var(--stamp);font-weight:600}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:54px;height:54px;box-shadow:inset 0 0 0 1px rgba(191,215,242,.3)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{border:1.5px solid var(--line);padding:28px 32px;background:rgba(15,46,85,.35)}
+  .panel h3{font-size:12px;letter-spacing:.35em;color:var(--text-3);margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--text-3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line-dim);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid rgba(191,215,242,.10);color:var(--text-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text)}
+  .c-well{width:22px;height:22px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(191,215,242,.35)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid rgba(191,215,242,.10)}
+  .type-row .meta{width:200px;font-size:11px;color:var(--text-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(191,215,242,.10);font-size:13px;color:var(--text-2)}
+  .motion-row b{color:var(--text);font-weight:400}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--text-3);letter-spacing:.3em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 L</div>
+    <h1>蓝图 · 制图<span class="en mono">BLUEPRINT · TECHNICAL DRAFTING</span></h1>
+    <p class="positioning">"把时间画进图纸，每一格都是可以丈量的距离。"</p>
+    <div class="chips">
+      <span class="chip">晒图蓝</span><span class="chip">尺寸标注线</span><span class="chip">图框标题栏</span>
+      <span class="chip">红笔批注</span><span class="chip">审核章</span><span class="chip">工程网格</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左晒图蓝首页 · 右绘图纸月历）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar mono"><span>9:41</span><span>DWG NO. MM-2026-001</span></div>
+        <div class="hero">
+          <div class="sheet">
+            <span class="corner" style="left:-5px;top:-5px;border-right:0;border-bottom:0"></span>
+            <span class="corner" style="right:-5px;top:-5px;border-left:0;border-bottom:0"></span>
+            <span class="corner" style="left:-5px;bottom:-5px;border-right:0;border-top:0"></span>
+            <span class="corner" style="right:-5px;bottom:-5px;border-left:0;border-top:0"></span>
+            <div class="project mono">PROJECT — 主视图 · FRONT VIEW</div>
+            <div class="num">148<small>天</small></div>
+            <div class="title">春节 · 回家的日子</div>
+            <div class="dim">
+              <span class="ext" style="left:0"></span><span class="ext" style="right:0"></span>
+              <span class="bar"></span>
+              <span class="arrow-l">◄</span><span class="arrow-r">►</span>
+              <span class="lbl mono">148 DAYS</span>
+            </div>
+            <div class="tblock mono"><span>SCALE 1:365</span><span>REV.08</span><span>DATE 2026.08.28</span></div>
+          </div>
+        </div>
+        <div class="sheets">
+          <div class="sheet-s">
+            <div class="t">考研初试</div>
+            <div class="d">96<small> 天</small></div>
+            <div class="dim2 mono"><span>D-96</span><span class="dl"></span><span>12.19</span></div>
+          </div>
+          <div class="sheet-s">
+            <div class="t">演唱会</div>
+            <div class="d">32<small> 天</small></div>
+            <div class="dim2 mono"><span>D-32</span><span class="dl"></span><span>09.20</span></div>
+          </div>
+          <div class="sheet-s wide">
+            <div>
+              <div class="t">毕业旅行 · 东京</div>
+              <div class="d" style="font-size:34px">214<small> 天</small></div>
+            </div>
+            <span class="approved mono">APPROVED · 置顶</span>
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 图纸</div>
+          <div class="plus">+</div>
+          <div class="item">▤ 月历</div>
+        </div>
+        <div class="phone-label">首页 · 事件即图纸（尺寸线量出天数）</div>
+      </div>
+
+      <div class="phone draft">
+        <div class="statusbar mono"><span>9:41</span><span>SHEET 08 · CALENDAR</span></div>
+        <div class="cal">
+          <div class="frame">
+            <div class="month"><span class="m">八月 2026</span><span class="dwg mono">DWG NO. CAL-08</span></div>
+            <div class="weekdays mono"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+            <div class="days">
+              <span class="day dim mono">26</span><span class="day dim mono">27</span><span class="day dim mono">28</span><span class="day dim mono">29</span><span class="day dim mono">30</span><span class="day dim mono">31</span><span class="day mono">1</span>
+              <span class="day mono">2</span><span class="day mono">3</span><span class="day mono">4</span><span class="day mono">5</span><span class="day mono">6</span><span class="day mono">7</span><span class="day mono">8</span>
+              <span class="day mono">9</span><span class="day mono">10</span><span class="day mono">11</span><span class="day today mono">12</span><span class="day mono">13</span><span class="day mono">14</span><span class="day mono">15</span>
+              <span class="day mono">16<i class="mark"></i></span><span class="day mono">17</span><span class="day mono">18</span><span class="day mono">19</span><span class="day mono">20<i class="mark"></i></span><span class="day mono">21</span><span class="day mono">22</span>
+              <span class="day mono">23</span><span class="day mono">24</span><span class="day mono">25</span><span class="day mono">26<i class="mark"></i></span><span class="day mono">27</span><span class="day mono">28</span><span class="day mono">29</span>
+              <span class="day mono">30</span><span class="day mono">31</span><span class="day dim mono">1</span><span class="day dim mono">2</span><span class="day dim mono">3</span><span class="day dim mono">4</span><span class="day dim mono">5</span>
+            </div>
+            <div class="bom">
+              <div class="h mono">BOM · 材料清单 / 08.12</div>
+              <div class="row"><span><span class="no mono">08-1</span>七夕节</span><span class="mono" style="font-size:10px;color:var(--draft-2)">FESTIVAL</span></div>
+              <div class="row"><span><span class="no mono">08-2</span>英语六级出分</span><span class="mono" style="font-size:10px;color:var(--draft-2)">08:00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="nav mono" style="border-top-color:rgba(29,78,137,.3)">
+          <div class="item" style="color:var(--draft-2)">◉ 图纸</div>
+          <div class="plus" style="border-color:var(--draft-ink);color:var(--draft-ink);background:#fff">+</div>
+          <div class="item on" style="color:var(--draft-ink);border-color:var(--draft-ink)">▤ 月历</div>
+        </div>
+        <div class="phone-label">日子簿 · 图纸月历（今日 = 红笔圈批注）</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 审核 Toast</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn ghost">次操作</span><span class="btn stamp mono">盖章确认</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg mono"><span class="on">晒图</span><span>绘图纸</span><span>系统</span></span></div>
+        <div class="toast mono"><span>DWG「演唱会」已归档</span><b>↩ 撤销 UNDO</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 晒图蓝 / 绘图纸</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#0F2E55" title="晒图蓝底"></span>
+          <span class="swatch" style="background:rgba(191,215,242,.34)" title="图线(暗)"></span>
+          <span class="swatch" style="background:#BFD7F2" title="图线"></span>
+          <span class="swatch" style="background:#E3EEFB" title="文字"></span>
+          <span class="swatch" style="background:#FF7A6B" title="红笔批注"></span>
+          <span class="swatch" style="background:#FFD86B" title="审核章"></span>
+          <span class="swatch" style="background:#F6F8F6" title="绘图纸"></span>
+          <span class="swatch" style="background:#1D4E89" title="绘图墨蓝"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>晒图蓝（主）</th><th>绘图纸（昼）</th></tr>
+          <tr><td><span class="c-well" style="background:#0F2E55"></span>页面底 + 工程网格</td><td class="hex">#0F2E55</td><td class="hex">#F6F8F6</td></tr>
+          <tr><td><span class="c-well" style="background:#BFD7F2"></span>图线（描边/框架）</td><td class="hex">#BFD7F2</td><td class="hex">#1D4E89</td></tr>
+          <tr><td><span class="c-well" style="background:#E3EEFB"></span>文字 · 主</td><td class="hex">#E3EEFB</td><td class="hex">#24324A</td></tr>
+          <tr><td><span class="c-well" style="background:#8FABD4"></span>文字 · 次（标注）</td><td class="hex">#8FABD4</td><td class="hex">#5E7BA6</td></tr>
+          <tr><td><span class="c-well" style="background:#FF7A6B"></span>红笔批注（今日/警示）</td><td class="hex">#FF7A6B</td><td class="hex">#D9483B</td></tr>
+          <tr><td><span class="c-well" style="background:#FFD86B"></span>审核章（置顶/确认）</td><td class="hex">#FFD86B</td><td class="hex">#B98A00</td></tr>
+          <tr><td><span class="c-well" style="background:rgba(191,215,242,.08)"></span>网格线（16/80dp 双层）</td><td class="hex">#BFD7F2·8/16%</td><td class="hex">#1D4E89·8/16%</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（制图字母数字为特色）</h3>
+        <div class="type-row"><span class="meta">display / 76sp / light·工程数字</span><span style="font-size:42px;font-weight:300">148</span></div>
+        <div class="type-row"><span class="meta">dim-label / 11sp / mono·宽字距</span><span class="mono" style="font-size:11px;color:#8FABD4;letter-spacing:.2em">◄ —— 148 DAYS —— ►</span></div>
+        <div class="type-row"><span class="meta">title / 15sp / 宽字距</span><span style="font-size:15px;letter-spacing:.35em">春节 · 回家的日子</span></div>
+        <div class="type-row"><span class="meta">tblock / 8sp / mono</span><span class="mono" style="font-size:8px;color:#5F7BA6;letter-spacing:.1em">SCALE 1:365 · REV.08 · DWG NO. MM-2026-001</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与制图元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius</td><td class="hex">0dp（全局直角）</td><td>一切容器</td></tr>
+          <tr><td class="hex">frame</td><td class="hex">1.5dp 图框 + 四角标记</td><td>主图纸/卡片</td></tr>
+          <tr><td class="hex">dim_line</td><td class="hex">1.5dp 实线 + 双箭头 + 端部延长线</td><td>天数标注（核心元素）</td></tr>
+          <tr><td class="hex">hidden_line</td><td class="hex">1dp 虚线</td><td>次级信息分隔</td></tr>
+          <tr><td class="hex">grid</td><td class="hex">16dp 细格 + 80dp 主格</td><td>全局背景</td></tr>
+          <tr><td class="hex">stamp</td><td class="hex">1.2dp 描边方章 · 旋转 4°</td><td>置顶/确认状态</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>阴影</span><b>无（线框表达层级）</b></div>
+        <div class="motion-row"><span>尺寸线动画</span><b>新事件：箭头从中心向两侧画出 400ms</b></div>
+        <div class="motion-row"><span>卡片落位</span><b>图纸"铺开"：框线描边 300ms</b></div>
+        <div class="motion-row"><span>盖章动效</span><b>置顶时图章落下 + 旋转归位</b></div>
+        <div class="motion-row"><span>数字变化</span><b>直接跳变（制图不改已画的线）</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>标注/图框承载真实数据（天数/日期）</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 L · 蓝图与制图</footer>
+</div>
+</body>
+</html>

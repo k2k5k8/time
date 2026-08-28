@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 O · 终端机 — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 磷光绿（主模式） */
+    --crt:#0A0E0A; --crt-2:#0E130E;
+    --ph:#33FF66; --ph-dim:#1FA843; --ph-faint:#14522A;
+    --amber:#FFC24B;                 /* 琥珀（警示/待办） */
+    --cursor:#33FF66;
+    /* 昼间：纸带打印 */
+    --paper:#EFEADB; --paper-ink:#1E5C33; --paper-2:#7C8A72;
+    --r:4px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:radial-gradient(900px 500px at 50% -5%,#122015 0%,transparent 55%),linear-gradient(180deg,var(--crt),var(--crt-2));
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    color:var(--ph);padding:48px 28px 80px;min-height:100vh;
+  }
+  .sans{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+  .page{max-width:1120px;margin:0 auto}
+  /* 扫描线 + 辉光 */
+  .crt-overlay{position:fixed;inset:0;pointer-events:none;z-index:9;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+  .glow{text-shadow:0 0 8px rgba(51,255,102,.45)}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;border:1px solid var(--ph);color:var(--ph);font-size:12px;letter-spacing:.4em;padding:6px 14px 6px 20px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:700;letter-spacing:.06em}
+  h1 .en{display:block;font-size:12px;letter-spacing:.5em;color:var(--ph-faint);font-weight:600;margin-top:8px}
+  .positioning{font-size:17px;color:var(--ph-dim);margin-top:14px}
+  .cursor::after{content:"▮";animation:blink 1s steps(1) infinite;color:var(--cursor)}
+  @keyframes blink{50%{opacity:0}}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{border:1px solid var(--ph-faint);color:var(--ph-dim);padding:6px 14px;font-size:12px}
+
+  section{margin-top:56px}
+  h2{font-size:13px;letter-spacing:.4em;color:var(--ph-dim);text-align:center;margin-bottom:28px}
+  h2::before,h2::after{content:"···";margin:0 14px;color:var(--ph-faint)}
+
+  .box{border:1px solid var(--ph-faint)}
+  .box .bar{display:flex;gap:8px;justify-content:flex-end;padding:6px 10px;border-bottom:1px solid var(--ph-faint);color:var(--ph-faint);font-size:10px}
+  .prompt::before{content:"$ ";color:var(--ph-dim)}
+  .ok{color:var(--ph)} .warn{color:var(--amber)}
+  .dim2{color:var(--ph-dim)} .faint{color:var(--ph-faint)}
+  .bar-ascii{color:var(--ph)} .bar-ascii i{color:var(--ph-faint);font-style:normal}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:26px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid #050705;box-shadow:0 0 0 1px #1A2B1E,0 24px 60px rgba(0,0,0,.7);
+    background:radial-gradient(420px 300px at 50% 0%,#132016,transparent 70%),var(--crt);
+  }
+  .phone::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+  .phone.paper{background:var(--paper);box-shadow:0 20px 50px rgba(46,58,38,.4)}
+  .phone.paper::after{display:none}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.3em;color:var(--ph-faint);white-space:nowrap}
+  .paper .phone-label{color:var(--paper-2)}
+  .statusbar{display:flex;justify-content:space-between;padding:12px 20px 4px;font-size:11px;color:var(--ph-dim)}
+  .paper .statusbar{color:var(--paper-2)}
+
+  .session{padding:10px 16px 0;font-size:12px;line-height:1.75;flex:1;display:flex;flex-direction:column}
+  .session .cmd{color:var(--ph-dim)}
+  .session .out{margin-top:2px}
+
+  .fig{font-size:64px;font-weight:700;line-height:1.05;letter-spacing:.02em;margin:4px 0 2px}
+  .fig small{font-size:15px;color:var(--ph-dim);font-weight:400;letter-spacing:.2em}
+  .paper .fig{color:var(--paper-ink)}
+  .paper .fig small{color:var(--paper-2)}
+
+  .procs{margin-top:8px}
+  .proc{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px dashed var(--ph-faint);font-size:12px}
+  .paper .proc{border-bottom-color:#C9C4AC}
+  .proc .pid{color:var(--ph-faint);width:56px}
+  .paper .proc .pid{color:var(--paper-2)}
+  .proc .name{color:var(--ph);flex:none}
+  .paper .proc .name{color:var(--paper-ink)}
+  .proc .leader{flex:1;overflow:hidden;white-space:nowrap;color:var(--ph-faint)}
+  .paper .proc .leader{color:#B4AE93}
+  .proc .days{color:var(--amber);font-weight:700}
+  .paper .proc .days{color:#B26A00}
+  .proc .st{width:104px;font-size:10px}
+  .paper .proc .st{color:var(--paper-2)}
+
+  .nav{margin-top:auto;display:flex;gap:8px;padding:10px 16px 20px}
+  .nav .fkey{flex:1;text-align:center;border:1px solid var(--ph-faint);padding:8px 0 7px;font-size:10px;color:var(--ph-dim)}
+  .nav .fkey.on{border-color:var(--ph);color:var(--ph);background:rgba(51,255,102,.08)}
+  .nav .fkey b{display:block;font-size:13px;color:inherit;margin-bottom:2px}
+  .paper .nav .fkey{border-color:#B9B49B;color:var(--paper-2)}
+  .paper .nav .fkey.on{border-color:var(--paper-ink);color:var(--paper-ink);background:rgba(30,92,51,.08)}
+
+  .cal-lines{font-size:12.5px;line-height:2.0}
+  .cal-lines .row{white-space:pre;display:block}
+  .cal-lines .hl{background:var(--ph);color:var(--crt);font-weight:700;padding:0 4px;margin:0 -4px}
+  .paper .cal-lines .hl{background:var(--paper-ink);color:var(--paper)}
+  .todo{margin-top:10px}
+  .todo .row{display:flex;gap:10px;padding:6px 0;font-size:12px;border-bottom:1px dashed var(--ph-faint)}
+  .paper .todo .row{border-bottom-color:#C9C4AC}
+  .todo .chk{color:var(--ph-faint)} .todo .row.done .chk{color:var(--ph)}
+  .todo .tx{color:var(--ph-dim)} .todo .row.done .tx{text-decoration:line-through;color:var(--ph-faint)}
+  .paper .todo .chk{color:var(--paper-2)} .paper .todo .tx{color:#3E5C48}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{border:1px solid var(--ph-faint);padding:24px 28px;min-width:330px}
+  .comp-card h3{font-size:10px;letter-spacing:.4em;color:var(--ph-faint);margin-bottom:16px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 20px;font-size:13px;cursor:pointer;margin:0 8px 10px 0;font-family:inherit}
+  .btn.primary{background:var(--ph);color:var(--crt);font-weight:700}
+  .btn.ghost{border:1px solid var(--ph-dim);color:var(--ph)}
+  .btn.warn{border:1px solid var(--amber);color:var(--amber)}
+  .seg{display:inline-flex;border:1px solid var(--ph-faint)}
+  .seg span{padding:6px 14px;font-size:12px;color:var(--ph-dim);border-right:1px solid var(--ph-faint)}
+  .seg span:last-child{border-right:0}
+  .seg .on{background:var(--ph);color:var(--crt)}
+  .msg{margin-top:14px;font-size:12px;line-height:1.8}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:52px;height:52px;box-shadow:inset 0 0 0 1px rgba(51,255,102,.25)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--ph-faint);padding:26px 30px}
+  .panel h3{font-size:11px;letter-spacing:.35em;color:var(--ph-faint);margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--ph-faint);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--ph-faint);font-size:10px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid rgba(51,255,102,.10);color:var(--ph-dim)}
+  td.hex{color:var(--ph)}
+  .c-well{width:22px;height:22px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(51,255,102,.3)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid rgba(51,255,102,.10)}
+  .type-row .meta{width:210px;font-size:10px;color:var(--ph-faint)}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(51,255,102,.10);font-size:12.5px;color:var(--ph-dim)}
+  .motion-row b{color:var(--ph);font-weight:500}
+  footer{text-align:center;margin-top:64px;font-size:11px;color:var(--ph-faint);letter-spacing:.3em}
+</style>
+</head>
+<body>
+<div class="crt-overlay"></div>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 O</div>
+    <h1 class="glow">终端机<span class="en">PHOSPHOR TERMINAL</span></h1>
+    <p class="positioning"><span class="prompt">momentmark</span> --list --sort=soon<span class="cursor"></span></p>
+    <div class="chips">
+      <span class="chip">CRT 磷光绿</span><span class="chip">扫描线</span><span class="chip">ASCII 进度条</span>
+      <span class="chip">命令行语法</span><span class="chip">反白今日</span><span class="chip">纸带昼间模式</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左磷光屏首页 · 右纸带打印月历）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>TTY1 · 9:41</span><span>UPTIME 812d</span></div>
+        <div class="session">
+          <div class="cmd">$ mm next --detail</div>
+          <div class="out">
+            <div class="fig glow">148<small> DAYS</small></div>
+            <div class="dim2">└─ 春节 · 回家的日子</div>
+            <div class="faint">   target=2027-02-06 status=PENDING</div>
+            <div class="dim2">   progress [<span class="bar-ascii">##########<i>--------------</i></span>] 41%</div>
+          </div>
+          <div class="procs">
+            <div class="cmd" style="margin-top:6px">$ mm ps --all</div>
+            <div class="proc"><span class="pid">EV-002</span><span class="name">考研初试</span><span class="leader">····························</span><span class="days">96d</span><span class="st faint">2026.12.19</span></div>
+            <div class="proc"><span class="pid">EV-003</span><span class="name">演唱会</span><span class="leader">······························</span><span class="days">32d</span><span class="st faint">2026.09.20</span></div>
+            <div class="proc"><span class="pid">EV-004</span><span class="name">东京旅行</span><span class="leader">·······························</span><span class="days">214d</span><span class="st ok">pinned ▸</span></div>
+            <div class="proc"><span class="pid faint">--</span><span class="name faint">+ 新建事件 (mm new)</span><span class="leader"></span><span class="days faint"></span><span class="st faint">[N] NEW</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="fkey on"><b>[1]</b>大事件</div>
+          <div class="fkey"><b>[2]</b>日子簿</div>
+          <div class="fkey"><b>[n]</b>新建</div>
+          <div class="fkey"><b>[q]</b>设置</div>
+        </div>
+        <div class="phone-label">首页 · 事件即进程</div>
+      </div>
+
+      <div class="phone paper">
+        <div class="statusbar"><span>TTY2 · CAL</span><span>PAPER MODE</span></div>
+        <div class="session" style="color:var(--paper-ink)">
+          <div class="cmd" style="color:var(--paper-2)">$ cal 08 2026 --hl=today</div>
+          <div class="out cal-lines" style="color:var(--paper-ink)">
+            <span class="row" style="color:var(--paper-2)">     八月 2026</span>
+            <span class="row" style="color:var(--paper-2)">日 一 二 三 四 五 六</span>
+            <span class="row">                       <span style="color:#3E5C48">1</span></span>
+            <span class="row"> 2  3  4  5  6  7  8</span>
+            <span class="row"> 9 10 11 <span class="hl">12</span> 13 14 15</span>
+            <span class="row"><span style="color:#B26A00">16</span> 17 18 19 <span style="color:#B26A00">20</span> 21 22</span>
+            <span class="row">23 24 25 <span style="color:#B26A00">26</span> 27 28 29</span>
+            <span class="row">30 31</span>
+          </div>
+          <div class="todo">
+            <div class="cmd" style="color:var(--paper-2);margin-top:4px">$ mm todo 08-12</div>
+            <div class="row"><span class="chk">[ ]</span><span class="tx">英语六级出分 · 08:00</span></div>
+            <div class="row done"><span class="chk">[x]</span><span class="tx">早起打卡</span></div>
+            <div class="row"><span class="chk">[ ]</span><span class="tx" style="color:var(--paper-2)">+ 添加待办… (mm add)</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="fkey"><b>[1]</b>大事件</div>
+          <div class="fkey on"><b>[2]</b>日子簿</div>
+          <div class="fkey"><b>[n]</b>新建</div>
+          <div class="fkey"><b>[q]</b>设置</div>
+        </div>
+        <div class="phone-label">日子簿 · 纸带打印模式（今日反白）</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 系统消息 Toast</h3>
+        <div>
+          <span class="btn primary">[ 执行 ]</span><span class="btn ghost">[ 取消 ]</span><span class="btn warn">[ rm ]</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">CRT</span><span>纸带</span><span>系统</span></span></div>
+        <div class="msg">
+&gt; rm EV-003 「演唱会」<br>
+<span class="warn">warn: 已移入回收站</span> — 按 <span class="ok">[u] 撤销</span><span class="cursor"></span>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#0A0E0A" title="CRT底"></span>
+          <span class="swatch" style="background:#33FF66" title="磷光绿"></span>
+          <span class="swatch" style="background:#1FA843" title="次级绿"></span>
+          <span class="swatch" style="background:#14522A" title="暗绿线"></span>
+          <span class="swatch" style="background:#FFC24B" title="琥珀警示"></span>
+          <span class="swatch" style="background:#EFEADB" title="纸带"></span>
+          <span class="swatch" style="background:#1E5C33" title="纸带墨绿"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>CRT（主）</th><th>纸带（昼）</th></tr>
+          <tr><td><span class="c-well" style="background:#0A0E0A"></span>屏幕底</td><td class="hex">#0A0E0A</td><td class="hex">#EFEADB</td></tr>
+          <tr><td><span class="c-well" style="background:#33FF66"></span>磷光绿（文字/强调）</td><td class="hex">#33FF66</td><td class="hex">#1E5C33</td></tr>
+          <tr><td><span class="c-well" style="background:#1FA843"></span>次级绿（正文）</td><td class="hex">#1FA843</td><td class="hex">#3E5C48</td></tr>
+          <tr><td><span class="c-well" style="background:#14522A"></span>暗绿（框线/最弱）</td><td class="hex">#14522A</td><td class="hex">#B4AE93</td></tr>
+          <tr><td><span class="c-well" style="background:#FFC24B"></span>琥珀（天数/警示）</td><td class="hex">#FFC24B</td><td class="hex">#B26A00</td></tr>
+          <tr><td><span class="c-well" style="background:#33FF66"></span>反白选中（今日）</td><td class="hex">#33FF66 底 / #0A0E0A 字</td><td class="hex">#1E5C33 底 / #EFEADB 字</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（全 mono 为特色）</h3>
+        <div class="type-row"><span class="meta">display / 64sp / bold·辉光</span><span style="font-size:38px;font-weight:700" class="glow">148</span></div>
+        <div class="type-row"><span class="meta">body / 12.5sp / mono</span><span style="font-size:13px">考研初试 ············ 96d</span></div>
+        <div class="type-row"><span class="meta">status / 10sp / mono</span><span style="font-size:10px;color:#1FA843">target=2027-02-06 status=PENDING</span></div>
+        <div class="type-row"><span class="meta">bar / 10sp / ASCII 方块</span><span style="font-size:11px">[##########--------------] 41%</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与终端元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius</td><td class="hex">4dp（近直角）</td><td>一切容器</td></tr>
+          <tr><td class="hex">frame</td><td class="hex">1dp 暗绿实线框 + 标题栏</td><td>窗口式卡片</td></tr>
+          <tr><td class="hex">scanline</td><td class="hex">1px/3px 周期暗纹叠加</td><td>全局 CRT 质感（仅深色）</td></tr>
+          <tr><td class="hex">leader</td><td class="hex">点线引导符 ····</td><td>列表对齐</td></tr>
+          <tr><td class="hex">prompt</td><td class="hex">$ 前缀 + 闪烁光标 ▮</td><td>输入/命令语义</td></tr>
+          <tr><td class="hex">ascii_bar</td><td class="hex">16 格 [# ] 进度条</td><td>进度与倒计时</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>辉光</span><b>文字 8px 磷光辉光（仅深色）</b></div>
+        <div class="motion-row"><span>光标</span><b>1s 步进闪烁（可关）</b></div>
+        <div class="motion-row"><span>列表更新</span><b>逐行"打印"入场 30ms/行</b></div>
+        <div class="motion-row"><span>数字变化</span><b>瞬间跳变 + 单行重打印</b></div>
+        <div class="motion-row"><span>删除动效</span><b>整行闪烁两下后消失</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>所有符号都有命令行语义，无纯装饰</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 O · 磷光终端</footer>
+</div>
+</body>
+</html>

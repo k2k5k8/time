@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 N · 复古漫画 — 刻间设计语言提案</title>
+<style>
+  :root{
+    --paper:#FDF6E3; --paper-2:#F6ECD2;
+    --panel:#FFFBF0;
+    --ink:#191510; --ink-2:#57503F; --ink-3:#9A9078;
+    --red:#FF4B4B; --yellow:#FFD23F; --blue:#3DA5FF; --cream:#FFE8B8;
+    --halftone:radial-gradient(rgba(25,21,16,.16) 1px,transparent 1.4px);
+    --r:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--paper),var(--paper-2));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--ink);padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .comic{font-family:"Comic Sans MS","Chalkboard SE","Marker Felt","PingFang SC",cursive}
+  .page{max-width:1120px;margin:0 auto}
+  .panelbox{border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+
+  /* 爆炸气泡 */
+  .burst{
+    position:relative;display:inline-block;background:var(--yellow);
+    padding:18px 34px;font-size:24px;font-weight:800;
+    -webkit-clip-path:polygon(0 52%,6% 38%,10% 42%,14% 22%,22% 34%,28% 12%,34% 30%,44% 6%,50% 28%,60% 8%,66% 30%,74% 16%,80% 36%,88% 26%,92% 44%,100% 52%,92% 62%,96% 74%,84% 74%,88% 88%,76% 84%,72% 96%,62% 86%,56% 100%,48% 88%,40% 98%,34% 86%,24% 94%,20% 80%,8% 84%,10% 70%,2% 64%);
+            clip-path:polygon(0 52%,6% 38%,10% 42%,14% 22%,22% 34%,28% 12%,34% 30%,44% 6%,50% 28%,60% 8%,66% 30%,74% 16%,80% 36%,88% 26%,92% 44%,100% 52%,92% 62%,96% 74%,84% 74%,88% 88%,76% 84%,72% 96%,62% 86%,56% 100%,48% 88%,40% 98%,34% 86%,24% 94%,20% 80%,8% 84%,10% 70%,2% 64%);
+  }
+  .speech{position:relative;background:#fff;border:3px solid var(--ink);border-radius:18px;padding:10px 16px;font-size:14px;font-weight:700}
+  .speech::after{content:"";position:absolute;left:26px;bottom:-14px;width:0;height:0;
+    border-left:0 solid transparent;border-right:16px solid transparent;border-top:16px solid var(--ink)}
+  .speech::before{content:"";position:absolute;left:29px;bottom:-8px;width:0;height:0;z-index:1;
+    border-left:0 solid transparent;border-right:10px solid transparent;border-top:11px solid #fff}
+
+  header{text-align:center;margin-bottom:44px;position:relative}
+  .badge{display:inline-block;background:var(--red);color:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-size:13px;font-weight:800;letter-spacing:.2em;padding:6px 16px;transform:rotate(-2deg);margin-bottom:18px}
+  h1{font-size:46px;font-weight:800;letter-spacing:.01em}
+  h1 .en{display:block;font-size:12px;letter-spacing:.4em;color:var(--ink-3);font-weight:800;margin-top:8px}
+  .positioning{font-size:18px;color:var(--ink-2);margin-top:14px;font-weight:600}
+  .chips{display:flex;gap:8px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--panel);border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);border-radius:999px;padding:5px 14px;font-size:12px;font-weight:800;transform:rotate(-.5deg)}
+  .chip:nth-child(2n){transform:rotate(1deg)}
+
+  section{margin-top:56px}
+  h2{font-size:14px;letter-spacing:.35em;color:var(--ink-2);text-align:center;margin-bottom:28px;font-weight:800}
+  h2::before,h2::after{content:"★";margin:0 12px;font-size:11px;color:var(--red)}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:36px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid var(--ink);box-shadow:8px 8px 0 rgba(25,21,16,.9);
+    background:var(--paper);
+  }
+  .phone.night{background:#171410}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.2em;color:var(--ink-3);white-space:nowrap;font-weight:800}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 22px 6px;font-size:11px;font-weight:800;color:var(--ink-2)}
+  .night .statusbar{color:#8F8672}
+
+  /* 主格：大特写 */
+  .heropanel{margin:8px 14px 0;background:var(--panel);position:relative;overflow:hidden}
+  .heropanel .ht{position:absolute;left:-3px;top:-3px;background:var(--yellow);border:3px solid var(--ink);padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:.15em;z-index:2}
+  .heropanel .speed{position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background:repeating-conic-gradient(from -40deg at 50% 120%,rgba(25,21,16,.10) 0deg 2deg,transparent 2deg 7deg)}
+  .heropanel .inner{text-align:center;padding:26px 12px 18px;position:relative}
+  .heropanel .big{font-size:88px;font-weight:800;line-height:.95;letter-spacing:-.03em;
+    color:var(--ink);text-shadow:4px 4px 0 var(--yellow)}
+  .heropanel .big small{display:block;font-size:15px;text-shadow:none;letter-spacing:.2em;margin-top:8px}
+  .heropanel .bubble{margin:6px auto 0;width:max-content}
+
+  /* 分格卡 */
+  .panels{padding:12px 14px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pcell{background:var(--panel);padding:11px 12px 10px;position:relative;overflow:hidden}
+  .pcell::after{content:"";position:absolute;right:-14px;bottom:-14px;width:56px;height:56px;background-image:var(--halftone);background-size:6px 6px;transform:rotate(0deg)}
+  .pcell .cap{position:absolute;left:-3px;top:8px;background:var(--cream);border:3px solid var(--ink);padding:2px 9px;font-size:9px;font-weight:800;letter-spacing:.1em}
+  .pcell .t{font-size:12px;font-weight:800;margin-top:16px}
+  .pcell .d{font-size:28px;font-weight:800;margin-top:2px}
+  .pcell .d small{font-size:10px}
+  .pcell .meta{font-size:8px;color:var(--ink-3);margin-top:5px;font-weight:800;letter-spacing:.08em}
+  .pcell.wide{grid-column:span 2;display:flex;align-items:center;gap:12px}
+  .pcell.wide .left{flex:1}
+  .pcell.wide .d{font-size:36px}
+  .pcell .starbadge{width:58px;height:58px;flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;background:var(--red);color:#fff;border:3px solid var(--ink);transform:rotate(6deg);text-align:center;line-height:1.2}
+
+  .nav{margin-top:auto;display:flex;gap:10px;padding:10px 16px 20px}
+  .nav .item{flex:1;text-align:center;padding:8px 0 7px;background:var(--panel);border:3px solid var(--ink);box-shadow:2.5px 2.5px 0 var(--ink);font-size:11px;font-weight:800}
+  .nav .item.on{background:var(--yellow)}
+  .nav .plus{flex:1.1;background:var(--red);color:#fff;font-size:15px;font-weight:800}
+
+  /* 夜晚：黑白漫画格 */
+  .cal{padding:12px 16px 0;flex:1}
+  .cal .month{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 10px}
+  .cal .month .m{font-size:23px;font-weight:800;color:#F2EAD6}
+  .cal .month .meta{font-size:9px;color:#8F8672;letter-spacing:.2em;font-weight:800}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;color:#8F8672;margin-bottom:6px;font-weight:800}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#CFC5AC;border:2px solid #3A3428;border-radius:6px;position:relative;background:#211C14}
+  .day.dim{opacity:.32}
+  .day.today{background:var(--yellow);color:var(--ink);border-color:var(--ink);box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+  .day .fx{position:absolute;bottom:3px;font-size:8px}
+  .strip{margin:12px 0 0;background:#211C14;border:3px solid #3A3428;padding:10px 12px}
+  .strip .h{font-size:9px;font-weight:800;letter-spacing:.25em;color:var(--yellow);margin-bottom:6px}
+  .strip .row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:2px dashed #3A3428}
+  .strip .row:last-child{border-bottom:0}
+  .strip .bang{width:22px;height:22px;flex:none;border:2.5px solid var(--ink);background:var(--red);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border-radius:4px;transform:rotate(-4deg)}
+  .strip .n{flex:1;font-size:13px;font-weight:700;color:#E6DCC5}
+  .strip .c{font-size:9px;font-weight:800;color:#8F8672}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--panel);padding:24px 28px;min-width:320px;position:relative}
+  .comp-card h3{font-size:10px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:800}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 24px;font-size:14px;font-weight:800;cursor:pointer;margin:0 8px 10px 0;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .btn.primary{background:var(--red);color:#fff}
+  .btn.gold{background:var(--yellow);color:var(--ink)}
+  .btn.plain{background:#fff;color:var(--ink)}
+  .toast{margin-top:14px;background:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:11px 15px;font-size:13px;font-weight:800;display:flex;justify-content:space-between;align-items:center;transform:rotate(-.6deg)}
+  .toast b{color:var(--red)}
+  .swatches{display:flex;gap:10px;margin-top:6px}
+  .swatch{width:52px;height:52px;border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink);border-radius:8px}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);padding:26px 30px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+  .panel h3{font-size:11px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:800}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-3);font-weight:800;padding:6px 8px;border-bottom:2px solid var(--ink);font-size:10px;letter-spacing:.08em}
+  td{padding:8px;border-bottom:2px solid #F0E4C8;color:var(--ink-2);font-weight:600}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;border:2.5px solid var(--ink);border-radius:5px;display:inline-block;vertical-align:-6px;margin-right:8px}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:2px solid #F0E4C8}
+  .type-row .meta{width:200px;font-size:10px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace;font-weight:700}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid #F0E4C8;font-size:13px;color:var(--ink-2);font-weight:600}
+  .motion-row b{color:var(--ink);font-weight:800}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--ink-3);letter-spacing:.2em;font-weight:800}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 N</div>
+    <h1>复古<span style="color:var(--red)">漫画</span><span class="en mono">RETRO COMIC · HALFTONE POP</span></h1>
+    <p class="positioning comic">"每一天都值得一个大特写！"</p>
+    <div class="chips">
+      <span class="chip">分格漫画</span><span class="chip">爆炸气泡</span><span class="chip">网点纸</span>
+      <span class="chip">速度线</span><span class="chip">粗墨线</span><span class="chip">拟声词</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左昼间漫画页 · 右夜间黑白格）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">VOL.148 · 2026</span></div>
+        <div class="heropanel panelbox">
+          <span class="ht mono">第 148 话 · 主线剧情</span>
+          <span class="speed"></span>
+          <div class="inner">
+            <div class="big">148<small>天 后</small></div>
+            <div class="speech comic bubble">就快到春节啦，坚持住！</div>
+          </div>
+        </div>
+        <div class="panels">
+          <div class="pcell panelbox">
+            <span class="cap mono">学业篇</span>
+            <div class="t">考研初试</div>
+            <div class="d">96<small> 天</small></div>
+            <div class="meta mono">DEC.19 · ★★☆</div>
+          </div>
+          <div class="pcell panelbox">
+            <span class="cap mono" style="background:#FFE1E1">生活篇</span>
+            <div class="t">演唱会</div>
+            <div class="d">32<small> 天</small></div>
+            <div class="meta mono">SEP.20 · ★☆☆</div>
+          </div>
+          <div class="pcell wide panelbox">
+            <div class="left">
+              <span class="cap mono" style="background:#E1F0FF">旅行篇</span>
+              <div class="t" style="margin-top:16px">毕业旅行 · 东京</div>
+              <div class="d">214<small> 天</small></div>
+            </div>
+            <div class="starbadge">置顶<br>★</div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on">◉ 大事件</div>
+          <div class="plus panelbox">+ 新剧情</div>
+          <div class="item">▤ 日子簿</div>
+        </div>
+        <div class="phone-label">首页 · 倒计时即漫画分格</div>
+      </div>
+
+      <div class="phone night">
+        <div class="statusbar"><span>9:41</span><span class="mono">NIGHT EDITION</span></div>
+        <div class="cal">
+          <div class="month"><span class="m">八月 2026</span><span class="meta mono">CALENDAR STRIP</span></div>
+          <div class="weekdays mono"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+          <div class="days">
+            <span class="day dim mono">26</span><span class="day dim mono">27</span><span class="day dim mono">28</span><span class="day dim mono">29</span><span class="day dim mono">30</span><span class="day dim mono">31</span><span class="day mono">1</span>
+            <span class="day mono">2</span><span class="day mono">3</span><span class="day mono">4</span><span class="day mono">5</span><span class="day mono">6</span><span class="day mono">7</span><span class="day mono">8</span>
+            <span class="day mono">9</span><span class="day mono">10</span><span class="day mono">11</span><span class="day today mono">12</span><span class="day mono">13</span><span class="day mono">14</span><span class="day mono">15</span>
+            <span class="day mono">16<i class="fx">💥</i></span><span class="day mono">17</span><span class="day mono">18</span><span class="day mono">19</span><span class="day mono">20<i class="fx">🎵</i></span><span class="day mono">21</span><span class="day mono">22</span>
+            <span class="day mono">23</span><span class="day mono">24</span><span class="day mono">25</span><span class="day mono">26<i class="fx">✈️</i></span><span class="day mono">27</span><span class="day mono">28</span><span class="day mono">29</span>
+            <span class="day mono">30</span><span class="day mono">31</span><span class="day dim mono">1</span><span class="day dim mono">2</span><span class="day dim mono">3</span><span class="day dim mono">4</span><span class="day dim mono">5</span>
+          </div>
+          <div class="strip">
+            <div class="h mono">▸ 今日剧情 · 08.12</div>
+            <div class="row"><span class="bang">!</span><span class="n">七夕节</span><span class="c mono">FESTIVAL</span></div>
+            <div class="row"><span class="bang" style="background:var(--yellow);color:var(--ink)">✓</span><span class="n">早起打卡</span><span class="c mono">DONE</span></div>
+            <div class="row"><span class="bang" style="background:var(--blue)">?</span><span class="n">英语六级出分</span><span class="c mono">08:00</span></div>
+          </div>
+        </div>
+        <div class="nav" style="background:transparent">
+          <div class="item" style="background:#211C14;color:#8F8672;border-color:#3A3428;box-shadow:none">◉ 大事件</div>
+          <div class="plus" style="background:var(--red);color:#fff">+ 新剧情</div>
+          <div class="item" style="background:#211C14;color:#8F8672;border-color:#3A3428;box-shadow:none">▤ 日子簿</div>
+        </div>
+        <div class="phone-label">日子簿 · 夜间黑白连载</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card panelbox">
+        <h3>按钮 · 拟声词 Toast</h3>
+        <div>
+          <span class="btn primary">冲！</span><span class="btn gold">收藏</span><span class="btn plain">取消</span>
+        </div>
+        <div class="toast"><span><b class="comic">WHOOSH!</b> 「演唱会」分格已撕掉</span><b>↩ 贴回</b></div>
+      </div>
+      <div class="comp-card panelbox">
+        <h3>主色板（漫画原色）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#FDF6E3" title="纸"></span>
+          <span class="swatch" style="background:#FFFBF0" title="格面"></span>
+          <span class="swatch" style="background:#191510" title="墨线"></span>
+          <span class="swatch" style="background:#FF4B4B" title="红"></span>
+          <span class="swatch" style="background:#FFD23F" title="黄"></span>
+          <span class="swatch" style="background:#3DA5FF" title="蓝"></span>
+          <span class="swatch" style="background:#FFE8B8" title="奶油"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>昼（彩页）</th><th>夜（黑白页）</th></tr>
+          <tr><td><span class="c-well" style="background:#FDF6E3"></span>页面底（纸）</td><td class="hex">#FDF6E3</td><td class="hex">#171410</td></tr>
+          <tr><td><span class="c-well" style="background:#FFFBF0"></span>分格面</td><td class="hex">#FFFBF0</td><td class="hex">#211C14</td></tr>
+          <tr><td><span class="c-well" style="background:#191510"></span>墨线（全局描边）</td><td class="hex">#191510</td><td class="hex">#E6DCC5（反转）</td></tr>
+          <tr><td><span class="c-well" style="background:#FF4B4B"></span>漫画红（主操作/爆炸）</td><td class="hex">#FF4B4B</td><td class="hex">#FF6B6B</td></tr>
+          <tr><td><span class="c-well" style="background:#FFD23F"></span>漫画黄（选中/今日）</td><td class="hex">#FFD23F</td><td class="hex">#FFDC55</td></tr>
+          <tr><td><span class="c-well" style="background:#3DA5FF"></span>漫画蓝（链接/信息）</td><td class="hex">#3DA5FF</td><td class="hex">#66B7FF</td></tr>
+          <tr><td><span class="c-well" style="background:#FFE8B8"></span>奶油（标注框底）</td><td class="hex">#FFE8B8</td><td class="hex">#C9B88C</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（标题党式大字）</h3>
+        <div class="type-row"><span class="meta">display / 88sp / extrabold + 黄色错位影</span><span style="font-size:44px;font-weight:800;text-shadow:3px 3px 0 #FFD23F">148</span></div>
+        <div class="type-row"><span class="meta">caption-box / 9sp / bold·全大写</span><span style="font-size:10px;font-weight:800;letter-spacing:.1em;background:#FFE8B8;border:2px solid #191510;padding:2px 8px">学业篇</span></div>
+        <div class="type-row"><span class="meta">speech / 14sp / 手写气泡</span><span class="comic" style="font-size:16px;font-weight:700">就快到春节啦！</span></div>
+        <div class="type-row"><span class="meta">sfx / 拟声词 / 旋转 -4°</span><span class="comic" style="font-size:20px;font-weight:800;color:#FF4B4B;transform:rotate(-4deg);display:inline-block">WHOOSH!</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与漫画元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">border_ink</td><td class="hex">3dp 墨色实线（全局）</td><td>一切分格/按钮</td></tr>
+          <tr><td class="hex">shadow_pop</td><td class="hex">3–4dp 硬偏移影</td><td>分格/按钮（按下位移）</td></tr>
+          <tr><td class="hex">radius_cell</td><td class="hex">14dp（格）/ 999dp（胶囊）</td><td>分格与按钮</td></tr>
+          <tr><td class="hex">halftone</td><td class="hex">6dp 网点 · 16% 墨</td><td>卡片角落阴影（装饰）</td></tr>
+          <tr><td class="hex">speed_lines</td><td class="hex">放射线扇形 10% 墨</td><td>Hero 大特写背景</td></tr>
+          <tr><td class="hex">burst</td><td class="hex">星形爆炸气泡</td><td>里程碑到达/成就</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>按钮按压</span><b>位移 + 阴影缩短（实体印刷感）</b></div>
+        <div class="motion-row"><span>分格入场</span><b">逐格弹入 240ms（翻页节奏）</b></div>
+        <div class="motion-row"><span>里程碑到达</span><b>爆炸气泡 BOOM! + 速度线闪现</b></div>
+        <div class="motion-row"><span>删除动效</span><b>分格被"撕掉"抽出</b></div>
+        <div class="motion-row"><span>数字变化</span><b>大特写跳格（缩放 1.06→1）</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>网点/速度线只用于 Hero 与角落</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 N · 复古漫画波普</footer>
+</div>
+</body>
+</html>

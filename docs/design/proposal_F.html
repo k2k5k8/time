@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 F · 瑞士巨字 — 刻间设计语言提案</title>
+<style>
+  :root{
+    --paper:#FFFFFF; --paper-2:#F4F4F2;
+    --ink:#101010; --ink-2:#55554F; --ink-3:#9A9A93;
+    --blue:#002FA7; /* International Klein Blue */
+    --line:#101010;
+    --hair:#DEDED9;
+    --r:0px; --r-soft:2px;
+    --hard:4px 4px 0 #101010;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+    padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{margin-bottom:44px;border-bottom:3px solid var(--ink);padding-bottom:28px;position:relative}
+  .badge{display:inline-block;background:var(--blue);color:#fff;font-size:12px;font-weight:700;letter-spacing:.25em;padding:5px 12px;margin-bottom:16px}
+  h1{font-size:88px;font-weight:800;letter-spacing:-.035em;line-height:.95;text-transform:uppercase}
+  h1 span{color:var(--blue)}
+  .en{font-size:12px;letter-spacing:.4em;color:var(--ink-2);margin-top:12px;font-weight:600}
+  .positioning{font-size:19px;color:var(--ink);margin-top:14px;font-weight:500;max-width:640px;line-height:1.5}
+  header .issue{position:absolute;right:0;bottom:28px;text-align:right;font-size:11px;color:var(--ink-2);letter-spacing:.12em}
+  .chips{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--ink);padding:5px 14px;font-size:12px;font-weight:600;letter-spacing:.08em}
+
+  section{margin-top:56px}
+  h2{font-size:13px;letter-spacing:.35em;color:var(--ink);margin-bottom:24px;font-weight:800;display:flex;align-items:center;gap:14px}
+  h2::after{content:"";flex:1;height:1.5px;background:var(--ink)}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:24px;background:var(--paper);
+    border:8px solid var(--ink);box-shadow:var(--hard);overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+  }
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.25em;color:var(--ink-2);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:12px 20px 6px;font-size:11px;color:var(--ink-2);border-bottom:1.5px solid var(--ink);font-weight:600}
+  .statusbar .mono{letter-spacing:.1em}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1.5px solid var(--ink)}
+  .topbar .t{font-size:16px;font-weight:800;letter-spacing:-.01em}
+  .topbar .mono-idx{font-size:10px;color:var(--ink-2);letter-spacing:.15em}
+
+  .hero{padding:18px 18px 14px;border-bottom:1.5px solid var(--ink);position:relative}
+  .hero .idx{font-size:10px;letter-spacing:.2em;color:var(--ink-2);font-weight:700}
+  .hero .num{font-size:104px;font-weight:800;letter-spacing:-.045em;line-height:.92;margin-top:4px}
+  .hero .num small{font-size:16px;font-weight:700;letter-spacing:0;color:var(--ink-2);margin-left:8px}
+  .hero .sub{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+  .hero .sub .name{font-size:15px;font-weight:700}
+  .hero .sub .date{font-size:10px;color:var(--ink-2);letter-spacing:.12em}
+  .hero .bluebar{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--blue)}
+
+  .cards{padding:14px 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .card{border:2px solid var(--ink);padding:11px 12px 10px;position:relative;background:var(--paper)}
+  .card .t{font-size:12px;font-weight:700}
+  .card .d{font-size:34px;font-weight:800;letter-spacing:-.03em;margin-top:4px}
+  .card .d small{font-size:11px;font-weight:700;color:var(--ink-2)}
+  .card .meta{font-size:9px;color:var(--ink-2);letter-spacing:.12em;margin-top:6px;border-top:1px solid var(--hair);padding-top:6px}
+  .card.wide{grid-column:span 2;background:var(--blue);color:#fff;box-shadow:var(--hard)}
+  .card.wide .t,.card.wide .d small{color:rgba(255,255,255,.75)}
+  .card.wide .d{font-size:42px}
+  .card.wide .meta{color:rgba(255,255,255,.7);border-top-color:rgba(255,255,255,.3)}
+  .card .pin{position:absolute;top:-2px;right:-2px;background:var(--ink);color:#fff;font-size:9px;font-weight:700;letter-spacing:.15em;padding:3px 8px}
+
+  .nav{margin-top:auto;display:flex;border-top:2px solid var(--ink);background:var(--paper)}
+  .nav .item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 18px;font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--ink-2);border-right:2px solid var(--ink)}
+  .nav .item:last-child{border-right:0}
+  .nav .item .ic{font-size:18px}
+  .nav .item.on{color:#fff;background:var(--ink)}
+  .nav .pluscell{width:76px;display:flex;align-items:center;justify-content:center;border-right:2px solid var(--ink)}
+  .nav .plus{width:44px;height:44px;background:var(--blue);color:#fff;font-size:24px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:-24px;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+
+  .cal{padding:0 16px 0;flex:1;display:flex;flex-direction:column}
+  .cal .month{display:flex;justify-content:space-between;align-items:center;padding:12px 0 10px;border-bottom:2px solid var(--ink)}
+  .cal .month .m{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .cal .month .mono-idx{font-size:10px;color:var(--ink-2);letter-spacing:.15em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--ink-2);padding:7px 0;border-bottom:1.5px solid var(--ink)}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);flex:1}
+  .day{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--ink);border-bottom:1px solid var(--hair);border-right:1px solid var(--hair);position:relative}
+  .day:nth-child(7n){border-right:0}
+  .day.dim{color:#C9C9C2;font-weight:400}
+  .day.today{background:var(--blue);color:#fff;font-weight:800}
+  .day .mk{position:absolute;bottom:4px;width:4px;height:4px;background:var(--ink)}
+  .daynote{margin:0 -16px;border-top:2px solid var(--ink)}
+  .daynote .h{padding:9px 16px 4px;font-size:9px;font-weight:800;letter-spacing:.25em;color:var(--ink-2)}
+  .daynote .row{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--hair);font-size:13px;font-weight:600}
+  .daynote .row .c{font-size:10px;color:var(--ink-2);letter-spacing:.1em}
+  .daynote .row.add{color:var(--blue)}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{border:2px solid var(--ink);padding:24px 28px;min-width:320px;background:var(--paper)}
+  .comp-card.shadow{box-shadow:var(--hard)}
+  .comp-card h3{font-size:10px;letter-spacing:.3em;color:var(--ink-2);margin-bottom:16px;font-weight:800}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 24px;font-size:14px;font-weight:700;letter-spacing:.05em;cursor:pointer;margin:0 8px 10px 0;border:2px solid var(--ink)}
+  .btn.primary{background:var(--blue);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+  .btn.ghost{background:var(--paper);color:var(--ink)}
+  .btn.invert{background:var(--ink);color:#fff}
+  .seg{display:inline-flex;border:2px solid var(--ink)}
+  .seg span{padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink-2);border-right:2px solid var(--ink)}
+  .seg span:last-child{border-right:0}
+  .seg .on{background:var(--ink);color:#fff;font-weight:700}
+  .toast{margin-top:14px;background:var(--ink);color:#fff;padding:12px 16px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:#6F8BFF;font-weight:700}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:56px;height:56px;box-shadow:inset 0 0 0 2px var(--ink)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{border:2px solid var(--ink);padding:26px 30px;background:var(--paper)}
+  .panel h3{font-size:11px;letter-spacing:.3em;color:var(--ink-2);margin-bottom:16px;font-weight:800}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-2);font-weight:700;padding:6px 8px;border-bottom:2px solid var(--ink);font-size:10px;letter-spacing:.12em}
+  td{padding:8px;border-bottom:1px solid var(--hair);color:var(--ink-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1.5px var(--ink)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid var(--hair)}
+  .type-row .meta{width:190px;font-size:10px;color:var(--ink-2);font-family:ui-monospace,Menlo,monospace;letter-spacing:.05em}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--hair);font-size:13px;color:var(--ink-2)}
+  .motion-row b{color:var(--ink);font-weight:700}
+  footer{margin-top:64px;border-top:3px solid var(--ink);padding-top:16px;display:flex;justify-content:space-between;font-size:10px;letter-spacing:.2em;color:var(--ink-2);font-weight:700}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 F</div>
+    <h1>瑞士<span>巨字</span></h1>
+    <div class="en">SWISS GIANT TYPE · EDITORIAL GRID</div>
+    <p class="positioning">"把每个日子，当作杂志封面来排版。数字就是设计本身。"</p>
+    <div class="chips">
+      <span class="chip">巨号数字</span><span class="chip">暴露网格</span><span class="chip">克莱因蓝</span>
+      <span class="chip">硬阴影</span><span class="chip">等宽标签</span><span class="chip">直角</span>
+    </div>
+    <div class="issue mono">ISSUE 2026-08<br>NO.148</div>
+  </header>
+
+  <section>
+    <h2>界面预览</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">MOMENTMARK VOL.1</span></div>
+        <div class="topbar"><span class="t">大事件</span><span class="mono-idx mono">⌕ SEARCH · ☰ INDEX</span></div>
+        <div class="hero">
+          <div class="bluebar"></div>
+          <div class="idx mono">EVENT NO.001 — CNY</div>
+          <div class="num">148<small>DAYS</small></div>
+          <div class="sub"><span class="name">春节 · 回家的日子</span><span class="date mono">2027.02.06</span></div>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="t">考研初试</div><div class="d">96<small> 天</small></div><div class="meta mono">EV.002 / 2026.12.19</div></div>
+          <div class="card"><div class="t">演唱会</div><div class="d">32<small> 天</small></div><div class="meta mono">EV.003 / 2026.09.20</div></div>
+          <div class="card wide"><span class="pin">置顶 PINNED</span><div class="t">毕业旅行 · 东京</div><div class="d">214<small> 天</small></div><div class="meta mono">EV.004 / 2027.03.28 · TOKYO</div></div>
+        </div>
+        <div class="nav">
+          <div class="item on"><span class="ic">◉</span>大事件</div>
+          <div class="pluscell"><div class="plus">+</div></div>
+          <div class="item"><span class="ic">▦</span>日子簿</div>
+        </div>
+        <div class="phone-label">首页 · 大事件（置顶卡 = 克莱因蓝封面）</div>
+      </div>
+
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">CALENDAR SPREAD</span></div>
+        <div class="cal">
+          <div class="month"><span class="m">八月 2026</span><span class="mono-idx mono">P.08 / AUGUST</span></div>
+          <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+            <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16<i class="mk"></i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20<i class="mk"></i></span><span class="day">21</span><span class="day">22</span>
+            <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="mk"></i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+            <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+        </div>
+        <div class="daynote">
+          <div class="h">08.12 WED — 今日条目</div>
+          <div class="row"><span>七夕节</span><span class="c mono">FESTIVAL</span></div>
+          <div class="row"><span>英语六级出分</span><span class="c mono">08:00</span></div>
+          <div class="row add"><span>+ 添加条目</span><span class="c mono">NEW</span></div>
+        </div>
+        <div class="phone-label">日子簿 · 表格式月历（今日 = 蓝色块）</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card shadow">
+        <h3>按钮 · 分段 · 撤销</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn ghost">次操作</span><span class="btn invert">反色</span>
+        </div>
+        <div style="margin-top:10px"><span class="seg"><span class="on">系统</span><span>浅色</span><span>深色</span></span></div>
+        <div class="toast"><span>已删除「演唱会」</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 浅色（纸 + 墨 + 克莱因蓝）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#FFFFFF"></span>
+          <span class="swatch" style="background:#101010"></span>
+          <span class="swatch" style="background:#002FA7"></span>
+          <span class="swatch" style="background:#DEDED9"></span>
+          <span class="swatch" style="background:#55554F"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 深色（反转版式）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#0D0D0D"></span>
+          <span class="swatch" style="background:#F2F2EF"></span>
+          <span class="swatch" style="background:#4356D6"></span>
+          <span class="swatch" style="background:#2B2B28"></span>
+          <span class="swatch" style="background:#9A9A93"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>浅色</th><th>深色（反转）</th></tr>
+          <tr><td><span class="c-well" style="background:#FFFFFF"></span>纸面底</td><td class="hex">#FFFFFF</td><td class="hex">#0D0D0D</td></tr>
+          <tr><td><span class="c-well" style="background:#101010"></span>墨（文字/边框）</td><td class="hex">#101010</td><td class="hex">#F2F2EF</td></tr>
+          <tr><td><span class="c-well" style="background:#002FA7"></span>克莱因蓝（唯一强调）</td><td class="hex">#002FA7</td><td class="hex">#4356D6</td></tr>
+          <tr><td><span class="c-well" style="background:#55554F"></span>文字 · 次</td><td class="hex">#55554F</td><td class="hex">#9A9A93</td></tr>
+          <tr><td><span class="c-well" style="background:#DEDED9"></span>表格式发丝线</td><td class="hex">#DEDED9</td><td class="hex">#2B2B28</td></tr>
+          <tr><td><span class="c-well" style="background:#C43D34"></span>危险（删除）</td><td class="hex">#C43D34</td><td class="hex">#E06B62</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（巨号黑体为特色）</h3>
+        <div class="type-row"><span class="meta">display / 120sp / extrabold·紧字距</span><span style="font-size:46px;font-weight:800;letter-spacing:-.04em">148</span></div>
+        <div class="type-row"><span class="meta">title / 18sp / bold</span><span style="font-size:18px;font-weight:700">春节 · 回家的日子</span></div>
+        <div class="type-row"><span class="meta">body / 15sp / regular</span><span style="font-size:15px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">index / 10sp / mono·全大写</span><span class="mono" style="font-size:10px;letter-spacing:.15em;color:#55554F">EVENT NO.001 — CNY · 2026.08</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与间距 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius</td><td class="hex">0dp（全局直角）</td><td>卡片、按钮、输入框</td></tr>
+          <tr><td class="hex">border_card</td><td class="hex">2dp 墨色实线</td><td>卡片描边</td></tr>
+          <tr><td class="hex">shadow_hard</td><td class="hex">4dp 偏移实心影</td><td>置顶卡/主按钮（少量使用）</td></tr>
+          <tr><td class="hex">rule_heavy</td><td class="hex">3dp 墨线</td><td>区块分隔（章节感）</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">16dp</td><td>页面边距</td></tr>
+          <tr><td class="hex">space_card</td><td class="hex">10dp</td><td>卡片之间</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>阴影纪律</span><b>硬阴影仅限"封面级"元素</b></div>
+        <div class="motion-row"><span>层级表达</span><b>线宽（1/2/3dp）而非模糊阴影</b></div>
+        <div class="motion-row"><span>常规过渡</span><b>150ms · 利落线性，无弹性</b></div>
+        <div class="motion-row"><span>卡片停靠</span><b>200ms 位移 + 阴影落定</b></div>
+        <div class="motion-row"><span>数字变化</span><b>直接跳变（版面重排，不做滚动动画）</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>无圆角、无渐变、无模糊</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer><span>刻间 MOMENT MARK · 设计语言提案 F</span><span>瑞士巨字 · 编辑部网格</span></footer>
+</div>
+</body>
+</html>

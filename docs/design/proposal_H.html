@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 H · 时间星图 — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 深空（主模式） */
+    --space:#0B1026; --space-2:#141B3C;
+    --card:rgba(157,173,255,.07); --card-line:rgba(176,192,255,.16);
+    --text:#E9EDFB; --text-2:#A3ABCF; --text-3:#6B7396;
+    --gold:#D4B36A; --gold-2:#F0D9A8;
+    --starline:rgba(212,179,106,.35);
+    /* 昼间（天文台手稿） */
+    --day-bg:#EDF0F8; --day-ink:#1E2A44; --day-card:#FFFFFF;
+    --r-card:14px; --r-sheet:20px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:radial-gradient(1000px 600px at 75% -10%,#232B58 0%,transparent 55%),
+               linear-gradient(180deg,var(--space) 0%,var(--space-2) 100%);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--text);padding:48px 28px 80px;min-height:100vh;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .serif{font-family:Georgia,"Songti SC","Noto Serif SC",serif}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;border:1px solid var(--gold);color:var(--gold);font-size:12px;letter-spacing:.4em;padding:6px 14px 6px 20px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:300;letter-spacing:.14em;color:var(--gold-2)}
+  h1 .en{display:block;font-size:12px;letter-spacing:.5em;color:var(--text-3);font-weight:500;margin-top:8px}
+  .positioning{font-size:18px;color:var(--text-2);margin-top:14px;font-weight:300}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--card);border:1px solid var(--card-line);border-radius:999px;padding:7px 18px;font-size:13px;color:var(--text-2)}
+
+  section{margin-top:56px}
+  h2{font-size:13px;letter-spacing:.5em;color:var(--text-3);text-align:center;margin-bottom:28px}
+  h2::before,h2::after{content:"✦";margin:0 14px;color:var(--gold);font-size:11px}
+
+  /* 星点装饰 */
+  .starfield{position:fixed;inset:0;pointer-events:none;opacity:.7}
+  .starfield i{position:absolute;background:#fff;border-radius:50%}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:44px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid #060A18;box-shadow:0 24px 60px rgba(0,0,0,.55);
+    background:radial-gradient(400px 260px at 80% 0%,#26305E 0%,transparent 60%),linear-gradient(180deg,#0D1330,#121A3E);
+  }
+  .phone.day{background:linear-gradient(180deg,var(--day-bg),#E4E9F4)}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--text-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 24px 6px;font-size:12px;color:var(--text-2)}
+
+  /* 星座 hero */
+  .hero{padding:22px 22px 6px;text-align:center;position:relative}
+  .hero .constellation{height:86px;position:relative;margin-bottom:6px}
+  .hero .constellation .cl{position:absolute;background:var(--starline);transform-origin:0 0}
+  .hero .constellation .pt{position:absolute;color:var(--gold-2);text-shadow:0 0 10px rgba(212,179,106,.8)}
+  .hero .kicker{font-size:11px;letter-spacing:.5em;color:var(--text-3)}
+  .hero .num{font-size:88px;font-weight:200;color:var(--gold-2);line-height:1.05;text-shadow:0 0 24px rgba(212,179,106,.3)}
+  .hero .num small{font-size:20px;font-weight:300;color:var(--text-2);margin-left:8px;text-shadow:none}
+  .hero .title{font-size:15px;color:var(--text-2);letter-spacing:.2em;margin-top:4px;font-weight:300}
+
+  .cards{padding:18px 18px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .card{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r-card);padding:14px 15px 13px;backdrop-filter:blur(8px)}
+  .card .t{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:7px}
+  .card .mag{color:var(--gold);font-size:13px}
+  .card .d{font-size:28px;font-weight:200;margin-top:5px;color:var(--text)}
+  .card .d small{font-size:11px;color:var(--text-3);font-weight:300}
+  .card .ra{font-size:9px;color:var(--text-3);margin-top:7px;letter-spacing:.08em}
+  .card.wide{grid-column:span 2;background:linear-gradient(135deg,rgba(212,179,106,.10),rgba(157,173,255,.08))}
+  .card.wide .d{font-size:38px}
+
+  .nav{margin-top:auto;padding:12px 26px 22px;display:flex;align-items:center;justify-content:space-between}
+  .nav .item{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:11px}
+  .nav .item.on{color:var(--gold-2);border:1px solid var(--starline)}
+  .nav .plus{width:52px;height:52px;border-radius:50%;border:1px solid var(--gold);color:var(--gold-2);font-size:24px;display:flex;align-items:center;justify-content:center;margin-top:-26px;background:rgba(212,179,106,.08)}
+
+  /* 昼间天文手稿日历 */
+  .cal{padding:12px 20px 0;flex:1}
+  .cal .month{display:flex;align-items:baseline;justify-content:space-between;padding:6px 4px 12px;border-bottom:1px solid #C9D2E6}
+  .cal .month .m{font-size:26px;font-weight:500;color:var(--day-ink);letter-spacing:.1em}
+  .cal .month .y{font-size:10px;color:#7A87A8;letter-spacing:.3em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:#7A87A8;margin:10px 0 6px;letter-spacing:.15em}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:6px}
+  .day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:50%;font-size:13px;color:#3A4864;position:relative}
+  .day.dim{color:#B9C2D8}
+  .day.today{border:1.5px solid var(--gold);color:var(--day-ink);font-weight:600}
+  .day .moon{font-size:9px;line-height:1;color:#8A94B4}
+  .day.ev .moon{color:#B08D3E}
+  .daynote{margin:12px 16px 0;background:var(--day-card);border:1px solid #D6DDEC;border-radius:var(--r-card);padding:14px 16px}
+  .daynote .h{font-size:10px;letter-spacing:.35em;color:#7A87A8}
+  .daynote .row{display:flex;justify-content:space-between;align-items:center;margin-top:9px;padding-bottom:8px;border-bottom:1px dashed #D6DDEC}
+  .daynote .row:last-child{border-bottom:0;padding-bottom:0}
+  .daynote .n{font-size:14px;color:var(--day-ink)}
+  .daynote .c{font-size:11px;color:#8A94B4}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r-sheet);padding:26px 30px;min-width:320px;backdrop-filter:blur(10px)}
+  .comp-card.daycard{background:var(--day-card);border:1px solid #D6DDEC}
+  .comp-card h3{font-size:11px;letter-spacing:.35em;color:var(--text-3);margin-bottom:16px;font-weight:500}
+  .comp-card.daycard h3{color:#7A87A8}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 28px;font-size:14px;cursor:pointer;margin:0 8px 10px 0;border-radius:999px;letter-spacing:.1em}
+  .btn.primary{background:var(--gold);color:#0B1026;font-weight:600}
+  .btn.ghost{border:1px solid var(--starline);color:var(--gold-2)}
+  .btn.dayp{background:var(--day-ink);color:#EDF0F8}
+  .seg{display:inline-flex;gap:0;border:1px solid var(--card-line);border-radius:999px;padding:3px}
+  .seg span{padding:6px 16px;font-size:13px;border-radius:999px;color:var(--text-2)}
+  .seg .on{background:var(--gold);color:#0B1026;font-weight:600}
+  .toast{margin-top:14px;background:#060A18;border:1px solid var(--card-line);color:var(--text);border-radius:12px;padding:12px 18px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:var(--gold);font-weight:500}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:54px;height:54px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(128,140,180,.3)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r-sheet);padding:28px 32px;backdrop-filter:blur(10px)}
+  .panel h3{font-size:12px;letter-spacing:.35em;color:var(--text-3);margin-bottom:18px;font-weight:500}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--text-3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--card-line);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid rgba(157,173,255,.08);color:var(--text-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--text)}
+  .c-well{width:22px;height:22px;border-radius:6px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(128,140,180,.3)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid rgba(157,173,255,.08)}
+  .type-row .meta{width:195px;font-size:11px;color:var(--text-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(157,173,255,.08);font-size:13px;color:var(--text-2)}
+  .motion-row b{color:var(--text);font-weight:400}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--text-3);letter-spacing:.25em}
+</style>
+</head>
+<body>
+<div class="starfield">
+  <i style="left:6%;top:12%;width:2px;height:2px"></i><i style="left:14%;top:40%;width:1px;height:1px"></i>
+  <i style="left:22%;top:70%;width:2px;height:2px"></i><i style="left:30%;top:20%;width:1px;height:1px"></i>
+  <i style="left:44%;top:8%;width:2px;height:2px"></i><i style="left:52%;top:60%;width:1px;height:1px"></i>
+  <i style="left:63%;top:32%;width:2px;height:2px"></i><i style="left:71%;top:78%;width:1px;height:1px"></i>
+  <i style="left:80%;top:14%;width:2px;height:2px"></i><i style="left:88%;top:48%;width:1px;height:1px"></i>
+  <i style="left:94%;top:66%;width:2px;height:2px"></i><i style="left:38%;top:88%;width:1px;height:1px"></i>
+</div>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 H</div>
+    <h1 class="serif">时间星图<span class="en mono">CELESTIAL ATLAS · STAR & MOON</span></h1>
+    <p class="positioning">"把日子钉上夜空，等一颗星到中天。"</p>
+    <div class="chips">
+      <span class="chip">星图</span><span class="chip">月相日历</span><span class="chip">古董金</span>
+      <span class="chip">星座连线</span><span class="chip">天文台手稿</span><span class="chip">深空蓝</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左深空首页 · 右昼间手稿月历）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">LAT 30.25°N</span></div>
+        <div class="hero">
+          <div class="constellation">
+            <span class="cl" style="left:40px;top:60px;width:70px;transform:rotate(-28deg)"></span>
+            <span class="cl" style="left:110px;top:20px;width:84px;transform:rotate(12deg)"></span>
+            <span class="cl" style="left:192px;top:38px;width:60px;transform:rotate(40deg)"></span>
+            <span class="pt" style="left:32px;top:52px">✦</span>
+            <span class="pt" style="left:104px;top:12px;font-size:17px">✦</span>
+            <span class="pt" style="left:188px;top:30px">✧</span>
+            <span class="pt" style="left:250px;top:78px">✦</span>
+          </div>
+          <div class="kicker">主星 · 中天在</div>
+          <div class="num">148<small>天</small></div>
+          <div class="title">春节 · 回家的日子</div>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="t"><span class="mag">✧</span>考研初试</div><div class="d">96<small> 天</small></div><div class="ra mono">RA 12.19 · MAG 3.2</div></div>
+          <div class="card"><div class="t"><span class="mag">✦</span>演唱会</div><div class="d">32<small> 天</small></div><div class="ra mono">RA 09.20 · MAG 1.8</div></div>
+          <div class="card wide">
+            <div class="t"><span class="mag" style="font-size:15px">✵</span>毕业旅行 · 东京 · 主序星</div>
+            <div class="d">214<small> 天</small></div>
+            <div class="ra mono">RA 03.28 · MAG 0.9 · GROUP 旅行</div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on">星图</div>
+          <div class="plus">+</div>
+          <div class="item">月相</div>
+        </div>
+        <div class="phone-label">首页 · 事件即星宿</div>
+      </div>
+
+      <div class="phone day">
+        <div class="statusbar" style="color:#3A4864"><span>9:41</span><span class="mono">OBSERVATORY LOG</span></div>
+        <div class="cal">
+          <div class="month"><span class="m serif">八月</span><span class="y mono">2026 · LUNAR</span></div>
+          <div class="weekdays mono"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1<i class="moon">🌒</i></span>
+            <span class="day">2<i class="moon">🌒</i></span><span class="day">3<i class="moon">🌓</i></span><span class="day">4<i class="moon">🌓</i></span><span class="day">5<i class="moon">🌔</i></span><span class="day">6<i class="moon">🌔</i></span><span class="day">7<i class="moon">🌕</i></span>
+            <span class="day">8<i class="moon">🌖</i></span><span class="day">9<i class="moon">🌖</i></span><span class="day">10<i class="moon">🌗</i></span><span class="day">11<i class="moon">🌗</i></span><span class="day today">12<i class="moon">🌘</i></span><span class="day">13<i class="moon">🌘</i></span><span class="day">14<i class="moon">🌑</i></span>
+            <span class="day ev">15<i class="moon">🌑</i></span><span class="day">16<i class="moon">🌒</i></span><span class="day">17<i class="moon">🌒</i></span><span class="day">18<i class="moon">🌓</i></span><span class="day">19<i class="moon">🌓</i></span><span class="day">20<i class="moon">🌔</i></span><span class="day ev">21<i class="moon">🌔</i></span>
+            <span class="day">22<i class="moon">🌕</i></span><span class="day">23<i class="moon">🌖</i></span><span class="day">24<i class="moon">🌖</i></span <span class="day">25<i class="moon">🌗</i></span><span class="day">26<i class="moon">🌗</i></span><span class="day">27<i class="moon">🌘</i></span><span class="day">28<i class="moon">🌘</i></span>
+            <span class="day">29<i class="moon">🌑</i></span><span class="day">30<i class="moon">🌑</i></span><span class="day">31<i class="moon">🌒</i></span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+          <div class="daynote">
+            <div class="h">观测记录 · 8月12日</div>
+            <div class="row"><span class="n">七夕节</span><span class="c mono">FESTIVAL</span></div>
+            <div class="row"><span class="n">英语六级出分</span><span class="c mono">08:00</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item" style="color:#8A94B4">星图</div>
+          <div class="plus" style="background:var(--day-ink);color:#EDF0F8;border-color:var(--day-ink)">+</div>
+          <div class="item on" style="color:var(--day-ink);border-color:#B08D3E">月相</div>
+        </div>
+        <div class="phone-label">日子簿 · 月相历（昼间手稿风）</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 撤销（深空）</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn ghost">次操作</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">深空</span><span>手稿</span><span>跟随系统</span></span></div>
+        <div class="toast"><span>已将「演唱会」移出星图</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 深空（主模式）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#0B1026" title="深空底"></span>
+          <span class="swatch" style="background:#141B3C" title="渐变底"></span>
+          <span class="swatch" style="background:rgba(157,173,255,.07)" title="星卡面"></span>
+          <span class="swatch" style="background:#E9EDFB" title="星白文字"></span>
+          <span class="swatch" style="background:#D4B36A" title="古董金"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 昼间手稿</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#EDF0F8" title="手稿底"></span>
+          <span class="swatch" style="background:#1E2A44" title="墨蓝文字"></span>
+          <span class="swatch" style="background:#7A87A8" title="淡墨"></span>
+          <span class="swatch" style="background:#B08D3E" title="古董金"></span>
+          <span class="swatch" style="background:#C9D2E6" title="制图线"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>深空（主）</th><th>昼间手稿</th></tr>
+          <tr><td><span class="c-well" style="background:#0B1026"></span>页面底（渐变）</td><td class="hex">#0B1026→#141B3C</td><td class="hex">#EDF0F8</td></tr>
+          <tr><td><span class="c-well" style="background:rgba(157,173,255,.07)"></span>星卡表面</td><td class="hex">#9DADFF·7%</td><td class="hex">#FFFFFF</td></tr>
+          <tr><td><span class="c-well" style="background:#E9EDFB"></span>文字 · 主</td><td class="hex">#E9EDFB</td><td class="hex">#1E2A44</td></tr>
+          <tr><td><span class="c-well" style="background:#A3ABCF"></span>文字 · 次</td><td class="hex">#A3ABCF</td><td class="hex">#3A4864</td></tr>
+          <tr><td><span class="c-well" style="background:#D4B36A"></span>古董金（星/强调）</td><td class="hex">#D4B36A</td><td class="hex">#B08D3E</td></tr>
+          <tr><td><span class="c-well" style="background:rgba(212,179,106,.35)"></span>星座连线</td><td class="hex">#D4B36A·35%</td><td class="hex">#B08D3E·30%</td></tr>
+          <tr><td><span class="c-well" style="background:rgba(176,192,255,.16)"></span>卡片描边</td><td class="hex">#B0C0FF·16%</td><td class="hex">#C9D2E6</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（细字重 + 天文 mono 标注）</h3>
+        <div class="type-row"><span class="meta">display / 88sp / ultralight·金色</span><span style="font-size:40px;font-weight:200;color:#F0D9A8">148 天</span></div>
+        <div class="type-row"><span class="meta">title / 16sp / light·宽字距</span><span style="font-size:16px;font-weight:300;letter-spacing:.2em">春节 · 回家的日子</span></div>
+        <div class="type-row"><span class="meta">body / 15sp / regular</span><span style="font-size:15px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">astro-label / 9sp / mono</span><span class="mono" style="font-size:9px;color:#6B7396;letter-spacing:.1em">RA 12.19 · MAG 3.2 · GROUP 学业</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与间距 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">14dp</td><td>星卡</td></tr>
+          <tr><td class="hex">radius_sheet</td><td class="hex">20dp</td><td>弹层</td></tr>
+          <tr><td class="hex">star_glyph</td><td class="hex">✦✧✵ 三级</td><td>重要度 = 星等</td></tr>
+          <tr><td class="hex">moon_phase</td><td class="hex">月相 emoji/绘制 9px</td><td>日历日格</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">18dp</td><td>页面边距</td></tr>
+          <tr><td class="hex">space_card</td><td class="hex">12dp</td><td>星卡之间</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>星卡材质</span><b>7% 亮面 + 微模糊 + 16% 描边</b></div>
+        <div class="motion-row"><span>星点闪烁</span><b>3–5s 周期，透明度 40%↔90%</b></div>
+        <div class="motion-row"><span>星座连线</span><b>新事件入场时描线 600ms</b></div>
+        <div class="motion-row"><span>数字变化</span><b>星光渐显（blur 4→0 + 淡入）</b></div>
+        <div class="motion-row"><span>月相切换</span><b>月相 300ms 交叉淡化</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>星点为背景层，不干扰正文对比度</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 H · 星图与月相</footer>
+</div>
+</body>
+</html>

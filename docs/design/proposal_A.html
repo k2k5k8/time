@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 A · 奶油纸感 — 刻间设计语言提案</title>
+<style>
+  :root{
+    --bg:#F6F3EC; --bg-deep:#F0ECE1;
+    --surface:rgba(255,255,255,.92);
+    --surface-solid:#FFFFFF;
+    --ink:#2C2218; --ink-2:#6E6053; --ink-3:#9E8D7D;
+    --primary:#5168A8; --blue:#5ED1FF; --orange:#FFBC00;
+    --line:#E7DFD2;
+    --radius-card:18px; --radius-sheet:28px;
+    --shadow-card:0 2px 10px rgba(80,64,44,.07);
+    --shadow-float:0 14px 36px rgba(80,64,44,.16);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg-deep) 100%);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;
+    color:var(--ink); padding:48px 28px 80px;
+  }
+  .page{max-width:1120px;margin:0 auto}
+  .serif{font-family:Georgia,"Songti SC","Noto Serif SC",serif}
+
+  /* ---------- header ---------- */
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;background:var(--ink);color:var(--bg);font-size:12px;letter-spacing:.35em;padding:6px 14px 6px 18px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:600;letter-spacing:.06em}
+  h1 .en{display:block;font-size:13px;letter-spacing:.5em;color:var(--ink-3);font-weight:400;margin-top:8px;text-transform:uppercase}
+  .positioning{font-size:18px;color:var(--ink-2);margin-top:16px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 18px;font-size:13px;color:var(--ink-2);box-shadow:var(--shadow-card)}
+
+  section{margin-top:56px}
+  h2{font-size:14px;letter-spacing:.4em;color:var(--ink-3);text-align:center;margin-bottom:28px;font-weight:600}
+  h2::before,h2::after{content:"—";margin:0 12px;color:var(--line)}
+
+  /* ---------- phones ---------- */
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:44px;background:var(--bg);
+    border:8px solid #2C2218;box-shadow:var(--shadow-float);overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+  }
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--ink-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 24px 6px;font-size:12px;color:var(--ink-2)}
+  .hero{padding:18px 22px 6px;text-align:center}
+  .hero .kicker{font-size:12px;letter-spacing:.3em;color:var(--ink-3)}
+  .hero .num{font-size:88px;font-weight:300;line-height:1.05;letter-spacing:.02em}
+  .hero .num small{font-size:22px;font-weight:400;color:var(--ink-2);margin-left:6px}
+  .hero .title{font-size:15px;color:var(--ink-2);margin-top:2px}
+  .hero .rule{width:36px;height:1.5px;background:var(--orange);margin:14px auto 0}
+
+  .cards{padding:18px 18px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .card{background:var(--surface);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:16px 16px 14px;backdrop-filter:blur(8px)}
+  .card .t{font-size:13px;color:var(--ink-2)}
+  .card .d{font-size:30px;font-weight:300;margin-top:6px}
+  .card .d small{font-size:12px;color:var(--ink-3);font-weight:400}
+  .card .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:1px}
+  .card.wide{grid-column:span 2;background:linear-gradient(120deg,rgba(255,255,255,.95),rgba(255,246,230,.92))}
+  .card.wide .d{font-size:40px}
+  .card .tag{font-size:10px;letter-spacing:.2em;color:var(--ink-3);margin-bottom:8px}
+
+  .nav{
+    margin-top:auto;padding:10px 26px 20px;display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(180deg,rgba(246,243,236,0),var(--bg) 40%);
+  }
+  .nav .item{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:20px}
+  .nav .item.on{color:var(--ink);transform:scale(1.12)}
+  .nav .plus{width:52px;height:52px;border-radius:50%;background:var(--ink);color:#F6F3EC;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card);margin-top:-26px}
+
+  /* daybook */
+  .cal{padding:14px 20px 0;flex:1}
+  .cal .month{display:flex;align-items:baseline;justify-content:space-between;padding:6px 4px 14px}
+  .cal .month .m{font-size:26px;font-weight:500}
+  .cal .month .y{font-size:12px;color:var(--ink-3);letter-spacing:.15em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--ink-3);margin-bottom:8px}
+  .weekdays span:first-child,.weekdays span:last-child{color:#D08770}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:4px}
+  .day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;color:var(--ink-2);border-radius:12px;position:relative}
+  .day.dim{color:#CFC5B4}
+  .day.today{background:var(--ink);color:#F6F3EC;font-weight:600}
+  .day .bar{position:absolute;bottom:6px;width:16px;height:3px;border-radius:2px}
+  .bar.b1{background:var(--blue)} .bar.b2{background:var(--orange)} .bar.b3{background:var(--primary)}
+  .daynote{margin:14px 16px 0;background:var(--surface);border-radius:var(--radius-card);padding:14px 16px;box-shadow:var(--shadow-card)}
+  .daynote .h{font-size:11px;letter-spacing:.25em;color:var(--ink-3)}
+  .daynote .row{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .daynote .n{font-size:14px}
+  .daynote .c{font-size:12px;color:var(--ink-3)}
+
+  /* ---------- components ---------- */
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--surface-solid);border-radius:var(--radius-sheet);box-shadow:var(--shadow-card);padding:26px 30px;min-width:300px}
+  .comp-card h3{font-size:11px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:600}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;border-radius:999px;font-size:14px;cursor:pointer;margin:0 8px 10px 0}
+  .btn.primary{background:var(--ink);color:#F6F3EC}
+  .btn.accent{background:var(--orange);color:#2C2218}
+  .btn.ghost{border:1.2px solid var(--line);color:var(--ink-2);background:transparent}
+  .seg{display:inline-flex;background:var(--bg);border-radius:999px;padding:4px}
+  .seg span{padding:7px 18px;font-size:13px;border-radius:999px;color:var(--ink-2)}
+  .seg .on{background:var(--surface-solid);color:var(--ink);box-shadow:var(--shadow-card)}
+  .toast{margin-top:14px;background:rgba(44,34,24,.94);color:#EFE8DC;border-radius:14px;padding:12px 18px;font-size:13px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-float)}
+  .toast b{color:var(--blue);font-weight:500}
+  .swatches{display:flex;gap:14px;margin-top:6px}
+  .swatch{width:56px;height:56px;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(44,34,24,.08)}
+
+  /* ---------- palette & tokens ---------- */
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--surface-solid);border-radius:var(--radius-sheet);padding:28px 32px;box-shadow:var(--shadow-card)}
+  .panel h3{font-size:12px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid #F1EBDF;color:var(--ink-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;border-radius:7px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(44,34,24,.1)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid #F1EBDF}
+  .type-row .meta{width:170px;font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F1EBDF;font-size:13px;color:var(--ink-2)}
+  .motion-row b{color:var(--ink);font-weight:500}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--ink-3);letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 A</div>
+    <h1 class="serif">奶油纸感<span class="en">Cream Paper · Editorial</span></h1>
+    <p class="positioning serif">"把时间安静地摊在一张暖色的纸上。"</p>
+    <div class="chips">
+      <span class="chip">极简</span><span class="chip">暖白奶油</span><span class="chip">纸张质感</span>
+      <span class="chip">半透明悬浮</span><span class="chip">日系编辑风</span><span class="chip">克制动效</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="hero">
+          <div class="kicker">距离还有</div>
+          <div class="num serif">148<small>天</small></div>
+          <div class="title">春节 · 回家的日子</div>
+          <div class="rule"></div>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="t"><span class="dot" style="background:var(--blue)"></span>考研初试</div><div class="d serif">96<small> 天</small></div></div>
+          <div class="card"><div class="t"><span class="dot" style="background:var(--orange)"></span>演唱会</div><div class="d serif">32<small> 天</small></div></div>
+          <div class="card wide">
+            <div class="tag">置顶 · PINNED</div>
+            <div class="t"><span class="dot" style="background:var(--primary)"></span>毕业旅行 · 东京</div>
+            <div class="d serif">214<small> 天</small></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on">🏠</div>
+          <div class="plus">+</div>
+          <div class="item">📅</div>
+        </div>
+        <div class="phone-label">首页 · 大事件</div>
+      </div>
+
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="cal">
+          <div class="month"><span class="m serif">八月</span><span class="y">2026 · DAYBOOK</span></div>
+          <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+            <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16<i class="bar b1"></i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20<i class="bar b2"></i></span><span class="day">21</span><span class="day">22</span>
+            <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="bar b3"></i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+            <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+          <div class="daynote">
+            <div class="h">今天 · 8月12日</div>
+            <div class="row"><span class="n serif">七夕节</span><span class="c">节日</span></div>
+            <div class="row"><span class="n">英语六级出分</span><span class="c">08:00</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item">🏠</div>
+          <div class="plus">+</div>
+          <div class="item on">📅</div>
+        </div>
+        <div class="phone-label">日子簿 · 月历</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 撤销</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn accent">强调</span><span class="btn ghost">次操作</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">跟随系统</span><span>浅色</span><span>深色</span></span></div>
+        <div class="toast"><span>已删除「演唱会」</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 浅色模式</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#F6F3EC" title="背景"></span>
+          <span class="swatch" style="background:#FFFFFF" title="表面"></span>
+          <span class="swatch" style="background:#2C2218" title="主文字"></span>
+          <span class="swatch" style="background:#5168A8" title="品牌蓝"></span>
+          <span class="swatch" style="background:#5ED1FF" title="强调蓝"></span>
+          <span class="swatch" style="background:#FFBC00" title="强调橙"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 深色模式</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#1C1815" title="背景"></span>
+          <span class="swatch" style="background:#2A241D" title="表面"></span>
+          <span class="swatch" style="background:#EDE6DA" title="主文字"></span>
+          <span class="swatch" style="background:#8FA3D9" title="品牌蓝"></span>
+          <span class="swatch" style="background:#6FBBDD" title="强调蓝"></span>
+          <span class="swatch" style="background:#F0B34E" title="强调橙"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>浅色</th><th>深色</th></tr>
+          <tr><td><span class="c-well" style="background:#F6F3EC"></span>页面背景</td><td class="hex">#F6F3EC</td><td class="hex">#1C1815</td></tr>
+          <tr><td><span class="c-well" style="background:#FFFFFF"></span>卡片表面（92% 白）</td><td class="hex">#FFFFFF·92</td><td class="hex">#2A241D</td></tr>
+          <tr><td><span class="c-well" style="background:#2C2218"></span>文字 · 主</td><td class="hex">#2C2218</td><td class="hex">#EDE6DA</td></tr>
+          <tr><td><span class="c-well" style="background:#6E6053"></span>文字 · 次</td><td class="hex">#6E6053</td><td class="hex">#B5A897</td></tr>
+          <tr><td><span class="c-well" style="background:#9E8D7D"></span>文字 · 弱</td><td class="hex">#9E8D7D</td><td class="hex">#857767</td></tr>
+          <tr><td><span class="c-well" style="background:#5168A8"></span>品牌主色</td><td class="hex">#5168A8</td><td class="hex">#8FA3D9</td></tr>
+          <tr><td><span class="c-well" style="background:#5ED1FF"></span>强调 · 蓝</td><td class="hex">#5ED1FF</td><td class="hex">#6FBBDD</td></tr>
+          <tr><td><span class="c-well" style="background:#FFBC00"></span>强调 · 橙</td><td class="hex">#FFBC00</td><td class="hex">#F0B34E</td></tr>
+          <tr><td><span class="c-well" style="background:#E7DFD2"></span>分割线 / 描边</td><td class="hex">#E7DFD2</td><td class="hex">#3A322A</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（衬线数字为特色）</h3>
+        <div class="type-row"><span class="meta">display / 88sp / light</span><span class="serif" style="font-size:40px;font-weight:300">148 天</span></div>
+        <div class="type-row"><span class="meta">title / 17sp / medium</span><span style="font-size:17px;font-weight:500">春节 · 回家的日子</span></div>
+        <div class="type-row"><span class="meta">body / 14sp / regular</span><span style="font-size:14px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">caption / 12sp</span><span style="font-size:12px;color:#9E8D7D">距离还有 · 08:00 提醒</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与间距 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">18dp</td><td>事件卡片</td></tr>
+          <tr><td class="hex">radius_sheet</td><td class="hex">28dp</td><td>弹层 / 底部面板 / 大卡片</td></tr>
+          <tr><td class="hex">radius_chip</td><td class="hex">full</td><td>胶囊按钮、筛选 chip</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">20dp</td><td>页面水平边距</td></tr>
+          <tr><td class="hex">space_card</td><td class="hex">12dp</td><td>卡片之间</td></tr>
+          <tr><td class="hex">space_inner</td><td class="hex">16dp</td><td>卡片内边距</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>卡片阴影</span><b>2dp · 暖棕色 7% 透明度</b></div>
+        <div class="motion-row"><span>悬浮阴影（弹层）</span><b>9dp 环境阴影</b></div>
+        <div class="motion-row"><span>背景切换</span><b>淡入 850ms</b></div>
+        <div class="motion-row"><span>卡片停靠</span><b>420ms · cubic-bezier(.22,1,.36,1)</b></div>
+        <div class="motion-row"><span>长按进入编辑</span><b>500ms</b></div>
+        <div class="motion-row"><span>玻璃拟态</span><b>仅模板页局部使用</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 A · 保留现有风格并固化</footer>
+</div>
+</body>
+</html>

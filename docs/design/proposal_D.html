@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 D · 静白极简（Apple 式高雅） — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 浅色 */
+    --bg-l:#F5F5F7; --surface-l:#FFFFFF; --sep-l:rgba(60,60,67,.12);
+    --label-l:#1D1D1F; --label2-l:#6E6E73; --label3-l:#AEAEB2;
+    --blue-l:#0071E3; --blue-tint-l:rgba(0,113,227,.10);
+    /* 深色 */
+    --bg-d:#000000; --surface-d:#1C1C1E; --sep-d:rgba(84,84,88,.65);
+    --label-d:#F5F5F7; --label2-d:#98989F; --label3-d:#636366;
+    --blue-d:#0A84FF; --blue-tint-d:rgba(10,132,255,.16);
+    /* 通用 */
+    --red:#FF3B30; --green:#34C759; --orange:#FF9500;
+    --r-card:16px; --r-sheet:24px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{
+    background:var(--bg-l);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+    color:var(--label-l);padding:48px 28px 80px;
+    font-variant-numeric:tabular-nums;
+  }
+  .page{max-width:1120px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;background:var(--blue-l);color:#fff;font-size:12px;font-weight:600;letter-spacing:.3em;padding:6px 16px 6px 20px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:700;letter-spacing:-.015em}
+  h1 .en{display:block;font-size:13px;letter-spacing:.45em;color:var(--label3-l);font-weight:500;margin-top:8px}
+  .positioning{font-size:18px;color:var(--label2-l);margin-top:14px;font-weight:400}
+  .chips{display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+  .chip{background:var(--surface-l);border:1px solid var(--sep-l);border-radius:999px;padding:6px 16px;font-size:13px;color:var(--label2-l)}
+
+  section{margin-top:56px}
+  h2{font-size:14px;letter-spacing:.35em;color:var(--label3-l);text-align:center;margin-bottom:28px;font-weight:600}
+  h2::before,h2::after{content:"—";margin:0 12px;color:var(--sep-l)}
+
+  /* ---------- phones ---------- */
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:48px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:9px solid #1D1D1F;box-shadow:0 24px 60px rgba(0,0,0,.18);
+  }
+  .phone.light{background:var(--bg-l)}
+  .phone.dark{background:var(--bg-d)}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.22em;color:var(--label3-l);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:16px 26px 8px;font-size:13px;font-weight:600}
+  .light .statusbar{color:var(--label-l)} .dark .statusbar{color:var(--label-d)}
+
+  /* 首页 hero */
+  .hero{padding:20px 22px 10px;text-align:center}
+  .hero .kicker{font-size:12px;color:var(--label2-l);letter-spacing:.02em;font-weight:400}
+  .hero .num{font-size:92px;font-weight:200;letter-spacing:-.03em;line-height:1.02}
+  .hero .num small{font-size:20px;font-weight:400;color:var(--label2-l);margin-left:6px;letter-spacing:0}
+  .hero .title{font-size:16px;font-weight:600;margin-top:4px}
+  .light .hero .num{color:var(--label-l)} .light .hero .title{color:var(--label-l)}
+  .dark .hero .num{color:var(--label-d)} .dark .hero .title{color:var(--label-d)}
+
+  /* inset grouped 卡片 */
+  .group{margin:12px 16px 0;border-radius:var(--r-card);overflow:hidden}
+  .light .group{background:var(--surface-l)}
+  .dark .group{background:var(--surface-d)}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;position:relative}
+  .row + .row::before{content:"";position:absolute;top:0;left:44px;right:0;height:1px}
+  .light .row + .row::before{background:var(--sep-l)}
+  .dark .row + .row::before{background:var(--sep-d)}
+  .row .name{font-size:15px}
+  .light .row .name{color:var(--label-l)} .dark .row .name{color:var(--label-d)}
+  .row .val{font-size:15px;font-weight:500}
+  .light .row .val{color:var(--label2-l)} .dark .row .val{color:var(--label2-d)}
+  .row .val b{font-weight:600;font-size:22px}
+  .light .row .val b{color:var(--label-l)} .dark .row .val b{color:var(--label-d)}
+  .row .chev{color:var(--label3-l);font-size:14px}
+  .row .pin{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--blue-l);background:var(--blue-tint-l);border-radius:5px;padding:2px 7px;margin-left:8px}
+  .dark .row .pin{color:var(--blue-d);background:var(--blue-tint-d)}
+  .row .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:10px}
+
+  /* 日历 */
+  .cal{padding:6px 18px 0;flex:1}
+  .cal .month{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 12px}
+  .cal .month .m{font-size:24px;font-weight:700;letter-spacing:-.01em}
+  .light .cal .m{color:var(--label-l)} .dark .cal .m{color:var(--label-d)}
+  .cal .month .arrows{font-size:15px;color:var(--label2-l);letter-spacing:14px;padding-right:6px}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;font-weight:600;padding-bottom:6px}
+  .light .weekdays{color:var(--label2-l)} .dark .weekdays{color:var(--label2-d)}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:6px}
+  .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:400;border-radius:50%;position:relative}
+  .light .day{color:var(--label-l)} .dark .day{color:var(--label-d)}
+  .day.dim{color:var(--label3-l)!important;font-weight:300}
+  .day.today{background:var(--red);color:#fff;font-weight:600}
+  .day.today-red{background:var(--blue-l);color:#fff;font-weight:600}
+  .day .dotm{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:var(--blue-l)}
+  .dark .day .dotm{background:var(--blue-d)}
+
+  /* 底部导航（iOS 风格 tab bar + 浮动加号） */
+  .nav{margin-top:auto;display:flex;align-items:center;justify-content:space-around;padding:10px 20px 24px}
+  .light .nav{background:rgba(255,255,255,.82);backdrop-filter:blur(20px);border-top:1px solid var(--sep-l)}
+  .dark .nav{background:rgba(28,28,30,.82);backdrop-filter:blur(20px);border-top:1px solid var(--sep-d)}
+  .nav .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;width:70px}
+  .nav .item .ic{font-size:21px}
+  .light .nav .item{color:var(--label2-l)} .dark .nav .item{color:var(--label2-d)}
+  .nav .item.on{color:var(--blue-l)!important;font-weight:600}
+  .dark .nav .item.on{color:var(--blue-d)!important}
+  .nav .pluswrap{width:70px;display:flex;justify-content:center}
+  .nav .plus{width:46px;height:46px;border-radius:50%;background:var(--blue-l);color:#fff;font-size:26px;font-weight:300;display:flex;align-items:center;justify-content:center;margin-top:-30px;box-shadow:0 6px 18px rgba(0,113,227,.35)}
+  .dark .nav .plus{background:var(--blue-d);box-shadow:0 6px 18px rgba(10,132,255,.4)}
+
+  /* ---------- components ---------- */
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--surface-l);border-radius:var(--r-sheet);padding:26px 30px;min-width:320px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .comp-card.dark-card{background:var(--surface-d)}
+  .comp-card h3{font-size:11px;letter-spacing:.28em;color:var(--label3-l);margin-bottom:16px;font-weight:600}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;font-size:15px;font-weight:600;cursor:pointer;margin:0 8px 10px 0;border-radius:999px;transition:opacity .12s}
+  .btn:active{opacity:.55}
+  .btn.primary{background:var(--blue-l);color:#fff}
+  .btn.tinted{background:var(--blue-tint-l);color:var(--blue-l)}
+  .btn.gray{background:rgba(120,120,128,.12);color:var(--label-l)}
+  .seg{display:inline-flex;background:rgba(120,120,128,.12);border-radius:9px;padding:2px}
+  .seg span{padding:6px 16px;font-size:13px;font-weight:500;border-radius:7px;color:var(--label2-l)}
+  .seg .on{background:var(--surface-l);color:var(--label-l);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+  .toast{margin-top:14px;background:rgba(29,29,31,.92);color:#F5F5F7;border-radius:14px;padding:12px 18px;font-size:14px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(12px)}
+  .toast b{color:#6FB4FF;font-weight:500}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:54px;height:54px;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+
+  /* ---------- tokens ---------- */
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--surface-l);border-radius:var(--r-sheet);padding:28px 32px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .panel h3{font-size:12px;letter-spacing:.28em;color:var(--label3-l);margin-bottom:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--label3-l);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--sep-l);font-size:11px;letter-spacing:.06em}
+  td{padding:8px;border-bottom:1px solid rgba(60,60,67,.06);color:var(--label2-l)}
+  td.hex{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--label-l)}
+  .c-well{width:22px;height:22px;border-radius:6px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid rgba(60,60,67,.06)}
+  .type-row .meta{width:185px;font-size:11px;color:var(--label3-l);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(60,60,67,.06);font-size:13px;color:var(--label2-l)}
+  .motion-row b{color:var(--label-l);font-weight:600}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--label3-l);letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 D</div>
+    <h1>静白极简<span class="en">Refined Minimal · Apple-inspired</span></h1>
+    <p class="positioning">"安静的白，精确的灰，一点克制的蓝。"</p>
+    <div class="chips">
+      <span class="chip">极简</span><span class="chip">高雅</span><span class="chip">中性色</span>
+      <span class="chip">发丝分割线</span><span class="chip">单一强调蓝</span><span class="chip">大留白</span><span class="chip">轻字重数字</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左浅色 · 右深色）</h2>
+    <div class="mockups">
+
+      <div class="phone light">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="hero">
+          <div class="kicker">距离春节还有</div>
+          <div class="num">148<small>天</small></div>
+          <div class="title">回家的日子</div>
+        </div>
+        <div class="group">
+          <div class="row"><span class="name"><span class="dot" style="background:#8E8E93"></span>毕业旅行 · 东京</span><span class="val"><b>214</b> 天<span class="pin">置顶</span></span></div>
+          <div class="row"><span class="name"><span class="dot" style="background:#0071E3"></span>考研初试</span><span class="val"><b>96</b> 天 <span class="chev">›</span></span></div>
+          <div class="row"><span class="name"><span class="dot" style="background:#FF9500"></span>演唱会</span><span class="val"><b>32</b> 天 <span class="chev">›</span></span></div>
+          <div class="row"><span class="name"><span class="dot" style="background:#34C759"></span>项目答辩</span><span class="val"><b>12</b> 天 <span class="chev">›</span></span></div>
+        </div>
+        <div class="nav">
+          <div class="item on"><span class="ic">◉</span>大事件</div>
+          <div class="pluswrap"><div class="plus">+</div></div>
+          <div class="item"><span class="ic">▤</span>日子簿</div>
+        </div>
+        <div class="phone-label">首页 · 浅色模式</div>
+      </div>
+
+      <div class="phone dark">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="cal">
+          <div class="month"><span class="m">八月</span><span class="arrows">‹ ›</span></div>
+          <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+            <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today-red">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16<i class="dotm"></i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span><span class="day">22</span>
+            <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="dotm"></i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+            <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+          <div class="group" style="margin-top:16px">
+            <div class="row"><span class="name">七夕节</span><span class="val" style="font-size:13px">节日</span></div>
+            <div class="row"><span class="name">英语六级出分</span><span class="val" style="font-size:13px">08:00</span></div>
+            <div class="row"><span class="name" style="color:#0A84FF">添加记录…</span><span class="val"></span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item"><span class="ic">◉</span>大事件</div>
+          <div class="pluswrap"><div class="plus">+</div></div>
+          <div class="item on"><span class="ic">▤</span>日子簿</div>
+        </div>
+        <div class="phone-label">日子簿 · 深色模式</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 撤销（浅色）</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn tinted">次操作</span><span class="btn gray">取消</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">跟随系统</span><span>浅色</span><span>深色</span></span></div>
+        <div class="toast"><span>已删除「演唱会」</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 浅色</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#F5F5F7" title="背景"></span>
+          <span class="swatch" style="background:#FFFFFF" title="卡片"></span>
+          <span class="swatch" style="background:#1D1D1F" title="文字"></span>
+          <span class="swatch" style="background:#0071E3" title="强调蓝"></span>
+          <span class="swatch" style="background:#FF3B30" title="今日/危险"></span>
+          <span class="swatch" style="background:#FF9500" title="分类橙"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 深色</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#000000" title="背景"></span>
+          <span class="swatch" style="background:#1C1C1E" title="卡片"></span>
+          <span class="swatch" style="background:#F5F5F7" title="文字"></span>
+          <span class="swatch" style="background:#0A84FF" title="强调蓝"></span>
+          <span class="swatch" style="background:#FF453A" title="今日/危险"></span>
+          <span class="swatch" style="background:#FF9F0A" title="分类橙"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>浅色</th><th>深色</th></tr>
+          <tr><td><span class="c-well" style="background:#F5F5F7"></span>页面背景（分组灰）</td><td class="hex">#F5F5F7</td><td class="hex">#000000</td></tr>
+          <tr><td><span class="c-well" style="background:#FFFFFF"></span>卡片 / 表面</td><td class="hex">#FFFFFF</td><td class="hex">#1C1C1E</td></tr>
+          <tr><td><span class="c-well" style="background:#1D1D1F"></span>文字 · 主</td><td class="hex">#1D1D1F</td><td class="hex">#F5F5F7</td></tr>
+          <tr><td><span class="c-well" style="background:#6E6E73"></span>文字 · 次</td><td class="hex">#6E6E73</td><td class="hex">#98989F</td></tr>
+          <tr><td><span class="c-well" style="background:#AEAEB2"></span>文字 · 弱 / 占位</td><td class="hex">#AEAEB2</td><td class="hex">#636366</td></tr>
+          <tr><td><span class="c-well" style="background:#0071E3"></span>强调蓝（唯一主动作色）</td><td class="hex">#0071E3</td><td class="hex">#0A84FF</td></tr>
+          <tr><td><span class="c-well" style="background:rgba(0,113,227,.1)"></span>蓝的浅底（选中/贴纸底）</td><td class="hex">#0071E3·10%</td><td class="hex">#0A84FF·16%</td></tr>
+          <tr><td><span class="c-well" style="background:#FF3B30"></span>今日 / 危险</td><td class="hex">#FF3B30</td><td class="hex">#FF453A</td></tr>
+          <tr><td><span class="c-well" style="background:#FF9500"></span>分类色 · 橙</td><td class="hex">#FF9500</td><td class="hex">#FF9F0A</td></tr>
+          <tr><td><span class="c-well" style="background:#E5E5EA"></span>发丝分割线</td><td class="hex">#C6C6C8</td><td class="hex">#38383A</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（超轻大数字为特色）</h3>
+        <div class="type-row"><span class="meta">display / 92sp / extralight</span><span style="font-size:42px;font-weight:200;letter-spacing:-.02em">148 天</span></div>
+        <div class="type-row"><span class="meta">largeTitle / 28sp / bold</span><span style="font-size:28px;font-weight:700">大事件</span></div>
+        <div class="type-row"><span class="meta">headline / 16sp / semibold</span><span style="font-size:16px;font-weight:600">毕业旅行 · 东京</span></div>
+        <div class="type-row"><span class="meta">body / 16sp / regular</span><span style="font-size:16px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">footnote / 13sp</span><span style="font-size:13px;color:#6E6E73">2026.12.19 星期六</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与间距 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">16dp</td><td>分组卡片、输入框</td></tr>
+          <tr><td class="hex">radius_sheet</td><td class="hex">24dp</td><td>弹层 / 底部面板</td></tr>
+          <tr><td class="hex">radius_control</td><td class="hex">full</td><td>胶囊按钮</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">16dp</td><td>页面水平边距</td></tr>
+          <tr><td class="hex">space_card</td><td class="hex">12dp</td><td>分组卡片之间</td></tr>
+          <tr><td class="hex">space_inner</td><td class="hex">16dp</td><td>卡片内边距</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>卡片阴影</span><b>无（靠背景对比分层）</b></div>
+        <div class="motion-row"><span>分割线</span><b>1dp 发丝线，左缩进与文字对齐</b></div>
+        <div class="motion-row"><span>悬浮层（导航/toast）</span><b>80–90% 表面色 + 20px 模糊</b></div>
+        <div class="motion-row"><span>按压反馈</span><b>透明度降至 ~55%，120ms</b></div>
+        <div class="motion-row"><span>常规动效</span><b>300ms spring（阻尼 0.85）</b></div>
+        <div class="motion-row"><span>卡片停靠</span><b>spring 落位，无夸张回弹</b></div>
+        <div class="motion-row"><span>长按进入编辑</span><b>500ms（保持现有交互）</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 D · 极简高雅（Apple 式）· 浅深双模式对等</footer>
+</div>
+</body>
+</html>

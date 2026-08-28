@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 K · 胶片手帐 — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 昼：亚麻桌面 */
+    --desk:#E7E1D4; --desk-2:#DDD6C5;
+    --polaroid:#FEFEFC; --polaroid-2:#F7F5EE;
+    --ink:#33302B; --ink-2:#6E675B; --ink-3:#A69E8E;
+    --stamp:#E8842C;                  /* 胶片日期戳橙 */
+    --tape-blue:#A8C4D8; --tape-kraft:#D8BE96; --tape-pink:#E9C4C8;
+    --line:#D5CFC0;
+    /* 夜：胡桃木桌面 */
+    --walnut:#211D18; --polaroid-n:#2E2A24;
+    --text-n:#E9E2D3; --ink2-n:#A69C8A; --stamp-n:#FF9A47;
+    --r-card:6px; --r-sheet:14px;
+    --hand:"Marker Felt","Chalkboard SE","Bradley Hand","PingFang SC",cursive;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--desk),var(--desk-2));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--ink);padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .hand{font-family:var(--hand)}
+  .page{max-width:1120px;margin:0 auto}
+
+  /* 和纸胶带 */
+  .tape{position:absolute;width:76px;height:22px;opacity:.85;box-shadow:0 1px 3px rgba(51,48,43,.15)}
+  .tape.blue{background:var(--tape-blue)} .tape.kraft{background:var(--tape-kraft)} .tape.pink{background:var(--tape-pink)}
+
+  header{text-align:center;margin-bottom:44px;position:relative}
+  .badge{display:inline-block;background:var(--stamp);color:#fff;font-size:12px;letter-spacing:.3em;padding:6px 14px 6px 18px;border-radius:3px;margin-bottom:18px;font-weight:700}
+  h1{font-size:44px;font-weight:400}
+  h1 .en{display:block;font-size:12px;letter-spacing:.45em;color:var(--ink-3);font-weight:600;margin-top:8px;font-family:-apple-system,sans-serif}
+  .positioning{font-size:18px;color:var(--ink-2);margin-top:14px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--polaroid);border:1px solid var(--line);border-radius:3px;padding:7px 16px;font-size:13px;color:var(--ink-2);box-shadow:0 1px 3px rgba(51,48,43,.08)}
+  header .tape{top:-6px;left:8%;transform:rotate(-8deg)}
+  header .tape.t2{left:auto;right:8%;transform:rotate(6deg);background:var(--tape-pink)}
+
+  section{margin-top:56px}
+  h2{font-size:14px;letter-spacing:.4em;color:var(--ink-3);text-align:center;margin-bottom:28px;font-weight:600}
+  h2::before,h2::after{content:"—";margin:0 12px;color:var(--line)}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:44px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid #4A443A;box-shadow:0 20px 50px rgba(51,48,43,.3);
+    background:linear-gradient(180deg,var(--desk),var(--desk-2));
+  }
+  .phone.night{background:linear-gradient(180deg,var(--walnut),#1A1712)}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--ink-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 24px 4px;font-size:12px;color:var(--ink-2)}
+  .night .statusbar{color:#8C8272}
+
+  /* 大拍立得 hero */
+  .hero{padding:16px 26px 0;display:flex;justify-content:center}
+  .polaroid-lg{
+    width:230px;background:var(--polaroid);border-radius:var(--r-card);padding:10px 10px 14px;position:relative;
+    box-shadow:0 8px 24px rgba(51,48,43,.22);transform:rotate(-1.5deg);
+  }
+  .polaroid-lg .photo{
+    aspect-ratio:4/3.1;border-radius:3px;
+    background:linear-gradient(150deg,#BFD3DE 0%,#D8C9B2 45%,#C9A98A 100%);
+    display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  }
+  .polaroid-lg .photo::after{content:"";position:absolute;inset:0;background:radial-gradient(80px 60px at 78% 18%,rgba(255,255,255,.5),transparent 70%)}
+  .polaroid-lg .photo .num{
+    position:relative;z-index:1;font-size:64px;font-weight:700;color:#FFF6EA;
+    text-shadow:0 2px 10px rgba(51,48,43,.45);letter-spacing:-.02em;
+  }
+  .polaroid-lg .caption{display:flex;justify-content:space-between;align-items:baseline;padding:9px 4px 0}
+  .polaroid-lg .caption .hand{font-size:19px}
+  .polaroid-lg .datestamp{font-size:13px;color:var(--stamp);font-weight:700;letter-spacing:.06em}
+  .polaroid-lg .tape{top:-11px;left:50%;transform:translateX(-50%) rotate(-2deg)}
+
+  /* 小拍立得卡 */
+  .polaroids{padding:20px 18px 0;display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+  .pmini{
+    background:var(--polaroid);border-radius:4px;padding:7px 7px 10px;position:relative;
+    box-shadow:0 4px 12px rgba(51,48,43,.18);
+  }
+  .pmini .ph{aspect-ratio:1/.82;border-radius:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+  .pmini .ph .n{font-size:30px;font-weight:700;letter-spacing:-.02em}
+  .pmini .ph .u{font-size:9px;opacity:.8}
+  .pmini .cap{font-size:12px;text-align:center;padding-top:6px}
+  .pmini .cap .hand{font-size:14px;display:block}
+  .pmini.r1{transform:rotate(1.6deg)} .pmini.r2{transform:rotate(-2deg)}
+  .pmini .tape{width:52px;height:16px;top:-8px}
+  .pmini.wide{grid-column:span 2;transform:rotate(.8deg);display:flex;gap:12px;align-items:center;padding:10px 12px}
+  .pmini.wide .ph{width:92px;aspect-ratio:1;flex:none}
+  .pmini.wide .info{flex:1;padding-right:4px}
+
+  .nav{margin-top:auto;padding:10px 26px 20px;display:flex;align-items:center;justify-content:space-between}
+  .nav .item{width:48px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:12px}
+  .nav .item.on{color:var(--ink);border-bottom:2px solid var(--stamp)}
+  .nav .plus{
+    width:46px;height:46px;border-radius:8px;background:var(--stamp);color:#fff;font-size:13px;
+    display:flex;align-items:center;justify-content:center;margin-top:-24px;transform:rotate(-3deg);
+    box-shadow:0 4px 12px rgba(232,132,44,.4);font-family:var(--hand);font-size:16px;
+  }
+
+  /* 夜晚手帐日历 */
+  .cal{padding:12px 18px 0;flex:1}
+  .cal .book{
+    background:var(--polaroid-n);border-radius:var(--r-sheet);padding:14px 14px 12px;position:relative;
+    box-shadow:0 10px 26px rgba(0,0,0,.5);
+  }
+  .cal .book .tape{top:-10px;left:50%;transform:translateX(-50%) rotate(-1.5deg);background:var(--tape-kraft)}
+  .cal .month{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 10px;border-bottom:2px dashed #4A443A}
+  .cal .month .m{font-size:23px;color:var(--text-n)}
+  .cal .month .y{font-size:10px;color:#8C8272;letter-spacing:.25em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:#8C8272;margin:10px 0 6px}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:7px}
+  .day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#C9C0AD;border-radius:4px}
+  .day.dim{color:#565045}
+  .day.today{background:var(--stamp-n);color:#2A1804;font-weight:700;border-radius:4px;box-shadow:0 0 12px rgba(255,154,71,.35)}
+  .day .st{font-size:8px}
+  .day .st.pink{color:#E9A0AE} .day .st.blue{color:#9DBBD2}
+  .daynote{margin:12px 2px 0;padding-top:10px;border-top:2px dashed #4A443A}
+  .daynote .h{font-size:10px;letter-spacing:.3em;color:#8C8272;margin-bottom:6px}
+  .daynote .row{display:flex;align-items:center;gap:9px;padding:6px 0}
+  .daynote .ring{width:15px;height:15px;border:1.6px solid #8C8272;border-radius:50%;flex:none}
+  .daynote .row.done .ring{background:var(--stamp-n);border-color:var(--stamp-n);position:relative}
+  .daynote .row.done .ring::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#2A1804}
+  .daynote .n{font-size:14px;color:#DED5C2}
+  .daynote .row.done .n{text-decoration:line-through;opacity:.5}
+  .daynote .c{margin-left:auto;font-size:10px;color:#8C8272}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--polaroid);border-radius:var(--r-card);padding:26px 30px;min-width:320px;box-shadow:0 6px 18px rgba(51,48,43,.16);position:relative}
+  .comp-card h3{font-size:11px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:600}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;font-size:15px;cursor:pointer;margin:0 8px 12px 0;border-radius:4px;font-family:var(--hand)}
+  .btn.primary{background:var(--stamp);color:#fff;transform:rotate(-.6deg);box-shadow:0 3px 8px rgba(232,132,44,.3)}
+  .btn.paper{background:var(--polaroid-2);color:var(--ink);border:1px solid var(--line)}
+  .btn.taped{background:var(--tape-blue);color:#2E3A42;transform:rotate(1deg)}
+  .toast{margin-top:16px;background:var(--polaroid);border-radius:4px;padding:11px 16px;font-size:14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 12px rgba(51,48,43,.2);transform:rotate(-.8deg)}
+  .toast b{color:var(--stamp)}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:54px;height:54px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(51,48,43,.12)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--polaroid);border-radius:var(--r-sheet);padding:28px 32px;box-shadow:0 6px 18px rgba(51,48,43,.16);position:relative}
+  .panel h3{font-size:12px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid #EDE9DE;color:var(--ink-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;border-radius:4px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(51,48,43,.12)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid #EDE9DE}
+  .type-row .meta{width:200px;font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EDE9DE;font-size:13px;color:var(--ink-2)}
+  .motion-row b{color:var(--ink);font-weight:600}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--ink-3);letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <span class="tape blue"></span><span class="tape t2"></span>
+    <div class="badge">方案 K</div>
+    <h1 class="hand">胶片手帐<span class="en mono">POLAROID & WASHI TAPE</span></h1>
+    <p class="positioning hand">"把重要的日子冲印出来，一张张贴进生活里。"</p>
+    <div class="chips">
+      <span class="chip">拍立得</span><span class="chip">和纸胶带</span><span class="chip">橙色日期戳</span>
+      <span class="chip">手写标注</span><span class="chip">亚麻桌面</span><span class="chip">歪斜贴纸感</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左亚麻桌面首页 · 右胡桃木夜帐）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">ROLL 24 EXP</span></div>
+        <div class="hero">
+          <div class="polaroid-lg">
+            <span class="tape kraft"></span>
+            <div class="photo"><span class="num">148</span></div>
+            <div class="caption">
+              <span class="hand">春节 · 回家！</span>
+              <span class="datestamp mono">'27 02 06</span>
+            </div>
+          </div>
+        </div>
+        <div class="polaroids">
+          <div class="pmini r1">
+            <span class="tape blue" style="left:50%;transform:translateX(-50%) rotate(-3deg)"></span>
+            <div class="ph" style="background:linear-gradient(160deg,#C7D6D2,#A8BFB4)"><span class="n" style="color:#FDFEFB">96</span><span class="u" style="color:#E7EFEA">天</span></div>
+            <div class="cap"><span class="hand">考研加油</span></div>
+          </div>
+          <div class="pmini r2">
+            <span class="tape pink" style="right:14%;transform:rotate(5deg)"></span>
+            <div class="ph" style="background:linear-gradient(160deg,#E4D3C2,#C9A488)"><span class="n" style="color:#FFF6EC">32</span><span class="u" style="color:#F4E4D6">天</span></div>
+            <div class="cap"><span class="hand">演唱会 ♪</span></div>
+          </div>
+          <div class="pmini wide">
+            <div class="ph" style="background:linear-gradient(150deg,#B9C9DC,#8FA5C0)"><span class="n" style="color:#FBFDFF">214</span><span class="u" style="color:#E5EEF7">天</span></div>
+            <div class="info">
+              <span class="hand" style="font-size:16px">东京 · 毕业旅行</span>
+              <div class="mono" style="font-size:10px;color:var(--stamp);margin-top:4px;font-weight:700">'27 03 28 · GROUP 旅行</div>
+              <div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:2px">★ 已置顶 PINNED</div>
+            </div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on">冲印</div>
+          <div class="plus">+ 贴</div>
+          <div class="item">手帐</div>
+        </div>
+        <div class="phone-label">首页 · 事件即拍立得</div>
+      </div>
+
+      <div class="phone night">
+        <div class="statusbar"><span>9:41</span><span class="mono">NIGHT JOURNAL</span></div>
+        <div class="cal">
+          <div class="book">
+            <span class="tape"></span>
+            <div class="month"><span class="m hand">八月 2026</span><span class="y mono">MY JOURNAL</span></div>
+            <div class="weekdays mono"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+            <div class="days">
+              <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+              <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+              <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+              <span class="day">16<i class="st pink">✿</i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20<i class="st blue">✦</i></span><span class="day">21</span><span class="day">22</span>
+              <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="st blue">✦</i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+              <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+            </div>
+            <div class="daynote">
+              <div class="h">今日待办 · TO-DO</div>
+              <div class="row done"><span class="ring"></span><span class="n">早起打卡</span><span class="c mono">DONE</span></div>
+              <div class="row"><span class="ring"></span><span class="n">英语六级出分</span><span class="c mono">08:00</span></div>
+              <div class="row"><span class="ring"></span><span class="n" style="color:#8C8272">＋ 记一件小事…</span><span class="c mono">NEW</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item" style="color:#8C8272">冲印</div>
+          <div class="plus">+ 贴</div>
+          <div class="item on" style="color:var(--text-n);border-bottom-color:var(--stamp-n)">手帐</div>
+        </div>
+        <div class="phone-label">日子簿 · 夜帐（今日 = 日期戳）</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <span class="tape kraft" style="top:-10px;left:24px;transform:rotate(-4deg)"></span>
+        <h3>按钮（贴纸/胶带风）· Toast（便签）</h3>
+        <div>
+          <span class="btn primary">冲印！</span><span class="btn paper">取消</span><span class="btn taped">贴上</span>
+        </div>
+        <div class="toast"><span>已撕下「演唱会」</span><b class="hand">贴回去</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 昼（亚麻 + 拍立得 + 日期戳橙）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#E7E1D4" title="亚麻桌"></span>
+          <span class="swatch" style="background:#FEFEFC" title="拍立得"></span>
+          <span class="swatch" style="background:#33302B" title="墨"></span>
+          <span class="swatch" style="background:#E8842C" title="日期戳橙"></span>
+          <span class="swatch" style="background:#A8C4D8" title="雾蓝胶带"></span>
+          <span class="swatch" style="background:#D8BE96" title="牛皮胶带"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 夜（胡桃木 + 暖白 + 暖橙）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#211D18" title="胡桃木"></span>
+          <span class="swatch" style="background:#2E2A24" title="夜拍立得"></span>
+          <span class="swatch" style="background:#E9E2D3" title="暖白文字"></span>
+          <span class="swatch" style="background:#FF9A47" title="暖橙"></span>
+          <span class="swatch" style="background:#9DBBD2" title="雾蓝(夜)"></span>
+          <span class="swatch" style="background:#8C8272" title="夜次文字"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>昼（亚麻）</th><th>夜（胡桃）</th></tr>
+          <tr><td><span class="c-well" style="background:#E7E1D4"></span>页面底（桌面）</td><td class="hex">#E7E1D4</td><td class="hex">#211D18</td></tr>
+          <tr><td><span class="c-well" style="background:#FEFEFC"></span>拍立得卡面</td><td class="hex">#FEFEFC</td><td class="hex">#2E2A24</td></tr>
+          <tr><td><span class="c-well" style="background:#33302B"></span>文字 · 主</td><td class="hex">#33302B</td><td class="hex">#E9E2D3</td></tr>
+          <tr><td><span class="c-well" style="background:#6E675B"></span>文字 · 次</td><td class="hex">#6E675B</td><td class="hex">#A69C8A</td></tr>
+          <tr><td><span class="c-well" style="background:#E8842C"></span>日期戳橙（唯一强调）</td><td class="hex">#E8842C</td><td class="hex">#FF9A47</td></tr>
+          <tr><td><span class="c-well" style="background:#A8C4D8"></span>雾蓝胶带（分类色 1）</td><td class="hex">#A8C4D8</td><td class="hex">#9DBBD2</td></tr>
+          <tr><td><span class="c-well" style="background:#D8BE96"></span>牛皮胶带（分类色 2）</td><td class="hex">#D8BE96</td><td class="hex">#C2A375</td></tr>
+          <tr><td><span class="c-well" style="background:#E9C4C8"></span>樱粉胶带（节日/纪念）</td><td class="hex">#E9C4C8</td><td class="hex">#E9A0AE</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（手写体标注 + 日期戳 mono 为特色）</h3>
+        <div class="type-row"><span class="meta">display / 64sp / bold（相纸内）</span><span style="font-size:40px;font-weight:700">148</span></div>
+        <div class="type-row"><span class="meta">hand-note / 19sp / 手写体</span><span class="hand" style="font-size:22px">春节 · 回家！</span></div>
+        <div class="type-row"><span class="meta">datestamp / 13sp / mono·橙</span><span class="mono" style="font-size:14px;color:#E8842C;font-weight:700">'27 02 06</span></div>
+        <div class="type-row"><span class="meta">body / 15sp / regular</span><span style="font-size:15px">英语六级出分，记得查分</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与手帐元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">6dp（拍立得近直角）</td><td>卡片</td></tr>
+          <tr><td class="hex">photo_ratio</td><td class="hex">4:3.1 + 下方 12dp 白边</td><td>标准拍立得比例</td></tr>
+          <tr><td class="hex">tape_size</td><td class="hex">76×22dp</td><td>和纸胶带（三色系）</td></tr>
+          <tr><td class="hex">tilt</td><td class="hex">±2° 微旋转</td><td>卡片/按钮（手工感）</td></tr>
+          <tr><td class="hex">dashed_rule</td><td class="hex">2dp 虚线</td><td>分隔线（手帐页）</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">18dp</td><td>页面边距</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>卡片阴影</span><b>纸片浮影（4–8dp 柔和）</b></div>
+        <div class="motion-row"><span>新事件入场</span><b>"贴上"：落下 + 旋转归位 320ms</b></div>
+        <div class="motion-row"><span>删除动效</span><b>"撕下"：掀起一角 + 抽出</b></div>
+        <div class="motion-row"><span>数字变化</span><b>日期戳重新盖印（闪现）</b></div>
+        <div class="motion-row"><span>歪斜纪律</span><b>同屏旋转角不重复，±2° 以内</b></div>
+        <div class="motion-row"><span>胶带纪律</span><b>胶带 = 分组颜色语义，不纯装饰</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 K · 拍立得与手帐</footer>
+</div>
+</body>
+</html>

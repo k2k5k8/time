@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 I · 制表美学 — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 银盘（浅色） */
+    --dial:#F4F4F2; --dial-2:#EBEBE8;
+    --steel:#3E4247; --steel-2:#7A7F86; --steel-3:#ACB0B5;
+    --hand-blue:#1B3A5C;           /* 钢针蓝 */
+    --chrono-red:#C8102E;          /* 计时红针 */
+    --line:#D9DAD6; --bezel:#DDDEDA;
+    /* PVD 夜盘（深色） */
+    --pvd:#12161B; --pvd-card:#1A1F26;
+    --pvd-text:#E8EAEC; --pvd-2:#9AA0A8;
+    --r-card:12px; --r-sheet:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:radial-gradient(900px 500px at 50% -8%,#FFFFFF,transparent 60%),linear-gradient(180deg,var(--dial),var(--dial-2));
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+    color:var(--steel);padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;background:var(--hand-blue);color:#fff;font-size:12px;font-weight:700;letter-spacing:.3em;padding:6px 14px 6px 18px;border-radius:4px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:700;letter-spacing:.02em;color:var(--steel)}
+  h1 .en{display:block;font-size:12px;letter-spacing:.45em;color:var(--steel-3);font-weight:600;margin-top:8px}
+  .positioning{font-size:18px;color:var(--steel-2);margin-top:14px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:#fff;border:1px solid var(--bezel);border-radius:4px;padding:6px 16px;font-size:13px;color:var(--steel-2)}
+
+  section{margin-top:56px}
+  h2{font-size:13px;letter-spacing:.45em;color:var(--steel-3);text-align:center;margin-bottom:28px;font-weight:600}
+  h2::before,h2::after{content:"●";margin:0 14px;font-size:7px;vertical-align:2px;color:var(--chrono-red)}
+
+  /* 表盘 */
+  .dial-lg{
+    width:230px;height:230px;border-radius:50%;margin:0 auto;position:relative;
+    background:radial-gradient(circle at 38% 32%,#FFFFFF 0%,var(--dial) 55%,#DDDDD9 100%);
+    box-shadow:0 10px 30px rgba(62,66,71,.18),inset 0 0 0 2px var(--bezel),inset 0 0 0 7px #F8F8F6;
+  }
+  .dial-lg .ticks{position:absolute;inset:16px;border-radius:50%;
+    background:repeating-conic-gradient(var(--steel) 0deg .8deg,transparent .8deg 6deg);
+    -webkit-mask:radial-gradient(circle,transparent 62%,#000 63%,#000 68%,transparent 69%);
+            mask:radial-gradient(circle,transparent 62%,#000 63%,#000 68%,transparent 69%);}
+  .dial-lg .ticks.minor{inset:19px;opacity:.5;
+    background:repeating-conic-gradient(var(--steel) 0deg .4deg,transparent .4deg 1.2deg);}
+  .dial-lg .roman{position:absolute;font-size:11px;color:var(--steel);font-weight:600;font-family:Georgia,serif}
+  .dial-lg .center-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .dial-lg .center-num .n{font-size:56px;font-weight:200;color:var(--steel);letter-spacing:-.02em}
+  .dial-lg .center-num .u{font-size:10px;letter-spacing:.4em;color:var(--steel-2);margin-top:2px}
+  .dial-lg .progress{position:absolute;inset:30px;border-radius:50%;
+    background:conic-gradient(var(--chrono-red) 0deg 133deg,transparent 133deg 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 58%,#000 59%,#000 64%,transparent 65%);
+            mask:radial-gradient(circle,transparent 58%,#000 59%,#000 64%,transparent 65%);}
+  .dial-lg .subdial{position:absolute;right:22px;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#FBFBFA,#E7E7E4);box-shadow:inset 0 0 0 1px var(--bezel)}
+
+  /* 手机 */
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:44px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid #2A2E33;box-shadow:0 22px 55px rgba(62,66,71,.3);
+    background:linear-gradient(180deg,#F6F6F4,#ECECE9);
+  }
+  .phone.pvd{background:linear-gradient(180deg,var(--pvd),#171C23)}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--steel-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 24px 6px;font-size:12px;color:var(--steel-2)}
+  .pvd .statusbar{color:var(--pvd-2)}
+
+  .hero{text-align:center;padding:14px 10px 2px}
+  .hero .model{font-size:10px;letter-spacing:.5em;color:var(--steel-3);margin-bottom:2px}
+  .hero .brand{font-size:15px;font-weight:700;letter-spacing:.35em;color:var(--steel)}
+  .hero .brand small{display:block;font-size:7px;letter-spacing:.6em;color:var(--steel-3);font-weight:600;margin-top:1px}
+
+  /* 小表盘卡 */
+  .mini-cards{padding:14px 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .mcard{background:#fff;border-radius:var(--r-card);padding:12px 13px 11px;box-shadow:0 3px 10px rgba(62,66,71,.10),inset 0 0 0 1px #F0F0ED}
+  .mcard .t{font-size:12px;color:var(--steel-2);font-weight:500}
+  .mcard .dialrow{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .mcard .sm-dial{width:46px;height:46px;border-radius:50%;position:relative;flex:none;
+    background:radial-gradient(circle at 40% 35%,#FBFBFA,#E6E6E3);box-shadow:inset 0 0 0 1px var(--bezel)}
+  .mcard .sm-dial::before{content:"";position:absolute;inset:5px;border-radius:50%;
+    background:repeating-conic-gradient(var(--steel) 0deg 1deg,transparent 1deg 30deg);opacity:.4;
+    -webkit-mask:radial-gradient(circle,transparent 64%,#000 65%);mask:radial-gradient(circle,transparent 64%,#000 65%)}
+  .mcard .sm-dial .hand{position:absolute;left:50%;top:50%;width:1.5px;height:15px;background:var(--chrono-red);transform-origin:50% 0;transform:translateX(-50%) rotate(212deg)}
+  .mcard .d{font-size:26px;font-weight:300;color:var(--steel)}
+  .mcard .d small{font-size:10px;color:var(--steel-3)}
+  .mcard .spec{font-size:8px;color:var(--steel-3);margin-top:6px;letter-spacing:.08em}
+  .mcard.wide{grid-column:span 2;display:flex;align-items:center;justify-content:space-between}
+  .mcard .crown{width:14px;height:22px;border-radius:3px;background:linear-gradient(90deg,#C9CAC6,#F0F0EE,#C9CAC6);box-shadow:0 1px 3px rgba(62,66,71,.3)}
+
+  .nav{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:10px 26px 20px;background:#fff;border-top:1px solid var(--bezel)}
+  .pvd .nav{background:var(--pvd-card);border-top:1px solid #2A313B}
+  .nav .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;letter-spacing:.12em;color:var(--steel-3);width:76px}
+  .nav .item .ic{font-size:17px}
+  .nav .item.on{color:var(--hand-blue);font-weight:700}
+  .pvd .nav .item.on{color:var(--pvd-text)}
+  .nav .plus{width:48px;height:48px;border-radius:50%;background:var(--hand-blue);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;margin-top:-26px;box-shadow:0 6px 16px rgba(27,58,92,.4)}
+
+  /* PVD 日历 */
+  .cal{padding:12px 20px 0;flex:1}
+  .cal .month{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 12px;border-bottom:1px solid #2A313B}
+  .cal .month .m{font-size:22px;font-weight:600;color:var(--pvd-text);letter-spacing:.05em}
+  .cal .month .mono-idx{font-size:9px;color:var(--pvd-2);letter-spacing:.2em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;color:var(--pvd-2);margin:10px 0 4px;letter-spacing:.1em}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
+  .day{aspect-ratio:1.05;display:flex;align-items:center;justify-content:center;font-size:13px;color:#C6CBD2;border-radius:8px;position:relative;font-weight:400}
+  .day.dim{color:#3B4450}
+  .day.today{color:var(--pvd-text);font-weight:700}
+  .day.today::before{content:"";position:absolute;inset:2px;border-radius:50%;border:1.5px solid var(--chrono-red)}
+  .day .tick{position:absolute;bottom:5px;width:8px;height:1.5px;background:var(--chrono-red);opacity:.8}
+  .daynote{margin:12px 16px 0;background:var(--pvd-card);border-radius:var(--r-card);padding:13px 16px;box-shadow:inset 0 0 0 1px #2A313B}
+  .daynote .h{font-size:9px;letter-spacing:.3em;color:var(--pvd-2);margin-bottom:4px}
+  .daynote .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #232A34}
+  .daynote .row:last-child{border-bottom:0}
+  .daynote .n{font-size:13px;color:#DDE1E6}
+  .daynote .c{font-size:10px;color:var(--pvd-2);letter-spacing:.1em}
+  .daynote .c.red{color:#E4586D}
+
+  /* 组件 */
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:#fff;border-radius:var(--r-sheet);padding:26px 30px;min-width:320px;box-shadow:0 4px 16px rgba(62,66,71,.10),inset 0 0 0 1px #F0F0ED}
+  .comp-card.dark{background:var(--pvd-card);box-shadow:inset 0 0 0 1px #2A313B}
+  .comp-card h3{font-size:11px;letter-spacing:.3em;color:var(--steel-3);margin-bottom:16px;font-weight:600}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;font-size:14px;font-weight:600;cursor:pointer;margin:0 8px 10px 0;border-radius:6px;letter-spacing:.05em}
+  .btn.primary{background:var(--hand-blue);color:#fff}
+  .btn.steel{background:linear-gradient(180deg,#F5F5F3,#E4E4E1);color:var(--steel);box-shadow:inset 0 0 0 1px var(--bezel)}
+  .btn.red{background:var(--chrono-red);color:#fff}
+  .seg{display:inline-flex;background:var(--dial-2);border-radius:6px;padding:3px;box-shadow:inset 0 0 0 1px var(--bezel)}
+  .seg span{padding:7px 16px;font-size:13px;border-radius:4px;color:var(--steel-2)}
+  .seg .on{background:#fff;color:var(--steel);font-weight:600;box-shadow:0 1px 3px rgba(62,66,71,.15)}
+  .toast{margin-top:14px;background:var(--hand-blue);color:#fff;border-radius:8px;padding:12px 18px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:#FFD3DA;font-weight:600}
+  .toast .win{background:#fff;color:var(--hand-blue);border-radius:4px;padding:2px 8px;font-size:12px;font-weight:700;margin-right:10px}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:54px;height:54px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(62,66,71,.15)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:#fff;border-radius:var(--r-sheet);padding:28px 32px;box-shadow:0 4px 16px rgba(62,66,71,.10),inset 0 0 0 1px #F0F0ED}
+  .panel h3{font-size:12px;letter-spacing:.3em;color:var(--steel-3);margin-bottom:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--steel-3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--bezel);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid #EFEFEC;color:var(--steel-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--steel)}
+  .c-well{width:22px;height:22px;border-radius:50%;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(62,66,71,.18)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid #EFEFEC}
+  .type-row .meta{width:195px;font-size:11px;color:var(--steel-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EFEFEC;font-size:13px;color:var(--steel-2)}
+  .motion-row b{color:var(--steel);font-weight:600}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--steel-3);letter-spacing:.25em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 I</div>
+    <h1>制表美学<span class="en mono">HOROLOGY · CHRONOGRAPH</span></h1>
+    <p class="positioning">"以制表的精度，度量你的每一个日子。"</p>
+    <div class="chips">
+      <span class="chip">表盘刻度</span><span class="chip">计时红针</span><span class="chip">钢针蓝</span>
+      <span class="chip">玑镂纹理</span><span class="chip">罗马数字</span><span class="chip">日期视窗</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>主表盘（首页 Hero 概念）</h2>
+    <div class="dial-lg">
+      <span class="ticks"></span><span class="ticks minor"></span>
+      <span class="progress"></span>
+      <span class="roman" style="top:14px;left:50%;transform:translateX(-50%)">XII</span>
+      <span class="roman" style="right:18px;top:50%;transform:translateY(-50%)">III</span>
+      <span class="roman" style="bottom:14px;left:50%;transform:translateX(-50%)">VI</span>
+      <span class="roman" style="left:18px;top:50%;transform:translateY(-50%)">IX</span>
+      <span class="subdial"></span>
+      <div class="center-num"><span class="n">148</span><span class="u">DAYS</span></div>
+    </div>
+    <p style="text-align:center;margin-top:18px;font-size:13px;color:var(--steel-2)">
+      红针扫过 133° = 全年进度 37%；副表盘 = 距离目标日的小时刻度
+    </p>
+  </section>
+
+  <section>
+    <h2>界面预览（左银盘首页 · 右 PVD 夜盘月历）</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="mono">CHRONO 2026</span></div>
+        <div class="hero">
+          <div class="model mono">RÉSERVE DE TEMPS</div>
+          <div class="brand">刻间<small>MOMENT MARK</small></div>
+        </div>
+        <div class="mini-cards">
+          <div class="mcard">
+            <div class="t">考研初试</div>
+            <div class="dialrow">
+              <span class="sm-dial"><i class="hand"></i></span>
+              <div class="d">96<small> 天</small></div>
+            </div>
+            <div class="spec mono">CAL.2026.12 / REF 002</div>
+          </div>
+          <div class="mcard">
+            <div class="t">演唱会</div>
+            <div class="dialrow">
+              <span class="sm-dial"><i class="hand" style="transform:translateX(-50%) rotate(80deg)"></i></span>
+              <div class="d">32<small> 天</small></div>
+            </div>
+            <div class="spec mono">CAL.2026.09 / REF 003</div>
+          </div>
+          <div class="mcard wide">
+            <div>
+              <div class="t">毕业旅行 · 东京 <span class="mono" style="font-size:8px;color:var(--chrono-red);letter-spacing:.15em">CHRONO / 置顶</span></div>
+              <div class="d" style="font-size:34px">214<small> 天</small></div>
+              <div class="spec mono">CAL.2027.03 / REF 004 / GROUP 旅行</div>
+            </div>
+            <span class="crown"></span>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on"><span class="ic">◉</span>表盘</div>
+          <div class="plus">+</div>
+          <div class="item"><span class="ic">▤</span>月相历</div>
+        </div>
+        <div class="phone-label">首页 · 事件即计时码表</div>
+      </div>
+
+      <div class="phone pvd">
+        <div class="statusbar"><span>9:41</span><span class="mono">PVD NIGHT</span></div>
+        <div class="cal">
+          <div class="month"><span class="m">八月 2026</span><span class="mono-idx mono">REF 8-MOON</span></div>
+          <div class="weekdays mono"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+            <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16<i class="tick"></i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20<i class="tick"></i></span><span class="day">21</span><span class="day">22</span>
+            <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="tick"></i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+            <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+          <div class="daynote">
+            <div class="h">日期视窗 · 08.12 WED</div>
+            <div class="row"><span class="n">七夕节</span><span class="c red mono">FESTIVAL</span></div>
+            <div class="row"><span class="n">英语六级出分</span><span class="c mono">08:00</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item"><span class="ic">◉</span>表盘</div>
+          <div class="plus">+</div>
+          <div class="item on"><span class="ic">▤</span>月相历</div>
+        </div>
+        <div class="phone-label">日子簿 · PVD 夜盘（今日 = 红圈刻度）</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 撤销（日期视窗式 Toast）</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn steel">精钢次操作</span><span class="btn red">删除</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">系统</span><span>银盘</span><span>PVD</span></span></div>
+        <div class="toast"><span><span class="win">12</span>已删除「演唱会」</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card dark">
+        <h3 style="color:var(--pvd-2)">主色板</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#F4F4F2" title="银盘"></span>
+          <span class="swatch" style="background:#3E4247" title="精钢墨"></span>
+          <span class="swatch" style="background:#1B3A5C" title="钢针蓝"></span>
+          <span class="swatch" style="background:#C8102E" title="计时红"></span>
+          <span class="swatch" style="background:#12161B" title="PVD 夜盘"></span>
+          <span class="swatch" style="background:#D4B36A" title="夜光金(点缀)"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>银盘（浅）</th><th>PVD（深）</th></tr>
+          <tr><td><span class="c-well" style="background:#F4F4F2"></span>表盘底</td><td class="hex">#F4F4F2</td><td class="hex">#12161B</td></tr>
+          <tr><td><span class="c-well" style="background:#FFFFFF"></span>卡片（表盘面）</td><td class="hex">#FFFFFF</td><td class="hex">#1A1F26</td></tr>
+          <tr><td><span class="c-well" style="background:#3E4247"></span>文字 · 主（精钢墨）</td><td class="hex">#3E4247</td><td class="hex">#E8EAEC</td></tr>
+          <tr><td><span class="c-well" style="background:#7A7F86"></span>文字 · 次</td><td class="hex">#7A7F86</td><td class="hex">#9AA0A8</td></tr>
+          <tr><td><span class="c-well" style="background:#1B3A5C"></span>钢针蓝（主操作/选中）</td><td class="hex">#1B3A5C</td><td class="hex">#7FA8D9</td></tr>
+          <tr><td><span class="c-well" style="background:#C8102E"></span>计时红（进度/今日/警示）</td><td class="hex">#C8102E</td><td class="hex">#E4586D</td></tr>
+          <tr><td><span class="c-well" style="background:#D9DAD6"></span>表圈描边</td><td class="hex">#D9DAD6</td><td class="hex">#2A313B</td></tr>
+          <tr><td><span class="c-well" style="background:#D4B36A"></span>夜光金（深色模式点缀）</td><td class="hex">—</td><td class="hex">#D4B36A</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（罗马数字点缀为特色）</h3>
+        <div class="type-row"><span class="meta">display / 56sp / extralight</span><span style="font-size:40px;font-weight:200">148</span></div>
+        <div class="type-row"><span class="meta">brand / 15sp / bold·超宽字距</span><span style="font-size:15px;font-weight:700;letter-spacing:.35em">刻间 MOMENT MARK</span></div>
+        <div class="type-row"><span class="meta">body / 15sp / regular</span><span style="font-size:15px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">spec-label / 8sp / mono</span><span class="mono" style="font-size:8px;color:#ACB0B5;letter-spacing:.1em">CAL.2026.12 / REF 002 / GROUP 学业</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与制表元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">12dp</td><td>卡片</td></tr>
+          <tr><td class="hex">radius_sheet</td><td class="hex">18dp</td><td>弹层</td></tr>
+          <tr><td class="hex">dial_size</td><td class="hex">230dp（Hero）/ 46dp（卡内）</td><td>表盘元素</td></tr>
+          <tr><td class="hex">tick_ring</td><td class="hex">60 分度刻度环 + 罗马字 XII/III/VI/IX</td><td>主表盘</td></tr>
+          <tr><td class="hex">bezel</td><td class="hex">2dp 表圈描边 + 微渐变面</td><td>所有表盘</td></tr>
+          <tr><td class="hex">date_window</td><td class="hex">白底方角视窗</td><td>日期、Toast</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>指针动画</span><b>扫秒式平滑（非跳动）</b></div>
+        <div class="motion-row"><span>进度红针</span><b>随天数连续推进</b></div>
+        <div class="motion-row"><span>卡片落位</span><b>240ms · 精密咬合感（ease-out）</b></div>
+        <div class="motion-row"><span>数字变化</span><b>翻历 300ms（日期视窗翻牌）</b></div>
+        <div class="motion-row"><span>表面材质</span><b>radial 高光渐变模拟金属拉丝</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>每卡最多一个表盘元素</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 I · 机械制表美学</footer>
+</div>
+</body>
+</html>

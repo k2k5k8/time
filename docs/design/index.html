@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>刻间 · 设计语言提案对比总览</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#FFFFFF;color:#1D1D1F;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
+    padding:48px 28px 80px;
+  }
+  .page{max-width:1500px;margin:0 auto}
+  header{text-align:center;margin-bottom:36px}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.01em}
+  header p{font-size:15px;color:#6E6E73;margin-top:10px}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:44px}
+  th{text-align:left;padding:12px 16px;background:#F5F5F7;color:#6E6E73;font-size:11px;letter-spacing:.08em;font-weight:600}
+  td{padding:12px 16px;border-top:1px solid rgba(60,60,67,.08);color:#1D1D1F;vertical-align:top}
+  td small{color:#6E6E73;display:block;margin-top:3px;font-size:12px}
+  .tag{display:inline-block;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px}
+  .tag.lo{background:#E8F5E9;color:#1B7A3D}
+  .tag.mid{background:#FFF4E0;color:#A05E03}
+  .tag.hi{background:#FDE8E8;color:#B3261E}
+  .fav{background:#E5F0FC;color:#00408F}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}}
+  .frame-card{border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .frame-card .bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:#F5F5F7}
+  .frame-card .bar b{font-size:15px}
+  .frame-card .bar span{font-size:12px;color:#6E6E73}
+  .frame-card iframe{width:100%;height:560px;border:0;display:block;background:#fff}
+  .note{margin-top:40px;background:#F5F5F7;border-radius:16px;padding:22px 26px;font-size:14px;color:#3A3A3C;line-height:1.8}
+  .note b{color:#1D1D1F}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>设计语言提案 · 对比总览</h1>
+    <p>十五套完整方案（A–D 经典方向 + E–O 创新方向），凭第一印象选即可——「看着舒服」就是有效判断。可整套选，也可混搭（如「D 的骨架 + M 的分组线路色」）。</p>
+  </header>
+
+  <table>
+    <tr>
+      <th style="width:15%">方案</th><th style="width:25%">一句话定位</th><th style="width:24%">视觉关键词</th>
+      <th style="width:18%">与现有 App 差异</th><th style="width:18%">风格特点</th>
+    </tr>
+    <tr>
+      <td><b>A · 奶油纸感</b><small>Cream Paper</small></td>
+      <td>把时间安静地摊在一张暖色的纸上</td>
+      <td>暖白 · 深棕文字 · 水蓝/暖橙 · 衬线数字 · 半透明悬浮</td>
+      <td><span class="tag lo">最小</span><small>现有风格的提炼固化</small></td>
+      <td>温暖、日系、editorial</td>
+    </tr>
+    <tr>
+      <td><b>B · 石板蓝</b><small>Slate Blue</small></td>
+      <td>像一把精准的卡尺，读数一目了然</td>
+      <td>冷灰蓝 · 高对比 · 发丝描边 · 等宽数字 · 几乎平面</td>
+      <td><span class="tag hi">较大</span><small>暖色系 → 冷色系</small></td>
+      <td>冷静、精密、工具感</td>
+    </tr>
+    <tr>
+      <td><b>C · 暮色玻璃</b><small>Dusk Glass</small></td>
+      <td>时间漂浮在暮色的玻璃上，安静发光</td>
+      <td>深蓝黑 · 玻璃拟态 · 雾紫/冰蓝光晕 · 轻字重 · 慢动效</td>
+      <td><span class="tag hi">最大</span><small>深色优先的沉浸风</small></td>
+      <td>梦幻、夜景、个性</td>
+    </tr>
+    <tr>
+      <td><b>D · 静白极简</b><small>Refined Minimal</small></td>
+      <td>安静的白，精确的灰，一点克制的蓝</td>
+      <td>分组灰底 · 白卡片 · 发丝线 · 单一强调蓝 · 超轻大数字</td>
+      <td><span class="tag mid">中等</span><small>中性化，去暖色</small></td>
+      <td><span class="fav">Apple 式极简高雅</span>　中性、克制、大留白</td>
+    </tr>
+    <tr>
+      <td><b>E · 墨硃留白</b><small>Ink & Seal</small></td>
+      <td>时间如墨，落在纸上，晕开一生的刻度</td>
+      <td>宣纸白 · 墨色 · 朱砂印章 · 宋体数字 · 竖排点缀</td>
+      <td><span class="tag mid">中等</span><small>结构保留，气质全换</small></td>
+      <td>东方、雅致、有文化记忆点</td>
+    </tr>
+    <tr>
+      <td><b>F · 瑞士巨字</b><small>Swiss Giant Type</small></td>
+      <td>把每个日子当作杂志封面来排版</td>
+      <td>巨号数字 · 暴露网格 · 克莱因蓝 · 硬阴影 · 等宽标签 · 直角</td>
+      <td><span class="tag hi">大</span><small>版式逻辑完全重构</small></td>
+      <td>先锋、凌厉、海报感</td>
+    </tr>
+    <tr>
+      <td><b>G · 站台车票</b><small>Platform & Ticket</small></td>
+      <td>每个期待的日子，都是一张待出发的车票</td>
+      <td>车票卡片 · 撕票孔 · 翻牌显示牌 · LED 琥珀 · 条形码票根</td>
+      <td><span class="tag hi">大</span><small>叙事化改造，卡片重做</small></td>
+      <td>叙事、怀旧、收集感强</td>
+    </tr>
+    <tr>
+      <td><b>H · 时间星图</b><small>Celestial Atlas</small></td>
+      <td>把日子钉上夜空，等一颗星到中天</td>
+      <td>深空蓝 · 古董金 · 星座连线 · 月相日历 · 天文 mono 标注</td>
+      <td><span class="tag mid">中等</span><small>结构保留，换皮 + 月相历</small></td>
+      <td>浪漫、科学、月相是杀手锏</td>
+    </tr>
+    <tr>
+      <td><b>I · 制表美学</b><small>Horology</small></td>
+      <td>以制表的精度，度量你的每一个日子</td>
+      <td>表盘刻度 · 计时红针 · 钢针蓝 · 罗马数字 · 日期视窗</td>
+      <td><span class="tag mid">中等</span><small>卡片换为小表盘</small></td>
+      <td>精密、高级、机械浪漫</td>
+    </tr>
+    <tr>
+      <td><b>J · 像素冒险</b><small>Pixel Quest</small></td>
+      <td>人生是一场冒险，每个日子都是一张任务卡</td>
+      <td>任务卡 · HP 血条 · 经验格 · 宝箱日历 · 8-bit 直角</td>
+      <td><span class="tag hi">大</span><small>全套游戏化叙事</small></td>
+      <td>有趣、解压、成就感强</td>
+    </tr>
+    <tr>
+      <td><b>K · 胶片手帐</b><small>Polaroid & Tape</small></td>
+      <td>把重要的日子冲印出来，一张张贴进生活里</td>
+      <td>拍立得 · 和纸胶带 · 橙色日期戳 · 手写标注 · 微歪斜</td>
+      <td><span class="tag mid">中等</span><small>卡片换拍立得质感</small></td>
+      <td>温暖、私藏、情绪价值高</td>
+    </tr>
+    <tr>
+      <td><b>L · 蓝图制图</b><small>Blueprint</small></td>
+      <td>把时间画进图纸，每一格都是可以丈量的距离</td>
+      <td>晒图蓝 · 尺寸标注线 · 图框标题栏 · 红笔批注 · 审核章</td>
+      <td><span class="tag mid">中等</span><small>结构保留，制图换皮</small></td>
+      <td>工程感、理性、标注即天数</td>
+    </tr>
+    <tr>
+      <td><b>M · 地铁线路图</b><small>Metro Map</small></td>
+      <td>人生是一条条线路，每个期待的日子都是途中一站</td>
+      <td>分组=线路色 · 事件=站点 · 下一站播报 · 换乘标记 · 时刻表</td>
+      <td><span class="tag mid">中等</span><small>分组系统天然契合</small></td>
+      <td>导视系统、通勤叙事、直观</td>
+    </tr>
+    <tr>
+      <td><b>N · 复古漫画</b><small>Retro Comic</small></td>
+      <td>每一天都值得一个大特写！</td>
+      <td>分格漫画 · 爆炸气泡 · 网点纸 · 速度线 · 拟声词</td>
+      <td><span class="tag hi">大</span><small>全套波普化改造</small></td>
+      <td>热闹、减龄、情绪拉满</td>
+    </tr>
+    <tr>
+      <td><b>O · 终端机</b><small>Phosphor Terminal</small></td>
+      <td>像黑客一样，用一行命令管理所有时间</td>
+      <td>CRT 磷光绿 · 扫描线 · ASCII 进度条 · 命令行语法 · 纸带昼间</td>
+      <td><span class="tag mid">中等</span><small>结构保留，终端换皮</small></td>
+      <td>极客、纯粹、程序员之选</td>
+    </tr>
+  </table>
+
+  <div class="grid">
+    <div class="frame-card">
+      <div class="bar"><b>方案 A · 奶油纸感</b><span>proposal_A.html</span></div>
+      <iframe src="proposal_A.html" title="方案A"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 B · 石板蓝 · 工具理性</b><span>proposal_B.html</span></div>
+      <iframe src="proposal_B.html" title="方案B"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 C · 暮色玻璃 · 夜景向</b><span>proposal_C.html</span></div>
+      <iframe src="proposal_C.html" title="方案C"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 D · 静白极简（Apple 式）</b><span>proposal_D.html · 你此前的偏好方向</span></div>
+      <iframe src="proposal_D.html" title="方案D"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 E · 墨硃留白</b><span>proposal_E.html · 创新方向</span></div>
+      <iframe src="proposal_E.html" title="方案E"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 F · 瑞士巨字 · 编辑部</b><span>proposal_F.html · 创新方向</span></div>
+      <iframe src="proposal_F.html" title="方案F"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 G · 站台车票 · 显示牌</b><span>proposal_G.html · 创新方向</span></div>
+      <iframe src="proposal_G.html" title="方案G"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 H · 时间星图</b><span>proposal_H.html · 创新方向</span></div>
+      <iframe src="proposal_H.html" title="方案H"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 I · 制表美学 · 计时码表</b><span>proposal_I.html · 创新方向</span></div>
+      <iframe src="proposal_I.html" title="方案I"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 J · 像素冒险 · 游戏化</b><span>proposal_J.html · <b style="color:#1B7A3D">✓ 已定稿</b></span></div>
+      <iframe src="proposal_J.html" title="方案J"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 J · 全页面应用预览（详情/新建/装备库/抽屉/设置/分组/回收站/删除确认）</b><span>proposal_J_app.html · <b style="color:#1B7A3D">✓ 定稿扩展</b></span></div>
+      <iframe src="proposal_J_app.html" title="方案J全页面"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 K · 胶片手帐 · 拍立得</b><span>proposal_K.html · 创新方向</span></div>
+      <iframe src="proposal_K.html" title="方案K"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 L · 蓝图制图</b><span>proposal_L.html · 创新方向</span></div>
+      <iframe src="proposal_L.html" title="方案L"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 M · 地铁线路图</b><span>proposal_M.html · 创新方向</span></div>
+      <iframe src="proposal_M.html" title="方案M"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 N · 复古漫画 · 波普</b><span>proposal_N.html · 创新方向</span></div>
+      <iframe src="proposal_N.html" title="方案N"></iframe>
+    </div>
+    <div class="frame-card">
+      <div class="bar"><b>方案 O · 终端机 · 磷光屏</b><span>proposal_O.html · 创新方向</span></div>
+      <iframe src="proposal_O.html" title="方案O"></iframe>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>怎么选：</b>逐个点开完整页面（docs/design/proposal_A~D.html）看大图，回到本页对比参数。<br>
+    <b>选定后会发生什么：</b>你选的那套会被固化为 ① 规范文档（DESIGN_SYSTEM.md 重组）② 代码 token（颜色/字阶/形状/间距的唯一取值来源）③ AI 强制规则（CLAUDE.md，之后 AI 改 UI 必须引用 token，禁止新增硬编码色值）。<br>
+    <b>不用担心选错：</b>本次只建「地基」，不迁移任何现有页面视觉；色值层面的微调（比如换个蓝）随时是一行 token 的事。
+  </div>
+</div>
+</body>
+</html>

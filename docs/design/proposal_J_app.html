@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J · 像素冒险 — 全页面应用预览 — 刻间</title>
+<style>
+  :root{
+    /* 昼：冒险地图 */
+    --bg:#E8E0CC; --bg-2:#DFD5BB;
+    --panel:#F6F1E3; --panel-line:#2B2620;
+    --ink:#2B2620; --ink-2:#6B6152; --ink-3:#A79B85;
+    /* 夜：洞窟 */
+    --cave:#1B1826; --cave-panel:#262138; --cave-line:#0E0C16;
+    --cave-text:#E4DEF2; --cave-2:#9C93B8; --cave-3:#5E5680;
+    /* 游戏色 */
+    --hp:#46C168; --hp-low:#F5A623; --hp-danger:#E5484D;
+    --xp:#3E9BFF; --gold:#F5B301; --mana:#9B6DFF;
+    --hp-n:#5BD385; --xp-n:#66B0FF; --gold-n:#FFC53D;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bg),var(--bg-2));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--ink);padding:44px 24px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700}
+  .px{border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .px4{border:3px solid var(--panel-line);box-shadow:4px 4px 0 var(--panel-line)}
+  .page{max-width:1160px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:40px}
+  .badge{display:inline-block;background:var(--ink);color:var(--gold);font-size:12px;letter-spacing:.3em;padding:6px 14px 6px 20px;margin-bottom:16px;font-weight:800}
+  h1{font-size:38px;font-weight:800}
+  h1 span{color:var(--hp)}
+  .en{font-size:12px;letter-spacing:.4em;color:var(--ink-3);font-weight:800;margin-top:8px}
+  .sub{font-size:15px;color:var(--ink-2);margin-top:12px;font-weight:600}
+  .legend{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .lg{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink-2);background:var(--panel);border:2px solid var(--panel-line);padding:4px 12px;box-shadow:2px 2px 0 var(--panel-line)}
+  .lg i{width:10px;height:10px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:44px 30px;justify-items:center}
+  .shot{position:relative}
+  .cap{position:absolute;top:-30px;left:2px;font-size:12px;font-weight:800;letter-spacing:.15em;color:var(--ink-2)}
+  .cap b{color:var(--ink)} .cap small{color:var(--ink-3);font-weight:600;letter-spacing:.05em}
+
+  .phone{
+    width:330px;height:660px;border-radius:18px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid var(--panel-line);box-shadow:7px 7px 0 rgba(43,38,32,.4);
+    background:var(--bg);
+  }
+  .phone.night{background:var(--cave)}
+  .statusbar{display:flex;justify-content:space-between;padding:11px 18px 5px;font-size:11px;font-weight:800;color:var(--ink-2)}
+  .night .statusbar{color:var(--cave-2)}
+  .pagetitle{display:flex;justify-content:space-between;align-items:center;margin:0 12px 10px;background:var(--panel);padding:10px 12px}
+  .night .pagetitle{background:var(--cave-panel);border:3px solid var(--cave-line);box-shadow:3px 3px 0 var(--cave-line)}
+  .pagetitle .t{font-size:15px;font-weight:800}
+  .pagetitle .r{font-size:9px;color:var(--ink-3);letter-spacing:.1em;font-weight:800}
+  .night .pagetitle .t{color:var(--cave-text)} .night .pagetitle .r{color:var(--cave-3)}
+
+  /* 通用元素 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer}
+  .btn.green{background:var(--hp);color:#fff;border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .btn.blue{background:var(--xp);color:#fff;border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .btn.gold{background:var(--gold);color:var(--ink);border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .btn.ghost{background:var(--panel);color:var(--ink-2);border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .btn.red{background:var(--hp-danger);color:#fff;border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .xpbar .cells{display:flex;gap:3px}
+  .xpbar .cell{flex:1;height:12px;background:var(--bg-2);border:2px solid var(--panel-line)}
+  .xpbar .cell.fill{background:var(--xp)}
+  .hpbar{height:10px;border:2px solid var(--panel-line);background:var(--bg-2);position:relative}
+  .hpbar i{position:absolute;left:0;top:0;bottom:0}
+  .checkbox{width:15px;height:15px;border:2.5px solid var(--ink-3);flex:none;background:var(--panel)}
+  .checkbox.on{background:var(--hp);border-color:var(--ink);position:relative}
+  .checkbox.on::after{content:"✓";position:absolute;inset:-3px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .star{color:var(--gold);letter-spacing:2px}
+  .badge-tag{font-size:8px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border:2px solid currentColor}
+
+  .nav{margin-top:auto;display:flex;gap:8px;padding:10px 12px 16px;background:var(--panel);border-top:3px solid var(--panel-line)}
+  .night .nav{background:var(--cave-panel);border-top-color:var(--cave-line)}
+  .nav .item{flex:1;text-align:center;padding:7px 0 6px;border:3px solid var(--panel-line);font-size:10px;font-weight:800;color:var(--ink-2);background:var(--bg)}
+  .night .nav .item{border-color:var(--cave-line);color:var(--cave-2);background:var(--cave)}
+  .nav .item.on{background:var(--ink);color:var(--gold);box-shadow:2px 2px 0 rgba(43,38,32,.4)}
+  .night .nav .item.on{background:var(--gold-n);color:var(--cave-line)}
+  .nav .plus{flex:1.2;background:var(--hp);color:#fff;border:3px solid var(--panel-line);font-size:13px;font-weight:800;box-shadow:2px 2px 0 var(--panel-line);padding:3px 0}
+  .night .nav .plus{border-color:var(--cave-line);background:var(--hp-n);color:#0E2A18;box-shadow:2px 2px 0 var(--cave-line)}
+
+  footer{margin-top:60px;text-align:center;font-size:12px;color:var(--ink-3);letter-spacing:.2em;font-weight:800}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">风格 J · 定稿扩展</div>
+    <h1>像素冒险 · <span>全页面应用预览</span></h1>
+    <div class="en mono">PIXEL QUEST · FULL APP MOCKUPS</div>
+    <p class="sub">用 J 风格重绘刻间全部页面——确认整体效果后再固化进代码 token。</p>
+    <div class="legend">
+      <span class="lg"><i style="background:var(--hp)"></i>HP 绿 · 主操作/正常</span>
+      <span class="lg"><i style="background:var(--hp-low)"></i>橙 · 限时/紧迫</span>
+      <span class="lg"><i style="background:var(--hp-danger)"></i>红 · 危险/删除</span>
+      <span class="lg"><i style="background:var(--xp)"></i>XP 蓝 · 进度/链接</span>
+      <span class="lg"><i style="background:var(--gold)"></i>金币金 · 奖励/选中</span>
+      <span class="lg"><i style="background:var(--mana)"></i>紫 · 支线/节日</span>
+      <span class="lg"><i style="background:#fff;border:1px solid #ccc"></i>昼=任务板 / 夜=洞窟</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ═══════════ 1 事件详情 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>① 事件详情</b> <small>QUEST DETAIL · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>GOLD ×1,280</span></div>
+        <div style="padding:0 12px">
+          <div class="px4" style="background:var(--panel);padding:12px 13px">
+            <div style="display:flex;justify-content:space-between;font-size:9px" class="mono">
+              <span style="color:var(--mana)">◆ MAIN QUEST 主线</span><span style="color:var(--ink-3)">EXP +148</span>
+            </div>
+            <div style="font-size:18px;font-weight:800;margin-top:5px">春节 · 回家的日子</div>
+            <div style="font-size:52px;font-weight:800;line-height:1;margin-top:4px">148<span style="font-size:13px;color:var(--ink-2)"> 天后开启</span></div>
+            <div class="xpbar" style="margin-top:9px">
+              <div class="cells">
+                <i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i>
+                <i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i>
+                <i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i><i class="cell"></i>
+                <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:8px;font-weight:800;color:var(--ink-3);margin-top:4px" class="mono"><span>PROGRESS 69%</span><span>UNLOCK 2027.02.06</span></div>
+            </div>
+          </div>
+
+          <div class="px" style="background:var(--panel);padding:11px 13px;margin-top:10px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 任务描述 LORE</div>
+            <div style="font-size:13px;line-height:1.7;margin-top:6px;font-weight:600">农历新年的团圆时刻。回家前需完成前置任务：期末考试、实习答辩、抢到车票。</div>
+          </div>
+
+          <div class="px" style="background:var(--panel);padding:11px 13px;margin-top:10px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 前置目标 OBJECTIVES</div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #E0D8C2">
+              <span class="checkbox on"></span><span style="font-size:13px;font-weight:700;text-decoration:line-through;color:var(--ink-3)">抢到回家的车票</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--hp)">CLEAR</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0">
+              <span class="checkbox"></span><span style="font-size:13px;font-weight:700">给家人带礼物</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--ink-3)">TODO</span>
+            </div>
+          </div>
+
+          <div class="px" style="background:var(--panel);padding:10px 13px;margin-top:10px;display:flex;justify-content:space-between" class="mono">
+            <div><div style="font-size:8px;color:var(--ink-3);font-weight:800">DUE</div><div style="font-size:12px;font-weight:800">2027.02.06</div></div>
+            <div><div style="font-size:8px;color:var(--ink-3);font-weight:800">GROUP</div><div style="font-size:12px;font-weight:800">家庭</div></div>
+            <div><div style="font-size:8px;color:var(--ink-3);font-weight:800">难度</div><div class="star" style="font-size:12px">★★☆</div></div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <span class="btn blue" style="flex:1;padding:10px 0;font-size:13px">✎ 编辑任务</span>
+            <span class="btn green" style="flex:1.3;padding:10px 0;font-size:13px">◆ 继续冒险</span>
+          </div>
+          <div style="text-align:center;margin-top:9px"><span class="mono" style="font-size:9px;color:var(--hp-danger);font-weight:800;border-bottom:2px solid var(--hp-danger);padding-bottom:1px">✕ 放弃任务（移入回收站）</span></div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 任务</div><div class="plus">+ 新任务</div><div class="item">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 2 新建任务 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>② 新建事件</b> <small>NEW QUEST · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>NEW QUEST</span></div>
+        <div class="pagetitle px"><span class="t">＋ 接受新任务</span><span class="r mono">FORM · 必填 ★</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 任务名称 NAME ★</div>
+            <div style="margin-top:7px;background:#fff;border:3px solid var(--panel-line);padding:8px 10px;font-size:14px;font-weight:700" class="mono">毕业旅行·东京<span style="color:var(--ink);animation:blink 1s steps(1) infinite">▮</span></div>
+            <style>@keyframes blink{50%{opacity:0}}</style>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 任务类型 TYPE</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <span class="btn ghost mono" style="flex:1;padding:7px 0;font-size:11px;color:var(--mana)">◆ 主线</span>
+              <span class="btn blue mono" style="flex:1;padding:7px 0;font-size:11px">◇ 支线</span>
+              <span class="btn ghost mono" style="flex:1;padding:7px 0;font-size:11px;color:var(--hp-low)">⧗ 限时</span>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 截止日期 DUE ★</span>
+              <span class="mono" style="font-size:9px;font-weight:800;color:var(--hp)">[x] 全天</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="mono" style="flex:1.2;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">2027<span style="font-size:9px;color:var(--ink-3)">年</span></div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">03<span style="font-size:9px;color:var(--ink-3)">月</span></div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">28<span style="font-size:9px;color:var(--ink-3)">日</span></div>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 所属分组 PARTY</div>
+            <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
+              <span class="mono" style="font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--xp);color:#fff;background:var(--xp)">■ 学业</span>
+              <span class="mono" style="font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">■ 生活</span>
+              <span class="mono" style="font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">■ 旅行</span>
+              <span class="mono" style="font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">■ 工作</span>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800" class="mono">▸ 难度 DIFFICULTY</div>
+            <div style="font-size:20px;font-weight:800;margin-top:6px;letter-spacing:4px"><span class="star">★★</span><span style="color:#D8CFB8">★</span></div>
+          </div>
+          <span class="btn green mono" style="padding:12px 0;font-size:15px;margin-top:2px">▶ 排进日程 · 接受任务！</span>
+        </div>
+        <div style="height:12px"></div>
+        <div class="nav mono">
+          <div class="item on">◉ 任务</div><div class="plus">+ 新任务</div><div class="item">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 3 模板/装备库 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>③ 模板浏览</b> <small>OUTFITS 装备库 · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>OUTFITS 2/5</span></div>
+        <div class="pagetitle px"><span class="t">◂ 装备库</span><span class="r mono">卡片皮肤 · SKINS</span></div>
+        <div style="flex:1;position:relative;padding:0 14px;perspective:800px">
+          <!-- 上张（远） -->
+          <div style="position:absolute;left:26px;right:26px;top:0;transform:rotateX(38deg) translateY(-16px);opacity:.38">
+            <div class="px" style="background:var(--panel);padding:10px 12px">
+              <div style="font-size:11px;font-weight:800;color:var(--ink-2)">像素经典 · CLASSIC</div>
+              <div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:3px">EV.001 · 默认皮肤</div>
+            </div>
+          </div>
+          <!-- 当前（主卡） -->
+          <div class="px4" style="position:absolute;left:14px;right:14px;top:74px;background:var(--panel);padding:13px 14px;z-index:2">
+            <div style="display:flex;justify-content:space-between;font-size:9px" class="mono">
+              <span style="color:var(--xp)">◇ SIDE QUEST 支线</span><span style="color:var(--gold)">EQUIPPED ✓</span>
+            </div>
+            <div style="font-size:16px;font-weight:800;margin-top:5px">考研初试</div>
+            <div style="display:flex;align-items:baseline;gap:12px;margin-top:3px">
+              <span style="font-size:46px;font-weight:800">96<span style="font-size:12px;color:var(--ink-2)"> 天</span></span>
+              <span class="star" style="font-size:13px">★★☆</span>
+            </div>
+            <div class="hpbar" style="margin-top:8px"><i style="width:38%;background:var(--hp)"></i></div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;font-weight:800;color:var(--ink-3);margin-top:4px" class="mono"><span>HP 38%</span><span>DUE 2026.12.19</span><span>GROUP 学业</span></div>
+            <div style="margin-top:9px;border-top:2px dashed #E0D8C2;padding-top:8px;display:flex;justify-content:space-between;align-items:center">
+              <span class="mono" style="font-size:9px;color:var(--ink-3);font-weight:800">血条战斗风 · BATTLE HUD</span>
+              <span class="btn gold mono" style="padding:5px 12px;font-size:10px">✓ 已装备</span>
+            </div>
+          </div>
+          <!-- 下张（露出一点） -->
+          <div style="position:absolute;left:34px;right:34px;bottom:96px;transform:rotateX(-30deg);opacity:.5">
+            <div class="px" style="background:var(--panel);padding:9px 12px">
+              <div style="font-size:11px;font-weight:800;color:var(--ink-2)">洞窟暗金 · DARK GOLD</div>
+              <div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:3px">夜色专用 · NIGHT ONLY</div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:space-between;padding:0 8px">
+            <span class="btn ghost mono" style="padding:8px 16px;font-size:12px">◀ 上一件</span>
+            <span class="btn ghost mono" style="padding:8px 16px;font-size:12px">下一件 ▶</span>
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="nav mono">
+          <div class="item on">◉ 任务</div><div class="plus">+ 新任务</div><div class="item">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4 分类抽屉+搜索 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>④ 分类抽屉 · 搜索</b> <small>MAP FILTER · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>MAP FILTER</span></div>
+        <div style="padding:0 12px 8px">
+          <div class="px" style="background:#fff;padding:9px 12px;display:flex;align-items:center;gap:9px">
+            <span style="font-size:14px;color:var(--xp)">⌕</span>
+            <span style="font-size:13px;font-weight:700;color:var(--ink-3)">搜索任务…</span>
+            <span class="mono" style="margin-left:auto;font-size:8px;color:var(--ink-3);border:2px solid var(--panel-line);padding:1px 6px">ESC</span>
+          </div>
+        </div>
+        <div style="flex:1;position:relative">
+          <!-- 被压暗的任务板 -->
+          <div style="position:absolute;inset:0;background:rgba(43,38,32,.45);z-index:1"></div>
+          <div style="position:absolute;inset:0;padding:14px 12px;display:flex;flex-direction:column;gap:9px;opacity:.35">
+            <div class="px" style="background:var(--panel);padding:10px 12px"><div style="font-size:13px;font-weight:800">考研初试</div><div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:3px">96 DAYS · DUE 12.19</div></div>
+            <div class="px" style="background:var(--panel);padding:10px 12px"><div style="font-size:13px;font-weight:800">演唱会</div><div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:3px">32 DAYS · DUE 09.20</div></div>
+          </div>
+          <!-- 抽屉 -->
+          <div class="px4" style="position:absolute;left:10px;top:6px;bottom:6px;width:222px;background:var(--panel);z-index:2;padding:12px 12px;display:flex;flex-direction:column;gap:11px">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.15em" class="mono">▸ 地图筛选 FILTER</div>
+            <div>
+              <div style="font-size:8px;letter-spacing:.2em;color:var(--ink-3);font-weight:800;margin-bottom:6px" class="mono">状态 STATUS</div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <span class="mono" style="font-size:9px;font-weight:800;padding:4px 8px;background:var(--ink);color:var(--gold);border:2.5px solid var(--panel-line)">全部 ×6</span>
+                <span class="mono" style="font-size:9px;font-weight:800;padding:4px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2)">进行中</span>
+                <span class="mono" style="font-size:9px;font-weight:800;padding:4px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2)">已完成</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:8px;letter-spacing:.2em;color:var(--ink-3);font-weight:800;margin-bottom:6px" class="mono">分组 PARTY LINES</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--panel-line);display:flex;justify-content:space-between"><span>■ 学业</span><span style="color:var(--ink-3)">×3</span></div>
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--hp-danger);color:var(--hp-danger);display:flex;justify-content:space-between"><span>■ 生活</span><span>×2</span></div>
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2);display:flex;justify-content:space-between"><span>■ 旅行</span><span>×1</span></div>
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2);display:flex;justify-content:space-between"><span>■ 工作</span><span style="color:var(--ink-3)">×0</span></div>
+              </div>
+            </div>
+            <span class="btn ghost mono" style="padding:7px 0;font-size:10px;margin-top:auto">⚙ 管理分组 →</span>
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 任务</div><div class="plus">+ 新任务</div><div class="item">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 5 设置（夜） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑤ 设置</b> <small>SYSTEM · 夜（洞窟）</small></div>
+      <div class="phone night">
+        <div class="statusbar mono"><span>♥×3</span><span>SYSTEM</span></div>
+        <div class="pagetitle"><span class="t">系统设置</span><span class="r mono">OPTIONS</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <!-- 冒险者卡 -->
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);box-shadow:3px 3px 0 var(--cave-line);padding:12px 13px;display:flex;gap:12px;align-items:center">
+            <div style="width:52px;height:52px;flex:none;background:var(--gold-n);border:3px solid var(--cave-line);display:flex;align-items:center;justify-content:center;font-size:24px">🧙</div>
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:800;color:var(--cave-text)">冒险者 · cch</div>
+              <div class="mono" style="font-size:9px;color:var(--gold-n);font-weight:800;margin-top:2px">LV.07 · 连续打卡 12 天 🔥</div>
+              <div class="xpbar" style="margin-top:7px">
+                <div class="cells">
+                  <i class="cell fill" style="background:var(--xp-n)"></i><i class="cell fill" style="background:var(--xp-n)"></i><i class="cell fill" style="background:var(--xp-n)"></i><i class="cell fill" style="background:var(--xp-n)"></i>
+                  <i class="cell fill" style="background:var(--xp-n)"></i><i class="cell" style="background:var(--cave);border-color:var(--cave-line)"></i><i class="cell" style="background:var(--cave);border-color:var(--cave-line)"></i><i class="cell" style="background:var(--cave);border-color:var(--cave-line)"></i>
+                </div>
+              </div>
+              <div class="mono" style="font-size:8px;color:var(--cave-3);font-weight:800;margin-top:4px">EXP 61% → LV.08</div>
+            </div>
+          </div>
+          <!-- 显示模式 -->
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 13px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--cave-3);font-weight:800" class="mono">▸ 显示模式 DISPLAY</div>
+            <div style="display:flex;gap:7px;margin-top:8px">
+              <span class="mono" style="flex:1;text-align:center;font-size:10px;font-weight:800;padding:7px 0;border:3px solid var(--cave-line);color:var(--cave-2)">昼间地图</span>
+              <span class="mono" style="flex:1;text-align:center;font-size:10px;font-weight:800;padding:7px 0;border:3px solid var(--cave-line);color:var(--cave-2)">洞窟</span>
+              <span class="mono" style="flex:1.2;text-align:center;font-size:10px;font-weight:800;padding:7px 0;border:3px solid var(--gold-n);background:var(--gold-n);color:var(--cave-line)">跟随系统 ✓</span>
+            </div>
+          </div>
+          <!-- 开关行 -->
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:2px dashed #37304E">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">🔊 战斗音效</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--cave-3)">[ ] OFF</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:2px dashed #37304E">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">📳 命中震动</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--hp-n)">[x] ON</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:2px dashed #37304E">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">🗑 封印之地（回收站）</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--cave-3)">3 件 ›</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">ℹ 关于刻间</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--cave-3)">v0.1.0 ›</span>
+            </div>
+          </div>
+          <div class="mono" style="text-align:center;font-size:8px;color:var(--cave-3);font-weight:800;letter-spacing:.15em">MOMENT MARK · MADE WITH ♥ · SAVE FILE LOCAL</div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="nav mono">
+          <div class="item">◉ 任务</div><div class="plus">+ 新任务</div><div class="item on">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 6 分组管理 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑥ 分组管理</b> <small>PARTY 编成 · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>PARTY</span></div>
+        <div class="pagetitle px"><span class="t">队伍编成</span><span class="r mono">GROUPS · 4/8</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div class="px" style="background:var(--panel);padding:11px 12px;display:flex;align-items:center;gap:11px">
+            <span style="width:26px;height:26px;flex:none;background:var(--xp);border:3px solid var(--panel-line)"></span>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800">学业线</div>
+              <div class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800;margin-top:2px">3 个任务 · 建立于 2026.08</div>
+            </div>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px">✎ 改名</span>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px;color:var(--hp-danger)">✕</span>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 12px;display:flex;align-items:center;gap:11px">
+            <span style="width:26px;height:26px;flex:none;background:var(--hp-danger);border:3px solid var(--panel-line)"></span>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800">生活线</div>
+              <div class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800;margin-top:2px">2 个任务 · 建立于 2026.08</div>
+            </div>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px">✎ 改名</span>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px;color:var(--hp-danger)">✕</span>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 12px;display:flex;align-items:center;gap:11px">
+            <span style="width:26px;height:26px;flex:none;background:var(--hp);border:3px solid var(--panel-line)"></span>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800">旅行线</div>
+              <div class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800;margin-top:2px">1 个任务 · 建立于 2026.08</div>
+            </div>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px">✎ 改名</span>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px;color:var(--hp-danger)">✕</span>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 12px;display:flex;align-items:center;gap:11px;opacity:.6">
+            <span style="width:26px;height:26px;flex:none;background:var(--hp-low);border:3px solid var(--panel-line)"></span>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800">工作线</div>
+              <div class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800;margin-top:2px">空线 · 可随时加入任务</div>
+            </div>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px">✎ 改名</span>
+            <span class="btn ghost mono" style="padding:5px 9px;font-size:9px;color:var(--hp-danger)">✕</span>
+          </div>
+          <span class="btn green mono" style="padding:10px 0;font-size:13px">＋ 新建分组</span>
+          <div class="px" style="background:#F9F5E9;padding:9px 12px;font-size:10px;line-height:1.7;color:var(--ink-2);font-weight:600">
+            ⓘ 解散分组时，其中的任务会变成「无阵营」状态，不会被删除。分组颜色对应地图线路色。
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 任务</div><div class="plus">+ 新任务</div><div class="item">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 7 回收站（夜） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑦ 回收站</b> <small>封印之地 · 夜</small></div>
+      <div class="phone night">
+        <div class="statusbar mono"><span>♥×3</span><span>GRAVEYARD</span></div>
+        <div class="pagetitle"><span class="t">◂ 封印之地</span><span class="r mono">3 件封存 · 30 天后净化</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 12px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;font-weight:800;color:var(--cave-3)">🔗 演唱会</span>
+              <span class="mono" style="font-size:8px;font-weight:800;color:var(--cave-3);border:2px solid var(--cave-3);padding:1px 6px">已封印</span>
+            </div>
+            <div class="mono" style="font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px">封存于 3 天前 · 剩余 27 天后永久净化</div>
+            <div style="display:flex;gap:8px;margin-top:9px">
+              <span class="btn gold mono" style="flex:1;padding:7px 0;font-size:11px;background:var(--gold-n);color:var(--cave-line)">✚ 复活任务</span>
+              <span class="btn ghost mono" style="padding:7px 12px;font-size:11px;color:var(--cave-2)">永久净化</span>
+            </div>
+          </div>
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;font-weight:800;color:var(--cave-3)">🔗 实习答辩</span>
+              <span class="mono" style="font-size:8px;font-weight:800;color:var(--cave-3);border:2px solid var(--cave-3);padding:1px 6px">已封印</span>
+            </div>
+            <div class="mono" style="font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px">封存于 12 天前 · 剩余 18 天</div>
+            <div style="display:flex;gap:8px;margin-top:9px">
+              <span class="btn gold mono" style="flex:1;padding:7px 0;font-size:11px;background:var(--gold-n);color:var(--cave-line)">✚ 复活任务</span>
+              <span class="btn ghost mono" style="padding:7px 12px;font-size:11px;color:var(--cave-2)">永久净化</span>
+            </div>
+          </div>
+          <div class="mono" style="text-align:center;font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px;letter-spacing:.1em">被净化的任务将永远消失 · 无法复活</div>
+        </div>
+        <div style="margin-top:auto;padding:0 12px 12px">
+          <span class="btn ghost mono" style="width:100%;padding:10px 0;font-size:12px;color:var(--hp-danger)">⚔ 全部净化（清空回收站）</span>
+        </div>
+        <div class="nav mono">
+          <div class="item">◉ 任务</div><div class="plus">+ 新任务</div><div class="item on">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 8 删除确认+撤销 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑧ 删除确认 · 撤销</b> <small>ABANDON QUEST · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>CONFIRM</span></div>
+        <div style="flex:1;position:relative">
+          <div style="position:absolute;inset:0;background:rgba(43,38,32,.5)"></div>
+          <div style="position:absolute;inset:0;padding:60px 18px 0">
+            <div class="px4" style="background:var(--panel);padding:16px 16px 14px;position:relative">
+              <div class="mono" style="text-align:center;font-size:26px">⚠️</div>
+              <div style="text-align:center;font-size:17px;font-weight:800;margin-top:8px">放弃这个任务？</div>
+              <div style="text-align:center;font-size:12px;color:var(--ink-2);font-weight:600;line-height:1.7;margin-top:7px">「演唱会」的进度与记录<br>将被封存进回收站，30 天内可复活。</div>
+              <div style="display:flex;gap:10px;margin-top:14px">
+                <span class="btn ghost mono" style="flex:1;padding:10px 0;font-size:13px">继续冒险</span>
+                <span class="btn red mono" style="flex:1;padding:10px 0;font-size:13px">✕ 确认放弃</span>
+              </div>
+            </div>
+          </div>
+          <!-- 撤销 toast -->
+          <div style="position:absolute;left:14px;right:14px;bottom:86px;background:var(--ink);border:3px solid var(--panel-line);box-shadow:3px 3px 0 rgba(43,38,32,.4);padding:11px 13px;display:flex;justify-content:space-between;align-items:center;z-index:3">
+            <span class="mono" style="font-size:11px;color:#F6F1E3;font-weight:700">⚔「演唱会」已封印入封印之地</span>
+            <span class="mono" style="font-size:11px;color:var(--gold);font-weight:800;border-bottom:2px solid var(--gold);padding-bottom:1px">↩ 撤销</span>
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 任务</div><div class="plus">+ 新任务</div><div class="item">▤ 副本</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>刻间 MOMENT MARK · 风格 J「像素冒险」全页面预览 · 基于现有信息架构（首页/日子簿见 proposal_J.html）</footer>
+</div>
+</body>
+</html>

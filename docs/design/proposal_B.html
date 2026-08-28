@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 B · 石板蓝工具理性 — 刻间设计语言提案</title>
+<style>
+  :root{
+    --bg:#F3F5F8; --bg-deep:#ECEFF4;
+    --surface:#FFFFFF; --surface-2:#F7F9FB;
+    --ink:#171A1F; --ink-2:#5B6472; --ink-3:#98A1AE;
+    --primary:#3D6BE8; --primary-press:#2F55C4;
+    --teal:#12A5B0;
+    --line:#E2E6EC; --line-strong:#CBD2DC;
+    --radius-card:12px; --radius-sheet:16px; --radius-chip:8px;
+    --shadow-card:0 1px 3px rgba(23,26,31,.05);
+    --shadow-float:0 12px 32px rgba(23,26,31,.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bg),var(--bg-deep));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;
+    color:var(--ink);padding:48px 28px 80px;
+    font-variant-numeric:tabular-nums;
+  }
+  .page{max-width:1120px;margin:0 auto}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;background:var(--primary);color:#fff;font-size:12px;letter-spacing:.35em;padding:6px 14px 6px 18px;border-radius:6px;margin-bottom:18px;font-weight:600}
+  h1{font-size:44px;font-weight:700;letter-spacing:-.01em}
+  h1 .en{display:block;font-size:13px;letter-spacing:.45em;color:var(--ink-3);font-weight:500;margin-top:8px;text-transform:uppercase}
+  .positioning{font-size:18px;color:var(--ink-2);margin-top:16px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-chip);padding:7px 16px;font-size:13px;color:var(--ink-2)}
+
+  section{margin-top:56px}
+  h2{font-size:14px;letter-spacing:.4em;color:var(--ink-3);text-align:center;margin-bottom:28px;font-weight:600}
+  h2::before,h2::after{content:"—";margin:0 12px;color:var(--line-strong)}
+
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:36px;background:var(--bg);
+    border:8px solid #171A1F;box-shadow:var(--shadow-float);overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+  }
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--ink-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 22px 6px;font-size:12px;color:var(--ink-2)}
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 18px 12px}
+  .topbar .t{font-size:17px;font-weight:700}
+  .topbar .ic{color:var(--ink-2);font-size:15px;letter-spacing:6px}
+
+  .hero{
+    margin:4px 16px 0;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius-card);padding:20px 20px 18px;box-shadow:var(--shadow-card);
+  }
+  .hero .kicker{font-size:11px;letter-spacing:.18em;color:var(--ink-3);font-weight:600}
+  .hero .row{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px}
+  .hero .num{font-size:64px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .hero .num small{font-size:16px;font-weight:600;color:var(--ink-2);margin-left:4px}
+  .hero .date{font-size:12px;color:var(--ink-3)}
+  .hero .bar{height:6px;background:var(--line);border-radius:3px;margin-top:14px;overflow:hidden}
+  .hero .bar i{display:block;height:100%;width:38%;background:var(--primary);border-radius:3px}
+
+  .cards{padding:14px 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:13px 14px 12px;box-shadow:var(--shadow-card)}
+  .card .t{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+  .card .sq{width:8px;height:8px;border-radius:2px}
+  .card .d{font-size:26px;font-weight:700;margin-top:5px}
+  .card .d small{font-size:11px;color:var(--ink-3);font-weight:500}
+  .card .meta{font-size:10px;color:var(--ink-3);margin-top:4px;letter-spacing:.05em}
+  .card.wide{grid-column:span 2;display:flex;align-items:center;justify-content:space-between}
+  .card.wide .d{font-size:34px;margin-top:0}
+  .pin{font-size:9px;font-weight:700;letter-spacing:.15em;color:var(--primary);border:1px solid var(--primary);border-radius:4px;padding:2px 6px}
+
+  .nav{
+    margin-top:auto;padding:8px 26px 20px;display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid var(--line);background:var(--surface);
+  }
+  .nav .item{width:42px;height:42px;border-radius:var(--radius-chip);display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px}
+  .nav .item.on{color:var(--primary);background:#E9F0FE}
+  .nav .plus{width:48px;height:48px;border-radius:12px;background:var(--primary);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(61,107,232,.35);margin-top:-24px;border:4px solid var(--bg)}
+
+  .cal{padding:8px 18px 0;flex:1}
+  .cal .month{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 12px}
+  .cal .month .m{font-size:22px;font-weight:700}
+  .cal .month .y{font-size:11px;color:var(--ink-3);letter-spacing:.12em;font-family:ui-monospace,Menlo,monospace}
+  .cal .month .arrows{color:var(--ink-2);letter-spacing:8px}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:var(--ink-3);font-weight:600;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px;padding-top:6px}
+  .day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--ink-2);border-radius:8px;position:relative;font-weight:500}
+  .day.dim{color:#C6CDD7;font-weight:400}
+  .day.today{background:var(--primary);color:#fff;border-radius:8px}
+  .day .dot{position:absolute;bottom:7px;width:4px;height:4px;border-radius:1px}
+  .dot.b1{background:var(--primary)} .dot.b2{background:var(--teal)}
+  .daynote{margin:12px 16px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:13px 16px}
+  .daynote .h{font-size:10px;letter-spacing:.2em;color:var(--ink-3);font-weight:700}
+  .daynote .row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .daynote .row:last-child{border-bottom:0;padding-bottom:0}
+  .daynote .n{font-size:13px;font-weight:600}
+  .daynote .c{font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace}
+
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sheet);box-shadow:var(--shadow-card);padding:26px 30px;min-width:300px}
+  .comp-card h3{font-size:11px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:700}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;margin:0 8px 10px 0;border-radius:var(--radius-chip)}
+  .btn.primary{background:var(--primary);color:#fff}
+  .btn.ghost{border:1px solid var(--line-strong);color:var(--ink-2);background:transparent}
+  .btn.danger{border:1px solid #E5B4B0;color:#C43D34;background:#FDF1F0}
+  .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-chip);padding:3px}
+  .seg span{padding:6px 16px;font-size:13px;border-radius:6px;color:var(--ink-2)}
+  .seg .on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow-card)}
+  .toast{margin-top:14px;background:#171A1F;color:#E9EDF3;border-radius:10px;padding:11px 16px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:#7EA4F5;font-weight:600}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:56px;height:56px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(23,26,31,.08)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sheet);padding:28px 32px;box-shadow:var(--shadow-card)}
+  .panel h3{font-size:12px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:18px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line-strong);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid #EFF2F6;color:var(--ink-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;border-radius:5px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(23,26,31,.12)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid #EFF2F6}
+  .type-row .meta{width:170px;font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EFF2F6;font-size:13px;color:var(--ink-2)}
+  .motion-row b{color:var(--ink);font-weight:600}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--ink-3);letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 B</div>
+    <h1>石板蓝 · 工具理性<span class="en">Slate Blue · Precision Tool</span></h1>
+    <p class="positioning">"像一把精准的卡尺，时间读数一目了然。"</p>
+    <div class="chips">
+      <span class="chip">冷静</span><span class="chip">高对比</span><span class="chip">工具感</span>
+      <span class="chip">发丝线描边</span><span class="chip">单一强调色</span><span class="chip">等宽数字</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览</h2>
+    <div class="mockups">
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="topbar"><span class="t">大事件</span><span class="ic">⌕ ☰</span></div>
+        <div class="hero">
+          <div class="kicker">春节 · 回家的日子</div>
+          <div class="row"><span class="num">148<small>天</small></span><span class="date mono">2027.02.06</span></div>
+          <div class="bar"><i></i></div>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="t"><span class="sq" style="background:var(--primary)"></span>考研初试</div><div class="d">96<small> 天</small></div><div class="meta mono">2026.12.19</div></div>
+          <div class="card"><div class="t"><span class="sq" style="background:var(--teal)"></span>演唱会</div><div class="d">32<small> 天</small></div><div class="meta mono">2026.09.20</div></div>
+          <div class="card wide">
+            <div><div class="t"><span class="sq" style="background:var(--primary)"></span>毕业旅行 · 东京</div><div class="d">214 天</div></div>
+            <span class="pin">置顶</span>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on">🏠</div>
+          <div class="plus">+</div>
+          <div class="item">📅</div>
+        </div>
+        <div class="phone-label">首页 · 大事件</div>
+      </div>
+
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+        <div class="cal">
+          <div class="month"><span class="m">八月 2026</span><span class="arrows">‹ ›</span></div>
+          <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+            <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16<i class="dot b1"></i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20<i class="dot b2"></i></span><span class="day">21</span><span class="day">22</span>
+            <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="dot b1"></i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+            <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+          <div class="daynote">
+            <div class="h">8月12日 · 星期三</div>
+            <div class="row"><span class="n">七夕节</span><span class="c">FESTIVAL</span></div>
+            <div class="row"><span class="n">英语六级出分</span><span class="c">08:00</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item">🏠</div>
+          <div class="plus">+</div>
+          <div class="item on">📅</div>
+        </div>
+        <div class="phone-label">日子簿 · 月历</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 撤销</h3>
+        <div>
+          <span class="btn primary">主操作</span><span class="btn ghost">次操作</span><span class="btn danger">删除</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">跟随系统</span><span>浅色</span><span>深色</span></span></div>
+        <div class="toast"><span>已删除「演唱会」</span><b>撤销</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 浅色模式</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#F3F5F8" title="背景"></span>
+          <span class="swatch" style="background:#FFFFFF" title="表面"></span>
+          <span class="swatch" style="background:#171A1F" title="主文字"></span>
+          <span class="swatch" style="background:#3D6BE8" title="主色"></span>
+          <span class="swatch" style="background:#12A5B0" title="数据青"></span>
+          <span class="swatch" style="background:#E2E6EC" title="描边"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 深色模式</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#0F1319" title="背景"></span>
+          <span class="swatch" style="background:#161B23" title="表面"></span>
+          <span class="swatch" style="background:#E9EDF3" title="主文字"></span>
+          <span class="swatch" style="background:#6C93F0" title="主色"></span>
+          <span class="swatch" style="background:#2BB3BD" title="数据青"></span>
+          <span class="swatch" style="background:#262D38" title="描边"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>浅色</th><th>深色</th></tr>
+          <tr><td><span class="c-well" style="background:#F3F5F8"></span>页面背景</td><td class="hex">#F3F5F8</td><td class="hex">#0F1319</td></tr>
+          <tr><td><span class="c-well" style="background:#FFFFFF"></span>卡片表面（实色）</td><td class="hex">#FFFFFF</td><td class="hex">#161B23</td></tr>
+          <tr><td><span class="c-well" style="background:#171A1F"></span>文字 · 主</td><td class="hex">#171A1F</td><td class="hex">#E9EDF3</td></tr>
+          <tr><td><span class="c-well" style="background:#5B6472"></span>文字 · 次</td><td class="hex">#5B6472</td><td class="hex">#9AA4B2</td></tr>
+          <tr><td><span class="c-well" style="background:#98A1AE"></span>文字 · 弱</td><td class="hex">#98A1AE</td><td class="hex">#67717F</td></tr>
+          <tr><td><span class="c-well" style="background:#3D6BE8"></span>品牌主色（唯一强调）</td><td class="hex">#3D6BE8</td><td class="hex">#6C93F0</td></tr>
+          <tr><td><span class="c-well" style="background:#12A5B0"></span>数据青（仅图表/分类）</td><td class="hex">#12A5B0</td><td class="hex">#2BB3BD</td></tr>
+          <tr><td><span class="c-well" style="background:#E2E6EC"></span>发丝描边</td><td class="hex">#E2E6EC</td><td class="hex">#262D38</td></tr>
+          <tr><td><span class="c-well" style="background:#C43D34"></span>危险</td><td class="hex">#C43D34</td><td class="hex">#E06B62</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（等宽数字为特色）</h3>
+        <div class="type-row"><span class="meta">display / 64sp / bold·tabular</span><span style="font-size:38px;font-weight:700">148<span style="font-size:14px;color:#5B6472"> 天</span></span></div>
+        <div class="type-row"><span class="meta">title / 17sp / semibold</span><span style="font-size:17px;font-weight:600">春节 · 回家的日子</span></div>
+        <div class="type-row"><span class="meta">body / 14sp / regular</span><span style="font-size:14px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">mono-label / 11sp / mono</span><span class="mono" style="font-size:11px;color:#98A1AE;letter-spacing:.08em">2026.12.19 · SAT</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与间距 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">12dp</td><td>事件卡片、输入框</td></tr>
+          <tr><td class="hex">radius_sheet</td><td class="hex">16dp</td><td>弹层 / 底部面板</td></tr>
+          <tr><td class="hex">radius_chip</td><td class="hex">8dp</td><td>按钮、chip、日格</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">16dp</td><td>页面水平边距</td></tr>
+          <tr><td class="hex">space_card</td><td class="hex">10dp</td><td>卡片之间</td></tr>
+          <tr><td class="hex">space_inner</td><td class="hex">14dp</td><td>卡片内边距</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>卡片阴影</span><b>≤1dp，几乎平面</b></div>
+        <div class="motion-row"><span>层级表达</span><b>1dp 发丝描边优先于阴影</b></div>
+        <div class="motion-row"><span>常规过渡</span><b>180–240ms · 标准缓动</b></div>
+        <div class="motion-row"><span>卡片停靠</span><b>200ms 快速落位，无回弹</b></div>
+        <div class="motion-row"><span>长按进入编辑</span><b>400ms（更快）</b></div>
+        <div class="motion-row"><span>装饰性动效</span><b>不做（无漂浮/光晕）</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 B · 更理性的工具方向</footer>
+</div>
+</body>
+</html>

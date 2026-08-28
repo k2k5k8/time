@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 G · 站台车票 — 刻间设计语言提案</title>
+<style>
+  :root{
+    /* 浅色（牛皮纸站台票） */
+    --paper:#EFE6D5; --paper-deep:#E6DBC5;
+    --ticket:#FBF6EA; --ink:#2B3A4A; --ink-2:#5D6B78; --ink-3:#98A2AB;
+    --red:#C4553B; --red-deep:#A84430;
+    --line:#DCD2BC;
+    /* 显示牌（深色常亮） */
+    --board:#14202E; --board-line:#26364A;
+    --led:#FFB100; --led-green:#2FA36B;
+    --r-card:10px; --r-sheet:16px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--paper),var(--paper-deep));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--ink);padding:48px 28px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:44px}
+  .badge{display:inline-block;background:var(--board);color:var(--led);font-size:12px;font-weight:700;letter-spacing:.3em;padding:6px 14px 6px 18px;border-radius:6px;margin-bottom:18px}
+  h1{font-size:44px;font-weight:700;letter-spacing:.04em}
+  h1 .en{display:block;font-size:13px;letter-spacing:.45em;color:var(--ink-3);font-weight:600;margin-top:8px}
+  .positioning{font-size:18px;color:var(--ink-2);margin-top:14px}
+  .chips{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .chip{background:var(--ticket);border:1px dashed var(--ink-3);border-radius:999px;padding:7px 18px;font-size:13px;color:var(--ink-2)}
+
+  section{margin-top:56px}
+  h2{font-size:14px;letter-spacing:.4em;color:var(--ink-3);text-align:center;margin-bottom:28px;font-weight:600}
+  h2::before,h2::after{content:"—";margin:0 12px;color:var(--line)}
+
+  /* 显示牌数字 */
+  .flip-digits{display:inline-flex;gap:4px;position:relative}
+  .flip-digits .d{
+    background:var(--board);color:var(--led);
+    font-family:ui-monospace,Menlo,monospace;font-weight:700;
+    border-radius:4px;position:relative;overflow:hidden;
+    box-shadow:inset 0 0 0 1px var(--board-line);
+  }
+  .flip-digits .d::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(0,0,0,.45)}
+  .board{
+    background:var(--board);border-radius:14px;padding:18px 20px 16px;
+    box-shadow:0 10px 30px rgba(20,32,46,.35);
+  }
+  .board .row1{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.2em;color:var(--led-green);font-family:ui-monospace,Menlo,monospace;margin-bottom:10px}
+  .board .lbl{font-size:12px;color:#8FA1B5;letter-spacing:.3em;margin-bottom:8px}
+
+  /* 手机 */
+  .mockups{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+  .phone{
+    width:330px;height:672px;border-radius:44px;
+    border:8px solid #22303F;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;
+    box-shadow:0 20px 50px rgba(43,58,74,.3);
+  }
+  .phone.light{background:var(--paper)}
+  .phone.dark{background:var(--board)}
+  .phone-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.25em;color:var(--ink-3);white-space:nowrap}
+  .statusbar{display:flex;justify-content:space-between;padding:14px 24px 8px;font-size:12px}
+  .light .statusbar{color:var(--ink-2)} .dark .statusbar{color:#8FA1B5}
+
+  /* 车票卡片 */
+  .tickets{padding:16px 16px 0;display:flex;flex-direction:column;gap:11px}
+  .ticket{
+    background:var(--ticket);border-radius:var(--r-card);padding:13px 16px 12px;position:relative;
+    box-shadow:0 3px 10px rgba(43,58,74,.10);
+  }
+  .ticket .route{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink)}
+  .ticket .route .code{font-size:10px;font-weight:700;color:var(--red);border:1px solid var(--red);border-radius:4px;padding:1px 5px;letter-spacing:.08em}
+  .ticket .body{display:flex;align-items:center;margin-top:8px}
+  .ticket .num{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .ticket .num small{font-size:11px;font-weight:600;color:var(--ink-2);margin-left:4px;letter-spacing:.05em}
+  .ticket .dest{margin-left:auto;text-align:right;font-size:10px;color:var(--ink-3);line-height:1.5}
+  .ticket .dest b{display:block;font-size:12px;color:var(--ink-2)}
+  /* 撕票孔 + 竖向票根线 */
+  .ticket::before,.ticket::after{
+    content:"";position:absolute;right:74px;top:50%;width:12px;height:12px;border-radius:50%;
+    background:var(--paper);box-shadow:inset 0 1px 3px rgba(43,58,74,.25);
+  }
+  .ticket::before{transform:translateY(-50%) translateY(-26px)}
+  .ticket::after{transform:translateY(-50%) translateY(26px)}
+  .ticket .perf{position:absolute;top:8px;bottom:8px;right:80px;width:0;border-right:1.5px dashed #C9BDA4}
+  .ticket .stub{position:absolute;top:0;bottom:0;right:0;width:74px;border-radius:0 var(--r-card) var(--r-card) 0;
+    display:flex;align-items:center;justify-content:center}
+  .ticket .barcode{height:26px;width:46px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 8px);opacity:.75}
+  .ticket.pinned .stub{background:rgba(196,85,59,.08)}
+  .ticket .pinmark{
+    position:absolute;left:14px;bottom:10px;font-size:9px;font-weight:800;color:var(--red);
+    border:1.5px solid var(--red);border-radius:4px;padding:1px 6px;transform:rotate(-4deg);letter-spacing:.15em;
+  }
+  .ticket .dateline{font-size:10px;color:var(--ink-3);margin-top:6px;letter-spacing:.05em}
+
+  .nav{margin-top:auto;padding:10px 24px 20px;display:flex;align-items:center;justify-content:space-between}
+  .light .nav{background:rgba(251,246,234,.85);border-top:1px solid var(--line)}
+  .dark .nav{background:rgba(20,32,46,.9);border-top:1px solid var(--board-line)}
+  .nav .item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;letter-spacing:.1em;width:80px;padding-top:2px}
+  .light .nav .item{color:var(--ink-3)} .dark .nav .item{color:#5D7186}
+  .nav .item .ic{font-size:18px}
+  .nav .item.on{color:var(--red);font-weight:700}
+  .dark .nav .item.on{color:var(--led)}
+  .nav .plus{width:50px;height:50px;border-radius:50%;background:var(--red);color:#FBF6EA;font-size:25px;display:flex;align-items:center;justify-content:center;margin-top:-26px;box-shadow:0 6px 18px rgba(196,85,59,.4)}
+
+  /* 夜行显示牌日历 */
+  .cal{padding:12px 18px 0;flex:1}
+  .cal .month{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 12px}
+  .cal .month .m{font-size:22px;font-weight:700;color:#E8EDF3}
+  .cal .month .bd{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--led-green);letter-spacing:.15em}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:#5D7186;margin-bottom:8px;font-family:ui-monospace,Menlo,monospace}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:4px}
+  .day{aspect-ratio:.95;display:flex;align-items:center;justify-content:center;font-size:13px;color:#B9C4D0;border-radius:8px;position:relative}
+  .day.dim{color:#33465A}
+  .day.today{background:var(--red);color:#FBF6EA;font-weight:700;box-shadow:0 0 14px rgba(196,85,59,.4)}
+  .day .mk{position:absolute;bottom:4px;width:4px;height:4px;border-radius:1px;background:var(--led)}
+  .dayboard{margin:12px 14px 0;background:#0E1824;border-radius:12px;padding:12px 14px;box-shadow:inset 0 0 0 1px var(--board-line)}
+  .dayboard .h{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.25em;color:#5D7186;margin-bottom:6px}
+  .dayboard .row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed #1E3040}
+  .dayboard .row:last-child{border-bottom:0}
+  .dayboard .n{font-size:13px;color:#DCE4EC}
+  .dayboard .st{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--led-green);letter-spacing:.1em}
+  .dayboard .row.festival .st{color:var(--led)}
+
+  /* 组件 */
+  .components{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .comp-card{background:var(--ticket);border-radius:var(--r-sheet);padding:26px 30px;min-width:320px;box-shadow:0 4px 14px rgba(43,58,74,.10)}
+  .comp-card h3{font-size:11px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:16px;font-weight:600}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:11px 26px;font-size:14px;font-weight:600;cursor:pointer;margin:0 8px 10px 0;border-radius:8px}
+  .btn.primary{background:var(--ink);color:var(--ticket)}
+  .btn.red{background:var(--red);color:#FBF6EA}
+  .btn.dash{border:1.5px dashed var(--ink-3);color:var(--ink-2);background:transparent}
+  .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .seg span{padding:7px 16px;font-size:13px;border-radius:6px;color:var(--ink-2)}
+  .seg .on{background:var(--ticket);color:var(--ink);font-weight:600;box-shadow:0 1px 4px rgba(43,58,74,.12)}
+  .toast{margin-top:14px;background:var(--board);color:#DCE4EC;border-radius:10px;padding:12px 18px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .toast b{color:var(--led);font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.1em}
+  .swatches{display:flex;gap:12px;margin-top:6px}
+  .swatch{width:56px;height:56px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(43,58,74,.15)}
+
+  .token-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media(max-width:860px){.token-grid{grid-template-columns:1fr}}
+  .panel{background:var(--ticket);border-radius:var(--r-sheet);padding:28px 32px;box-shadow:0 4px 14px rgba(43,58,74,.10)}
+  .panel h3{font-size:12px;letter-spacing:.3em;color:var(--ink-3);margin-bottom:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--ink-3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.1em}
+  td{padding:8px;border-bottom:1px solid #EFE8D6;color:var(--ink-2)}
+  td.hex{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink)}
+  .c-well{width:22px;height:22px;border-radius:6px;display:inline-block;vertical-align:-6px;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(43,58,74,.15)}
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:12px 0;border-bottom:1px solid #EFE8D6}
+  .type-row .meta{width:190px;font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace}
+  .motion-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EFE8D6;font-size:13px;color:var(--ink-2)}
+  .motion-row b{color:var(--ink);font-weight:600}
+  footer{text-align:center;margin-top:64px;font-size:12px;color:var(--ink-3);letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">方案 G</div>
+    <h1>站台 · 车票<span class="en mono">Platform & Ticket · Departure Board</span></h1>
+    <p class="positioning">"每个期待的日子，都是一张待出发的车票。"</p>
+    <div class="chips">
+      <span class="chip">车票卡片</span><span class="chip">撕票孔</span><span class="chip">翻牌显示牌</span>
+      <span class="chip">LED 琥珀色</span><span class="chip">条形码票根</span><span class="chip">出发叙事</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>界面预览（左浅色站台 · 右夜行显示牌）</h2>
+    <div class="mockups">
+
+      <div class="phone light">
+        <div class="statusbar"><span>9:41</span><span class="mono">PLATFORM 01</span></div>
+        <div style="padding:8px 16px 0">
+          <div class="board">
+            <div class="row1"><span>下一班 · NEXT DEPARTURE</span><span>ON TIME</span></div>
+            <div class="lbl">距 春节 · 回家的日子 发车</div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="flip-digits">
+                <span class="d" style="font-size:44px;padding:6px 10px">1</span>
+                <span class="d" style="font-size:44px;padding:6px 10px">4</span>
+                <span class="d" style="font-size:44px;padding:6px 10px">8</span>
+                <span style="font-size:12px;color:#8FA1B5;align-self:flex-end;padding:0 0 8px 6px">天 / DAYS</span>
+              </div>
+              <span class="mono" style="font-size:10px;color:#5D7186">2027.02.06<br>K-148 次</span>
+            </div>
+          </div>
+        </div>
+        <div class="tickets">
+          <div class="ticket pinned">
+            <span class="pinmark">已定 · PINNED</span>
+            <div class="route"><span class="code mono">G-214</span>毕业旅行 · 东京</div>
+            <div class="body">
+              <div class="num">214<small>天</small></div>
+              <div class="dest"><b>2027.03.28</b>东京 · TOKYO</div>
+            </div>
+            <div class="dateline mono">SEAT 04A · WINDOW · GROUP 旅行</div>
+            <span class="perf"></span><span class="stub"><span class="barcode"></span></span>
+          </div>
+          <div class="ticket">
+            <div class="route"><span class="code mono">K-096</span>考研初试</div>
+            <div class="body">
+              <div class="num">96<small>天</small></div>
+              <div class="dest"><b>2026.12.19</b>考场 · 本校</div>
+            </div>
+            <div class="dateline mono">SEAT 21B · GROUP 学业</div>
+            <span class="perf"></span><span class="stub"><span class="barcode"></span></span>
+          </div>
+          <div class="ticket">
+            <div class="route"><span class="code mono">T-032</span>演唱会</div>
+            <div class="body">
+              <div class="num">32<small>天</small></div>
+              <div class="dest"><b>2026.09.20</b>体育馆</div>
+            </div>
+            <div class="dateline mono">SEAT 09排12号 · GROUP 生活</div>
+            <span class="perf"></span><span class="stub"><span class="barcode"></span></span>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item on"><span class="ic">◉</span>站台</div>
+          <div class="plus">+</div>
+          <div class="item"><span class="ic">▤</span>月历</div>
+        </div>
+        <div class="phone-label">首页 · 车票与发车显示牌</div>
+      </div>
+
+      <div class="phone dark">
+        <div class="statusbar"><span>9:41</span><span class="mono">NIGHT TRAIN · 月历</span></div>
+        <div class="cal">
+          <div class="month"><span class="m">八月 2026</span><span class="bd">AUG · BOARD</span></div>
+          <div class="weekdays"><span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span></div>
+          <div class="days">
+            <span class="day dim">26</span><span class="day dim">27</span><span class="day dim">28</span><span class="day dim">29</span><span class="day dim">30</span><span class="day dim">31</span><span class="day">1</span>
+            <span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day today">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16<i class="mk"></i></span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20<i class="mk"></i></span><span class="day">21</span><span class="day">22</span>
+            <span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26<i class="mk"></i></span><span class="day">27</span><span class="day">28</span><span class="day">29</span>
+            <span class="day">30</span><span class="day">31</span><span class="day dim">1</span><span class="day dim">2</span><span class="day dim">3</span><span class="day dim">4</span><span class="day dim">5</span>
+          </div>
+          <div class="dayboard">
+            <div class="h">08.12 WED · 当日检票口</div>
+            <div class="row festival"><span class="n">七夕节</span><span class="st">FESTIVAL ●</span></div>
+            <div class="row"><span class="n">英语六级出分</span><span class="st">08:00 · ON TIME</span></div>
+            <div class="row"><span class="n" style="color:#5D7186">＋ 记录一件小事</span><span class="st">+ NEW</span></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item"><span class="ic">◉</span>站台</div>
+          <div class="plus">+</div>
+          <div class="item on"><span class="ic">▤</span>月历</div>
+        </div>
+        <div class="phone-label">日子簿 · 夜行显示牌月历</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>组件</h2>
+    <div class="components">
+      <div class="comp-card">
+        <h3>按钮 · 分段 · 撤销</h3>
+        <div>
+          <span class="btn primary">检票（主操作）</span><span class="btn red">删除</span><span class="btn dash">虚线次操作</span>
+        </div>
+        <div style="margin-top:8px"><span class="seg"><span class="on">跟随系统</span><span>浅色</span><span>深色</span></span></div>
+        <div class="toast"><span>已撕毁「演唱会」</span><b>撤销 UNDO</b></div>
+      </div>
+      <div class="comp-card">
+        <h3>主色板 · 浅色（牛皮纸 + 藏青 + 车票红）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#EFE6D5" title="站台底"></span>
+          <span class="swatch" style="background:#FBF6EA" title="车票"></span>
+          <span class="swatch" style="background:#2B3A4A" title="藏青墨"></span>
+          <span class="swatch" style="background:#C4553B" title="车票红"></span>
+          <span class="swatch" style="background:#14202E" title="显示牌"></span>
+          <span class="swatch" style="background:#FFB100" title="LED 琥珀"></span>
+        </div>
+        <h3 style="margin-top:20px">主色板 · 深色（夜行列车）</h3>
+        <div class="swatches">
+          <span class="swatch" style="background:#0E1824" title="夜行底"></span>
+          <span class="swatch" style="background:#1B2634" title="车票"></span>
+          <span class="swatch" style="background:#DCE4EC" title="文字"></span>
+          <span class="swatch" style="background:#E0684B" title="车票红"></span>
+          <span class="swatch" style="background:#0A121C" title="显示牌"></span>
+          <span class="swatch" style="background:#FFC63D" title="LED 琥珀"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Token 规范</h2>
+    <div class="token-grid">
+      <div class="panel">
+        <h3>色彩 COLOR</h3>
+        <table>
+          <tr><th>用途</th><th>浅色</th><th>深色</th></tr>
+          <tr><td><span class="c-well" style="background:#EFE6D5"></span>页面底（站台牛皮纸）</td><td class="hex">#EFE6D5</td><td class="hex">#0E1824</td></tr>
+          <tr><td><span class="c-well" style="background:#FBF6EA"></span>车票 / 卡面</td><td class="hex">#FBF6EA</td><td class="hex">#1B2634</td></tr>
+          <tr><td><span class="c-well" style="background:#2B3A4A"></span>文字（藏青墨）</td><td class="hex">#2B3A4A</td><td class="hex">#DCE4EC</td></tr>
+          <tr><td><span class="c-well" style="background:#5D6B78"></span>文字 · 次</td><td class="hex">#5D6B78</td><td class="hex">#8FA1B5</td></tr>
+          <tr><td><span class="c-well" style="background:#C4553B"></span>车票红（印章/今日/主操作）</td><td class="hex">#C4553B</td><td class="hex">#E0684B</td></tr>
+          <tr><td><span class="c-well" style="background:#14202E"></span>显示牌面板</td><td class="hex">#14202E</td><td class="hex">#0A121C</td></tr>
+          <tr><td><span class="c-well" style="background:#FFB100"></span>LED 琥珀（显示牌数字）</td><td class="hex">#FFB100</td><td class="hex">#FFC63D</td></tr>
+          <tr><td><span class="c-well" style="background:#2FA36B"></span>LED 绿（状态：ON TIME）</td><td class="hex">#2FA36B</td><td class="hex">#41B77F</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>字号 TYPE（翻牌 mono 数字为特色）</h3>
+        <div class="type-row"><span class="meta">board-display / 44sp / mono·LED</span><span class="mono" style="font-size:38px;font-weight:700;color:#FFB100;background:#14202E;padding:2px 12px;border-radius:6px">148</span></div>
+        <div class="type-row"><span class="meta">title / 16sp / semibold</span><span style="font-size:16px;font-weight:600">毕业旅行 · 东京</span></div>
+        <div class="type-row"><span class="meta">body / 15sp / regular</span><span style="font-size:15px">英语六级出分，记得查分</span></div>
+        <div class="type-row"><span class="meta">ticket-label / 10sp / mono</span><span class="mono" style="font-size:10px;color:#98A2AB;letter-spacing:.12em">SEAT 21B · GROUP 学业 · 2026.12.19</span></div>
+      </div>
+      <div class="panel">
+        <h3>形状与票务元素 SHAPE</h3>
+        <table>
+          <tr><th>Token</th><th>值</th><th>用于</th></tr>
+          <tr><td class="hex">radius_card</td><td class="hex">10dp</td><td>车票卡片</td></tr>
+          <tr><td class="hex">radius_sheet</td><td class="hex">16dp</td><td>弹层 / 底部面板</td></tr>
+          <tr><td class="hex">stub_width</td><td class="hex">74dp</td><td>票根（条形码区）宽度</td></tr>
+          <tr><td class="hex">perf_line</td><td class="hex">1.5dp 虚线 + 上下 6dp 撕票孔</td><td>票面/票根分隔</td></tr>
+          <tr><td class="hex">space_page</td><td class="hex">16dp</td><td>页面边距</td></tr>
+          <tr><td class="hex">space_card</td><td class="hex">11dp</td><td>车票之间</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>材质与动效 MOTION</h3>
+        <div class="motion-row"><span>显示牌数字变化</span><b>翻牌 300ms（上下半片交替）</b></div>
+        <div class="motion-row"><span>卡片进出场</span><b>票据滑入 240ms，轻快</b></div>
+        <div class="motion-row"><span>删除动效</span><b>「撕票」：撕线分离 + 票角卷曲</b></div>
+        <div class="motion-row"><span>置顶标记</span><b>盖章式落定，微旋转 -4°</b></div>
+        <div class="motion-row"><span>卡片阴影</span><b>轻（3dp），纸票浮在站台面</b></div>
+        <div class="motion-row"><span>装饰纪律</span><b>票务元素是语义的（日期/分组/编号）</b></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 设计语言提案 G · 车票与站台叙事</footer>
+</div>
+</body>
+</html>
