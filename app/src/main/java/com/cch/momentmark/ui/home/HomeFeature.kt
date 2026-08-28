@@ -5,7 +5,7 @@ import com.cch.momentmark.domain.model.EventCardTemplateKey
 import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.domain.model.TravelCardConfig
 import com.cch.momentmark.ui.EventFilter
-import com.cch.momentmark.ui.HomeScreen
+import com.cch.momentmark.ui.home.HomeScreen
 
 /** Feature boundary for the home feed; the visual implementation stays stable during the prototype phase. */
 @Composable

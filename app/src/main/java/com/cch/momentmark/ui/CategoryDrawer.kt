@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.BusinessCenter
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -110,12 +111,14 @@ internal fun filterEventsByScope(
 @Composable
 internal fun CategoryDrawer(
     events: List<TimeEvent>,
+    deletedCount: Int,
     groups: List<DrawerGroup>,
     selectedFilter: EventFilter,
     selectedGroup: String?,
     onSelectFilter: (EventFilter) -> Unit,
     onSelectGroup: (String?) -> Unit,
     onManageGroups: () -> Unit,
+    onOpenRecycleBin: () -> Unit,
     onClose: () -> Unit,
 ) {
     val allCount = events.size
@@ -198,7 +201,9 @@ internal fun CategoryDrawer(
 
             DrawerTipCard()
             DrawerFooter(
+                deletedCount = deletedCount,
                 onManageGroups = onManageGroups,
+                onOpenRecycleBin = onOpenRecycleBin,
                 onClose = onClose,
             )
         }
@@ -393,7 +398,12 @@ private fun DrawerTipCard() {
 }
 
 @Composable
-private fun DrawerFooter(onManageGroups: () -> Unit, onClose: () -> Unit) {
+private fun DrawerFooter(
+    deletedCount: Int,
+    onManageGroups: () -> Unit,
+    onOpenRecycleBin: () -> Unit,
+    onClose: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -402,6 +412,8 @@ private fun DrawerFooter(onManageGroups: () -> Unit, onClose: () -> Unit) {
     ) {
         androidx.compose.foundation.layout.Column {
             DrawerFooterItem("管理分组", Icons.Outlined.Settings, onManageGroups)
+            androidx.compose.material3.HorizontalDivider(color = DrawerRule, modifier = Modifier.padding(horizontal = 16.dp))
+            DrawerFooterItem("回收站（${deletedCount}）", Icons.Outlined.DeleteOutline, onOpenRecycleBin)
             androidx.compose.material3.HorizontalDivider(color = DrawerRule, modifier = Modifier.padding(horizontal = 16.dp))
             DrawerFooterItem("返回主页", Icons.Outlined.Home, onClose)
         }

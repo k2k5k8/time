@@ -6,18 +6,32 @@ import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.data.repository.TimeEventMapper.toEntity
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Stage 3 data boundary. UI integration and user-facing CRUD remain in the
- * next stage; this class keeps persistence rules out of Compose.
- */
+/** Keeps persistence rules and the recovery-bin lifecycle out of Compose. */
+interface TimeEventRepositoryPort {
+    fun observeActive(): Flow<List<TimeEventEntity>>
+    fun observeDeleted(): Flow<List<TimeEventEntity>>
+    suspend fun seedIfEmpty(events: List<TimeEvent>)
+    suspend fun save(event: TimeEvent)
+    suspend fun setArchived(id: String, archived: Boolean, updatedAt: Long)
+    suspend fun setPinned(id: String, pinned: Boolean, updatedAt: Long)
+    suspend fun renameGroup(oldGroup: String, newGroup: String, updatedAt: Long)
+    suspend fun clearGroup(group: String, updatedAt: Long)
+    suspend fun softDelete(id: String, deletedAt: Long, updatedAt: Long)
+    suspend fun restoreDeleted(id: String, updatedAt: Long)
+    suspend fun permanentlyDelete(id: String)
+    suspend fun purgeDeleted()
+}
+
 class TimeEventRepository(
     private val dao: TimeEventDao,
-) {
-    fun observeActive(): Flow<List<TimeEventEntity>> = dao.observeActive()
+) : TimeEventRepositoryPort {
+    override fun observeActive(): Flow<List<TimeEventEntity>> = dao.observeActive()
+
+    override fun observeDeleted(): Flow<List<TimeEventEntity>> = dao.observeDeleted()
 
     suspend fun findById(id: String): TimeEventEntity? = dao.findById(id)
 
-    suspend fun seedIfEmpty(events: List<TimeEvent>) {
+    override suspend fun seedIfEmpty(events: List<TimeEvent>) {
         if (dao.countAll() == 0) {
             val now = System.currentTimeMillis()
             saveAll(events.mapIndexed { index, event ->
@@ -31,7 +45,7 @@ class TimeEventRepository(
      * Preserve those fields from the stored row so REPLACE cannot silently
      * move a card or revive a deleted event.
      */
-    suspend fun save(event: TimeEvent) {
+    override suspend fun save(event: TimeEvent) {
         val now = System.currentTimeMillis()
         save(event.toEntity(nowMillis = now, previous = dao.findById(event.id)))
     }
@@ -46,25 +60,27 @@ class TimeEventRepository(
         dao.upsertAll(events)
     }
 
-    suspend fun setArchived(id: String, archived: Boolean, updatedAt: Long) =
+    override suspend fun setArchived(id: String, archived: Boolean, updatedAt: Long) =
         dao.setArchived(id, archived, updatedAt)
 
-    suspend fun setPinned(id: String, pinned: Boolean, updatedAt: Long) =
+    override suspend fun setPinned(id: String, pinned: Boolean, updatedAt: Long) =
         dao.setPinned(id, pinned, updatedAt)
 
-    suspend fun renameGroup(oldGroup: String, newGroup: String, updatedAt: Long) =
+    override suspend fun renameGroup(oldGroup: String, newGroup: String, updatedAt: Long) =
         dao.renameGroup(oldGroup, newGroup, updatedAt)
 
-    suspend fun clearGroup(group: String, updatedAt: Long) =
+    override suspend fun clearGroup(group: String, updatedAt: Long) =
         dao.clearGroup(group, updatedAt)
 
-    suspend fun softDelete(id: String, deletedAt: Long, updatedAt: Long) =
+    override suspend fun softDelete(id: String, deletedAt: Long, updatedAt: Long) =
         dao.softDelete(id, deletedAt, updatedAt)
 
-    suspend fun restoreDeleted(id: String, updatedAt: Long) =
+    override suspend fun restoreDeleted(id: String, updatedAt: Long) =
         dao.restoreDeleted(id, updatedAt)
 
-    suspend fun purgeDeleted() = dao.purgeDeleted()
+    override suspend fun permanentlyDelete(id: String) = dao.permanentlyDelete(id)
+
+    override suspend fun purgeDeleted() = dao.purgeDeleted()
 
     private fun validateTimeShape(event: TimeEventEntity) {
         when (event.timeType) {

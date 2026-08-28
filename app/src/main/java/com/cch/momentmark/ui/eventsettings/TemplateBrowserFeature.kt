@@ -80,7 +80,7 @@ import com.cch.momentmark.domain.model.EventCardTemplateKey
 import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.domain.model.TravelCardConfig
 import com.cch.momentmark.domain.model.TravelCardSize
-import com.cch.momentmark.ui.EventCard
+import com.cch.momentmark.ui.home.EventCard
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlin.math.abs

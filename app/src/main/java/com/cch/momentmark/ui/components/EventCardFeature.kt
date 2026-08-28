@@ -2,7 +2,7 @@ package com.cch.momentmark.ui.components
 
 import androidx.compose.runtime.Composable
 import com.cch.momentmark.domain.model.TimeEvent
-import com.cch.momentmark.ui.EventCard
+import com.cch.momentmark.ui.home.EventCard
 
 /** Card rendering boundary; all four existing visual families remain unchanged. */
 @Composable

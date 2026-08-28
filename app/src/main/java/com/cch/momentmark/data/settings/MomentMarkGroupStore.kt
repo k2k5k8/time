@@ -10,11 +10,16 @@ import org.json.JSONArray
 
 private val Context.momentMarkGroupDataStore by preferencesDataStore(name = "moment_mark_groups")
 
+interface MomentMarkGroupStorePort {
+    val groups: Flow<List<String>>
+    suspend fun saveGroups(groups: List<String>)
+}
+
 /** Stores empty/user-created groups; groups attached to events are still derived from the event source. */
-class MomentMarkGroupStore(context: Context) {
+class MomentMarkGroupStore(context: Context) : MomentMarkGroupStorePort {
     private val dataStore = context.applicationContext.momentMarkGroupDataStore
 
-    val groups: Flow<List<String>> = dataStore.data.map { preferences ->
+    override val groups: Flow<List<String>> = dataStore.data.map { preferences ->
         runCatching {
             val values = JSONArray(preferences[Keys.groups].orEmpty())
             (0 until values.length()).mapNotNull { index ->
@@ -23,7 +28,7 @@ class MomentMarkGroupStore(context: Context) {
         }.getOrDefault(emptyList())
     }
 
-    suspend fun saveGroups(groups: List<String>) {
+    override suspend fun saveGroups(groups: List<String>) {
         val normalized = groups.map(String::trim).filter(String::isNotBlank).distinct()
         dataStore.edit { preferences ->
             preferences[Keys.groups] = JSONArray(normalized).toString()

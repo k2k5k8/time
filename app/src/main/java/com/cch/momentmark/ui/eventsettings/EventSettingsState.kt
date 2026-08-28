@@ -5,7 +5,7 @@ import com.cch.momentmark.domain.model.EventCardTemplateKey
 import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.domain.model.TravelCardConfig
 import com.cch.momentmark.domain.model.TravelCardSize
-import com.cch.momentmark.ui.EventSettingsScreen
+import com.cch.momentmark.ui.eventsettings.EventSettingsScreen
 
 fun eventTemplateLabel(template: EventCardTemplateKey): String = when (template) {
     EventCardTemplateKey.CLASSIC -> "经典蓝白 / 橙白"

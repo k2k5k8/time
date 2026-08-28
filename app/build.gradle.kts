@@ -63,6 +63,8 @@ android {
     // detail page enumerates this directory at runtime, so adding a new image
     // does not require another resource-id branch in the UI.
     sourceSets["main"].assets.srcDirs("$rootDir/background_picture")
+    // MigrationTestHelper loads Room schema JSON from the test APK assets.
+    sourceSets["androidTest"].assets.srcDirs("$projectDir/schemas")
 
     packaging {
         resources {
@@ -83,15 +85,18 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     kapt(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

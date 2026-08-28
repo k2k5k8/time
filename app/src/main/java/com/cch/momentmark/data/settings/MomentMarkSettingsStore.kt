@@ -10,18 +10,23 @@ import kotlinx.coroutines.flow.map
 
 private val Context.momentMarkDataStore by preferencesDataStore(name = "moment_mark_settings")
 
+interface MomentMarkSettingsStorePort {
+    val themeMode: Flow<ThemeMode>
+    suspend fun setThemeMode(mode: ThemeMode)
+}
+
 class MomentMarkSettingsStore(
     context: Context,
-) {
+) : MomentMarkSettingsStorePort {
     private val dataStore = context.applicationContext.momentMarkDataStore
 
-    val themeMode: Flow<ThemeMode> = dataStore.data.map { preferences ->
+    override val themeMode: Flow<ThemeMode> = dataStore.data.map { preferences ->
         preferences[Keys.themeMode]
             ?.let { value -> runCatching { ThemeMode.valueOf(value) }.getOrNull() }
             ?: ThemeMode.SYSTEM
     }
 
-    suspend fun setThemeMode(mode: ThemeMode) {
+    override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { preferences -> preferences[Keys.themeMode] = mode.name }
     }
 

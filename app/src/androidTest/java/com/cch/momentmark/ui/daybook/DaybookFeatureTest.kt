@@ -4,6 +4,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.cch.momentmark.domain.model.PrototypeDaybookDataSource
 import com.cch.momentmark.ui.theme.MomentMarkTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -25,6 +26,7 @@ class DaybookFeatureTest {
         composeRule.setContent {
             MomentMarkTheme(dynamicColor = false) {
                 DaybookFeature(
+                    dataSource = PrototypeDaybookDataSource(emptyList(), today),
                     userEvents = emptyList(),
                     onOpenCreateEvent = { requestedDate = it },
                     onOpenBigEvents = {},

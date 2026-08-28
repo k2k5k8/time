@@ -44,10 +44,10 @@ interface DaybookDataSource {
 }
 
 /**
- * 雏形阶段的数据源：系统事件使用内置的轻量年度表，用户事件从已有 TimeEvent
+ * 原型阶段的数据源：系统事件使用内置的轻量年度表，用户事件从已有 TimeEvent
  * 映射而来。真实节日库和 Daybook Room 表接入时只需替换此实现。
  */
-class MockDaybookDataSource(
+class PrototypeDaybookDataSource(
     userEvents: List<TimeEvent>,
     private val today: LocalDate = LocalDate.now(),
 ) : DaybookDataSource {

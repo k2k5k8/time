@@ -6,6 +6,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/**
+ * Schema versioning contract: every version bump must include its migration,
+ * exported schema JSON, and a MigrationTestHelper path from the previous version.
+ */
 @Database(
     entities = [TimeEventEntity::class],
     version = 4,

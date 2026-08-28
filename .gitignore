@@ -13,3 +13,6 @@ captures/
 # Local agent workspace & generated previews
 .workbuddy/
 outputs/
+
+# ZCode local workspace
+.zcode/

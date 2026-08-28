@@ -11,6 +11,9 @@ interface TimeEventDao {
     @Query("SELECT * FROM time_events WHERE deletedAt IS NULL AND isArchived = 0 ORDER BY isPinned DESC, sortOrder ASC, createdAt ASC")
     fun observeActive(): Flow<List<TimeEventEntity>>
 
+    @Query("SELECT * FROM time_events WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC, updatedAt DESC")
+    fun observeDeleted(): Flow<List<TimeEventEntity>>
+
     @Query("SELECT * FROM time_events WHERE id = :id LIMIT 1")
     suspend fun findById(id: String): TimeEventEntity?
 
@@ -43,4 +46,7 @@ interface TimeEventDao {
 
     @Query("DELETE FROM time_events WHERE deletedAt IS NOT NULL")
     suspend fun purgeDeleted()
+
+    @Query("DELETE FROM time_events WHERE id = :id AND deletedAt IS NOT NULL")
+    suspend fun permanentlyDelete(id: String)
 }

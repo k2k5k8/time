@@ -33,7 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.cch.momentmark.domain.model.DaybookEvent
-import com.cch.momentmark.domain.model.MockDaybookDataSource
+import com.cch.momentmark.domain.model.DaybookDataSource
 import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.ui.components.TimelineDestination
 import com.cch.momentmark.ui.components.TimelineNavigation
@@ -57,13 +57,13 @@ private fun monthsBetween(from: YearMonth, to: YearMonth): Int =
  */
 @Composable
 internal fun DaybookFeature(
+    dataSource: DaybookDataSource,
     userEvents: List<TimeEvent>,
     onOpenCreateEvent: (LocalDate) -> Unit,
     onOpenBigEvents: () -> Unit,
     onOpenEventDetail: (TimeEvent) -> Unit = {},
 ) {
     val today = remember { LocalDate.now() }
-    val dataSource = remember(userEvents, today) { MockDaybookDataSource(userEvents, today) }
     var selectedDateText by rememberSaveable { mutableStateOf(today.toString()) }
     var monthText by rememberSaveable { mutableStateOf(YearMonth.from(today).toString()) }
     val selectedDate = runCatching { LocalDate.parse(selectedDateText) }.getOrDefault(today)

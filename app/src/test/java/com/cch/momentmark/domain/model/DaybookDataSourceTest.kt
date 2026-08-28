@@ -22,7 +22,7 @@ class DaybookDataSourceTest {
             localDate = today,
             isPinned = true,
         )
-        val source = MockDaybookDataSource(listOf(userEvent), today)
+        val source = PrototypeDaybookDataSource(listOf(userEvent), today)
 
         val dateEvents = source.eventsForDate(today)
 
@@ -45,9 +45,33 @@ class DaybookDataSourceTest {
             localDate = today,
             isPinned = true,
         )
-        val events = MockDaybookDataSource(listOf(userEvent), today).eventsForDate(today)
+        val events = PrototypeDaybookDataSource(listOf(userEvent), today).eventsForDate(today)
 
         assertTrue(events.first { it.id == "user-anniversary" }.showInMilestone)
         assertEquals(false, events.first { it.id == "prototype-daybook-note" }.showInMilestone)
+    }
+
+    @Test
+    fun timedUserEventMapsToItsLocalDate() {
+        val userEvent = TimeEvent(
+            id = "timed",
+            title = "晚间提醒",
+            timeType = EventTimeType.TIMED,
+            dateLabel = "",
+            relativeLabel = "",
+            icon = "●",
+            colorRole = EventColorRole.FUTURE,
+            cardPaletteKey = EventCardPaletteKey.BLUE_WHITE,
+            targetInstant = java.time.Instant.parse("2026-08-21T04:30:00Z"),
+            zoneId = "Asia/Shanghai",
+        )
+
+        val event = PrototypeDaybookDataSource(listOf(userEvent), today)
+            .eventsForDate(today)
+            .first { it.id == "user-timed" }
+
+        assertEquals(today, event.date)
+        assertEquals(false, event.isAllDay)
+        assertEquals(DaybookEventType.PERSONAL, event.eventType)
     }
 }

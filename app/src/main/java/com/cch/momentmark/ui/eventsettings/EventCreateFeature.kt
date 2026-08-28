@@ -107,7 +107,7 @@ import com.cch.momentmark.domain.model.TimeEvent
 import com.cch.momentmark.domain.model.TravelCardConfig
 import com.cch.momentmark.domain.model.TravelCardSize
 import com.cch.momentmark.domain.time.EventTimeCalculator
-import com.cch.momentmark.ui.EventCard
+import com.cch.momentmark.ui.home.EventCard
 import com.cch.momentmark.ui.components.DeleteConfirmationDialog
 import com.cch.momentmark.ui.eventsettings.eventTemplateLabel
 import com.cch.momentmark.ui.home.HomeHeroScenes
