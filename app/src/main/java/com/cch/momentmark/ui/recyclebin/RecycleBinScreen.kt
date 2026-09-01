@@ -1,212 +1,196 @@
 package com.cch.momentmark.ui.recyclebin
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
-import com.cch.momentmark.domain.model.TimeEvent
-import com.cch.momentmark.ui.components.DeleteConfirmationDialog
+import com.cch.momentmark.domain.model.RecycleBinItem
+import com.cch.momentmark.ui.components.PageTitlePanel
+import com.cch.momentmark.ui.components.PixelConfirmationDialog
+import com.cch.momentmark.ui.components.PixelPanel
+import com.cch.momentmark.ui.theme.LocalMmExtendedColors
+import com.cch.momentmark.ui.theme.MomentMarkTokens
+import java.time.Clock
+import java.time.Duration
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val RecycleDays = Duration.ofDays(30)
+
+/** J ⑫ 夜间封印之地：只展示已软删除条目，复活与净化均由 VM 落库。 */
 @Composable
-internal fun RecycleBinScreen(
-    deletedEvents: List<TimeEvent>,
+fun RecycleBinScreen(
+    uiState: RecycleBinUiState,
+    clock: Clock,
     onBack: () -> Unit,
-    onRestore: (String) -> Unit,
-    onPermanentlyDelete: (String) -> Unit,
-    onPurge: () -> Unit,
+    onRestore: (RecycleBinItem) -> Unit,
+    onPermanentlyDelete: (RecycleBinItem) -> Unit,
+    onPurgeAll: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    var eventToPermanentlyDelete by rememberSaveable { mutableStateOf<String?>(null) }
-    var showPurgeConfirmation by rememberSaveable { mutableStateOf(false) }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("回收站") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    if (deletedEvents.isNotEmpty()) {
-                        TextButton(onClick = { showPurgeConfirmation = true }) {
-                            Text("清空")
-                        }
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        if (deletedEvents.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Outlined.DeleteOutline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                    )
-                    Text(
-                        text = "回收站是空的",
-                        modifier = Modifier.padding(top = 12.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = "删除的事件会在这里保留，直到你手动清空。",
-                        modifier = Modifier.padding(top = 6.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+    var pendingDelete by remember { mutableStateOf<RecycleBinItem?>(null) }
+    var confirmPurgeAll by remember { mutableStateOf(false) }
+    val extended = LocalMmExtendedColors.current
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = MomentMarkTokens.SpacePage, vertical = MomentMarkTokens.SpaceCard),
+        verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard),
+    ) {
+        PageTitlePanel("◂ 封印之地", "${uiState.items.size} 件封存 · 30 天后净化")
+        PixelActionRow("◂ 返回系统设置", "返回系统设置", onBack)
+        when {
+            uiState.isLoading -> Text("▸ LOADING…", style = MaterialTheme.typography.labelSmall, color = extended.labelTertiary)
+            uiState.items.isEmpty() -> PixelPanel(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "封印之地暂时空无一物。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(MomentMarkTokens.SpaceInner),
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item {
-                    Text(
-                        text = "${deletedEvents.size} 个已删除事件",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            else -> {
+                uiState.items.forEach { item ->
+                    RecycleBinRow(
+                        item = item,
+                        clock = clock,
+                        onRestore = { onRestore(item) },
+                        onPermanentlyDelete = { pendingDelete = item },
                     )
                 }
-                items(deletedEvents, key = { it.id }) { event ->
-                    DeletedEventRow(
-                        event = event,
-                        onRestore = { onRestore(event.id) },
-                        onPermanentlyDelete = { eventToPermanentlyDelete = event.id },
-                    )
-                }
+                PixelActionRow(
+                    label = "⚔ 全部净化（清空回收站）",
+                    description = "清空回收站",
+                    onClick = { confirmPurgeAll = true },
+                    danger = true,
+                )
             }
         }
+        uiState.errorMessage?.let { Text("⚠ $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
     }
-
-    val pendingEvent = deletedEvents.firstOrNull { it.id == eventToPermanentlyDelete }
-    if (pendingEvent != null) {
-        DeleteConfirmationDialog(
-            title = "永久删除这个事件？",
-            message = "删除后将无法恢复。",
-            confirmLabel = "永久删除",
-            onConfirm = {
-                onPermanentlyDelete(pendingEvent.id)
-                eventToPermanentlyDelete = null
-            },
-            onDismiss = { eventToPermanentlyDelete = null },
+    pendingDelete?.let { item ->
+        ConfirmDialog(
+            title = "永久净化「${item.title}」？",
+            message = "净化后将永远消失，无法复活。",
+            confirmLabel = "确认净化",
+            onConfirm = { onPermanentlyDelete(item); pendingDelete = null },
+            onDismiss = { pendingDelete = null },
         )
     }
-
-    if (showPurgeConfirmation) {
-        DeleteConfirmationDialog(
-            title = "清空回收站？",
-            message = "所有已删除事件都会永久删除，且无法恢复。",
-            confirmLabel = "永久删除",
-            onConfirm = {
-                onPurge()
-                showPurgeConfirmation = false
-            },
-            onDismiss = { showPurgeConfirmation = false },
+    if (confirmPurgeAll) {
+        ConfirmDialog(
+            title = "净化全部封存物？",
+            message = "回收站中的时刻与任务将永远消失，无法复活。",
+            confirmLabel = "全部净化",
+            onConfirm = { onPurgeAll(); confirmPurgeAll = false },
+            onDismiss = { confirmPurgeAll = false },
         )
     }
 }
 
 @Composable
-private fun DeletedEventRow(
-    event: TimeEvent,
+private fun RecycleBinRow(
+    item: RecycleBinItem,
+    clock: Clock,
     onRestore: () -> Unit,
     onPermanentlyDelete: () -> Unit,
 ) {
-    androidx.compose.material3.Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 1.dp,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = event.title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-            )
-            if (event.subtitle.isNotBlank()) {
+    val remainingDays = (RecycleDays.minus(Duration.between(item.deletedAt, clock.instant())).toDays()).coerceAtLeast(0)
+    PixelPanel(modifier = Modifier.fillMaxWidth(), shadowColor = MaterialTheme.colorScheme.outline) {
+        Column(
+            Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
+            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit * 2),
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("🔗 ${item.title}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
                 Text(
-                    text = event.subtitle,
-                    modifier = Modifier.padding(top = 4.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
+                    "${item.type.label} · 已封印",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LocalMmExtendedColors.current.labelTertiary,
                 )
             }
             Text(
-                text = event.dateLabel.ifBlank { "未设置日期" },
-                modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
+                "封存中 · 剩余 $remainingDays 天后永久净化",
+                style = MaterialTheme.typography.labelSmall,
+                color = LocalMmExtendedColors.current.labelTertiary,
             )
-            HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    onClick = onRestore,
-                    modifier = Modifier.semantics {
-                        contentDescription = "恢复 ${event.title}"
-                        role = Role.Button
-                    },
-                ) {
-                    Text("恢复")
-                }
-                OutlinedButton(
-                    onClick = onPermanentlyDelete,
-                    modifier = Modifier.semantics {
-                        contentDescription = "永久删除 ${event.title}"
-                        role = Role.Button
-                    },
-                ) {
-                    Text("永久删除")
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard)) {
+                PixelActionRow("✚ 复活", "复活 ${item.title}", onRestore, Modifier.weight(1f), emphasize = true)
+                PixelActionRow("永久净化", "永久净化 ${item.title}", onPermanentlyDelete, danger = true, modifier = Modifier.weight(1f))
             }
         }
     }
+}
+
+@Composable
+private fun PixelActionRow(
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    emphasize: Boolean = false,
+    danger: Boolean = false,
+) {
+    val color = when {
+        danger -> MaterialTheme.colorScheme.onError
+        emphasize -> MaterialTheme.colorScheme.onTertiary
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val background = when {
+        danger -> MaterialTheme.colorScheme.error
+        emphasize -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.surface
+    }
+    PixelPanel(
+        modifier = modifier
+            .semantics { contentDescription = description }
+            .clickable(role = Role.Button, onClick = onClick),
+        backgroundColor = background,
+        borderColor = MaterialTheme.colorScheme.outline,
+        shadowColor = MaterialTheme.colorScheme.outline,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = color,
+            modifier = Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
+        )
+    }
+}
+
+@Composable
+private fun ConfirmDialog(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    PixelConfirmationDialog(
+        title = title,
+        message = message,
+        confirmLabel = confirmLabel,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
 }

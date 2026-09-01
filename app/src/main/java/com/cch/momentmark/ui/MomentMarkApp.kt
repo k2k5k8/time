@@ -3,209 +3,64 @@ package com.cch.momentmark.ui
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberOverscrollEffect
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.FlightTakeoff
-import androidx.compose.material3.DrawerValue
-import com.cch.momentmark.ui.components.DeleteConfirmationDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.util.lerp
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import com.cch.momentmark.data.SampleEvents
-import com.cch.momentmark.domain.model.PrototypeDaybookDataSource
-import com.cch.momentmark.domain.model.EventCardPaletteKey
-import com.cch.momentmark.domain.model.EventCardTemplateKey
-import com.cch.momentmark.domain.model.EventColorRole
-import com.cch.momentmark.domain.model.TravelCardConfig
-import com.cch.momentmark.domain.model.TravelBackgroundPreset
-import com.cch.momentmark.domain.model.TravelCardIcon
-import com.cch.momentmark.domain.model.TravelCardSize
-import com.cch.momentmark.domain.model.TimeEvent
-import com.cch.momentmark.domain.model.RelatedCountdown
-import com.cch.momentmark.domain.model.TimeCardFields
-import com.cch.momentmark.domain.model.cardFields
-import com.cch.momentmark.ui.components.rememberTimeCardPresentation
-import com.cch.momentmark.ui.components.EventCardFeature
-import com.cch.momentmark.ui.components.TimelineDestination
-import com.cch.momentmark.ui.components.TimelineNavigation
-import com.cch.momentmark.ui.eventsettings.eventSizeLabel
-import com.cch.momentmark.ui.eventsettings.eventTemplateLabel
-import com.cch.momentmark.ui.eventsettings.EventSettingsFeature
-import com.cch.momentmark.ui.eventsettings.EventCreateFeature
-import com.cch.momentmark.ui.home.filterEventsByTitle
-import com.cch.momentmark.ui.home.HomeFeature
-import com.cch.momentmark.ui.settings.themeModeLabel
-import com.cch.momentmark.ui.settings.SettingsFeature
-import com.cch.momentmark.ui.eventdetail.EventDetailFeature
-import com.cch.momentmark.ui.eventdetail.RelatedCountdownEditorFeature
-import com.cch.momentmark.ui.daybook.DaybookFeature
-import com.cch.momentmark.ui.recyclebin.RecycleBinFeature
-import com.cch.momentmark.ui.theme.ThemeMode
-import com.cch.momentmark.ui.theme.MomentMarkTheme
-import java.time.LocalDate
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import com.cch.momentmark.ui.home.CollapsibleHeroBackground
-import com.cch.momentmark.ui.home.CollapsibleHomeTopBar
-import com.cch.momentmark.ui.home.HomeHeroScenes
-import com.cch.momentmark.ui.home.AdaptiveBackgroundPalette
-import com.cch.momentmark.ui.home.AdaptiveBackgroundPaletteAnalyzer
-import com.cch.momentmark.ui.home.AdaptiveCardSurface
-import com.cch.momentmark.ui.home.homeHeroCollapseProgress
-import com.cch.momentmark.ui.home.CardLayoutStorage
-import com.cch.momentmark.ui.home.HomeCardLayout
-import com.cch.momentmark.ui.home.cardGridWidth
-import com.cch.momentmark.ui.home.defaultCardLayout
-import com.cch.momentmark.ui.home.reorderedCardLayouts
-import com.cch.momentmark.ui.home.edit.BoardDotBackground
-import com.cch.momentmark.ui.home.edit.BoardUndoStack
-import com.cch.momentmark.ui.home.edit.DragMotionTracker
-import com.cch.momentmark.ui.home.edit.DragSwapGovernor
-import com.cch.momentmark.ui.home.edit.GhostCardSlot
-import android.view.HapticFeedbackConstants
-import com.cch.momentmark.ui.home.UndoDeleteToast
-import com.cch.momentmark.ui.app.MomentMarkAppViewModel
-import com.cch.momentmark.ui.app.MomentMarkAppViewModelFactory
 import androidx.lifecycle.ViewModelProvider
-private enum class AppScreen {
-    HOME,
-    DAYBOOK,
-    EVENT_DETAIL,
-    RELATED_EDITOR,
-    EVENT_DETAIL_EDIT,
-    SETTINGS,
-    GROUP_MANAGEMENT,
-    RECYCLE_BIN,
-    EVENT_SETTINGS,
-    EVENT_CREATE,
-}
-
-internal enum class EventFilter(val label: String) {
-    ALL("全部"),
-    FUTURE("未来"),
-    PAST("过去"),
-    PINNED("置顶"),
-}
+import com.cch.momentmark.BuildConfig
+import com.cch.momentmark.data.SampleMoments
+import com.cch.momentmark.ui.app.MainTab
+import com.cch.momentmark.ui.app.MomentMarkNavState
+import com.cch.momentmark.ui.app.OverlayScreen
+import com.cch.momentmark.ui.components.PixelBottomNav
+import com.cch.momentmark.ui.daybook.DaybookScreen
+import com.cch.momentmark.ui.daybook.DaybookViewModel
+import com.cch.momentmark.ui.daybook.DaybookViewModelFactory
+import com.cch.momentmark.ui.moment.MomentFormScreen
+import com.cch.momentmark.ui.moment.MomentFormViewModel
+import com.cch.momentmark.ui.moment.MomentFormViewModelFactory
+import com.cch.momentmark.ui.moment.detail.MomentDetailScreen
+import com.cch.momentmark.ui.moment.detail.MomentDetailViewModel
+import com.cch.momentmark.ui.moment.detail.MomentDetailViewModelFactory
+import com.cch.momentmark.ui.moment.home.MomentHomeScreen
+import com.cch.momentmark.ui.moment.home.MomentHomeViewModel
+import com.cch.momentmark.ui.moment.home.MomentHomeViewModelFactory
+import com.cch.momentmark.ui.task.TaskFormScreen
+import com.cch.momentmark.ui.task.TaskFormViewModel
+import com.cch.momentmark.ui.task.TaskFormViewModelFactory
+import com.cch.momentmark.ui.recyclebin.RecycleBinScreen
+import com.cch.momentmark.ui.recyclebin.RecycleBinViewModel
+import com.cch.momentmark.ui.recyclebin.RecycleBinViewModelFactory
+import com.cch.momentmark.domain.model.RecycleBinItemType
+import com.cch.momentmark.ui.system.SystemSettingsScreen
+import com.cch.momentmark.ui.system.ThemeSettingsViewModel
+import com.cch.momentmark.ui.system.ThemeSettingsViewModelFactory
+import com.cch.momentmark.ui.system.GroupViewModel
+import com.cch.momentmark.ui.system.GroupViewModelFactory
+import com.cch.momentmark.ui.theme.MomentMarkTheme
+import com.cch.momentmark.ui.theme.MomentMarkTokens
+import com.cch.momentmark.ui.theme.ThemeMode
 
 private fun Context.requireComponentActivity(): ComponentActivity {
     var current: Context = this
@@ -218,384 +73,204 @@ private fun Context.requireComponentActivity(): ComponentActivity {
     error("MomentMarkApp must be hosted by a ComponentActivity")
 }
 
+/** 骨架目的地 = 常驻页签 + 可选叠加表单（供 AnimatedContent 按整体切换）。 */
+private data class SkeletonDestination(
+    val tab: MainTab,
+    val overlay: OverlayScreen?,
+)
+
+private data class UndoSeal(val type: RecycleBinItemType, val id: String, val title: String)
+
+/**
+ * J 最终设计三入口导航骨架（AGENTS.md §2.1）：
+ * `◉ 大事件` ｜ `＋ 新时刻`（全局铭刻表单） ｜ `▤ 日子簿`。
+ * 返回栈：先关闭叠加表单，再交还系统；页签是根目的地，切换页签会关闭表单。
+ */
 @Composable
 fun MomentMarkApp() {
     val context = LocalContext.current
     val activity = remember(context) { context.requireComponentActivity() }
-    val appViewModel = remember(activity) {
+    val themeSettingsViewModel = remember(activity) {
         ViewModelProvider(
             activity,
-            MomentMarkAppViewModelFactory(context.applicationContext),
-        )[MomentMarkAppViewModel::class.java]
+            ThemeSettingsViewModelFactory(context.applicationContext),
+        )[ThemeSettingsViewModel::class.java]
     }
-    val uiState by appViewModel.uiState.collectAsState()
-    val detailStore = appViewModel.detailStore
-        ?: error("MomentMarkAppViewModel is missing EventDetailStore")
-    var selectedFilter by rememberSaveable { mutableStateOf(EventFilter.ALL) }
-    var selectedGroup by rememberSaveable { mutableStateOf<String?>(null) }
-    var screen by rememberSaveable { mutableStateOf(AppScreen.HOME) }
-    var selectedDaybookDateText by rememberSaveable { mutableStateOf<String?>(null) }
-    var eventCreateReturnScreenName by rememberSaveable { mutableStateOf(AppScreen.HOME.name) }
-    var selectedEventId by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedRelatedId by rememberSaveable { mutableStateOf<String?>(null) }
-    var templateOverrides by remember {
-        mutableStateOf<Map<String, EventCardTemplateKey>>(emptyMap())
+    val themeMode by themeSettingsViewModel.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+    val groupViewModel = remember(activity) { ViewModelProvider(activity, GroupViewModelFactory(context.applicationContext))[GroupViewModel::class.java] }
+    val groupUiState by groupViewModel.uiState.collectAsState()
+    val nav = rememberSaveable(saver = MomentMarkNavState.Saver) { MomentMarkNavState() }
+    val homeViewModel = remember(activity) {
+        ViewModelProvider(
+            activity,
+            MomentHomeViewModelFactory(
+                context = context.applicationContext,
+                seedMoments = if (BuildConfig.DEBUG) SampleMoments.all else emptyList(),
+            ),
+        )[MomentHomeViewModel::class.java]
     }
-    var travelConfigOverrides by remember {
-        mutableStateOf<Map<String, TravelCardConfig>>(emptyMap())
+    val homeUiState by homeViewModel.uiState.collectAsState()
+    val momentFormViewModel = remember(activity) {
+        ViewModelProvider(
+            activity,
+            MomentFormViewModelFactory(context.applicationContext),
+        )[MomentFormViewModel::class.java]
     }
-    BackHandler(enabled = screen != AppScreen.HOME) {
-        screen = when (screen) {
-            AppScreen.RELATED_EDITOR,
-            AppScreen.EVENT_DETAIL_EDIT,
-            -> AppScreen.EVENT_DETAIL
-            AppScreen.EVENT_CREATE -> runCatching {
-                AppScreen.valueOf(eventCreateReturnScreenName)
-            }.getOrDefault(AppScreen.HOME)
-            else -> AppScreen.HOME
-        }
+    val momentDetailViewModel = remember(activity) {
+        ViewModelProvider(
+            activity,
+            MomentDetailViewModelFactory(context.applicationContext),
+        )[MomentDetailViewModel::class.java]
     }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    // Layout editing lives above HomeScreen so the drawer gesture can be
-    // disabled while the user is arranging cards.
-    var isLayoutEditing by rememberSaveable { mutableStateOf(false) }
-    var pendingUndoId by rememberSaveable { mutableStateOf<String?>(null) }
+    val daybookViewModel = remember(activity) {
+        ViewModelProvider(activity, DaybookViewModelFactory(context.applicationContext))[DaybookViewModel::class.java]
+    }
+    val daybookUiState by daybookViewModel.uiState.collectAsState()
+    val taskFormViewModel = remember(activity) {
+        ViewModelProvider(activity, TaskFormViewModelFactory(context.applicationContext))[TaskFormViewModel::class.java]
+    }
+    // 随 App 创建一次：自动净化只有开启时才执行，且只在本次启动路径运行。
+    val recycleBinViewModel = remember(activity) {
+        ViewModelProvider(activity, RecycleBinViewModelFactory(context.applicationContext))[RecycleBinViewModel::class.java]
+    }
+    val recycleBinUiState by recycleBinViewModel.uiState.collectAsState()
+    var undoSeal by remember { mutableStateOf<UndoSeal?>(null) }
 
-    LaunchedEffect(pendingUndoId) {
-        if (pendingUndoId != null) {
-            // Give the user a brief window to tap undo without lingering on screen.
-            delay(4_000)
-            pendingUndoId = null
-        }
-    }
-    val homeEvents = uiState.events
-    val daybookDataSource = remember(homeEvents) {
-        PrototypeDaybookDataSource(homeEvents)
-    }
-    val groupItems = drawerGroups(homeEvents, uiState.groups)
-    LaunchedEffect(selectedGroup, groupItems) {
-        if (selectedGroup != null && groupItems.none { it.name == selectedGroup }) {
-            selectedGroup = null
-        }
+    BackHandler(enabled = nav.overlay != null) { nav.back() }
+
+    // 日子簿是夜间「副本地图」空间：无论全局主题为何，该页签固定洞窟配色（PRD §3.1）；
+    // 叠加表单（J ②③④）按设计使用昼间配色，返回时切回来源页签的配色。
+    val screenThemeMode = when {
+        nav.selectedTab == MainTab.DAYBOOK && nav.overlay in setOf(null, OverlayScreen.SETTINGS, OverlayScreen.RECYCLE_BIN) -> ThemeMode.DARK
+        else -> themeMode
     }
 
-    MomentMarkTheme(themeMode = uiState.themeMode) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            scrimColor = Color(0x47463B34),
-            drawerContent = {
-                CategoryDrawer(
-                    events = homeEvents,
-                    deletedCount = uiState.deletedEvents.size,
-                    groups = groupItems,
-                    selectedFilter = selectedFilter,
-                    selectedGroup = selectedGroup,
-                    onSelectFilter = { filter ->
-                        selectedFilter = filter
-                    },
-                    onSelectGroup = { selectedGroup = it },
-                    onManageGroups = {
-                        scope.launch { drawerState.close() }
-                        screen = AppScreen.GROUP_MANAGEMENT
-                    },
-                    onOpenRecycleBin = {
-                        scope.launch { drawerState.close() }
-                        screen = AppScreen.RECYCLE_BIN
-                    },
-                    onClose = { scope.launch { drawerState.close() } },
-                )
-            },
-            gesturesEnabled = screen == AppScreen.HOME && !isLayoutEditing,
+    MomentMarkTheme(themeMode = screenThemeMode) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AnimatedContent(
-                    targetState = screen,
-                    modifier = Modifier.fillMaxSize(),
-                    transitionSpec = {
-                        (fadeIn() + scaleIn(initialScale = 0.985f) + slideInHorizontally { it / 14 }) togetherWith
-                            (fadeOut() + slideOutHorizontally { -it / 14 })
-                    },
-                    label = "page-transition",
-                ) { activeScreen ->
-                when (activeScreen) {
-                AppScreen.HOME -> HomeFeature(
-                    events = homeEvents,
-                    selectedFilter = selectedFilter,
-                    selectedGroup = selectedGroup,
-                    templateOverrides = templateOverrides,
-                    travelConfigOverrides = travelConfigOverrides,
-                    isLayoutEditing = isLayoutEditing,
-                    onLayoutEditingChange = { isLayoutEditing = it },
-                    onOpenGroups = { scope.launch { drawerState.open() } },
-                    onOpenSettings = { screen = AppScreen.SETTINGS },
-                    onOpenCreateEvent = {
-                        selectedDaybookDateText = null
-                        eventCreateReturnScreenName = AppScreen.HOME.name
-                        screen = AppScreen.EVENT_CREATE
-                    },
-                    onOpenDaybook = { screen = AppScreen.DAYBOOK },
-                    onOpenEventSettings = { event ->
-                        selectedEventId = event.id
-                        screen = AppScreen.EVENT_DETAIL
-                    },
-                )
-
-                AppScreen.DAYBOOK -> DaybookFeature(
-                    dataSource = daybookDataSource,
-                    userEvents = homeEvents,
-                    onOpenBigEvents = { screen = AppScreen.HOME },
-                    onOpenCreateEvent = { date ->
-                        selectedDaybookDateText = date.toString()
-                        eventCreateReturnScreenName = AppScreen.DAYBOOK.name
-                        screen = AppScreen.EVENT_CREATE
-                    },
-                    onOpenEventDetail = { event ->
-                        selectedEventId = event.id
-                        screen = AppScreen.EVENT_DETAIL
-                    },
-                )
-
-                AppScreen.EVENT_DETAIL -> {
-                    val selectedEvent = homeEvents.firstOrNull { it.id == selectedEventId }
-                    if (selectedEvent == null) {
-                        screen = AppScreen.HOME
-                    } else {
-                        EventDetailFeature(
-                            event = selectedEvent,
-                            detailStore = detailStore,
-                            onBack = { screen = AppScreen.HOME },
-                            onEdit = { screen = AppScreen.EVENT_DETAIL_EDIT },
-                            onAddRelated = {
-                                selectedRelatedId = null
-                                screen = AppScreen.RELATED_EDITOR
-                            },
-                            onEditRelated = { item ->
-                                selectedRelatedId = item.id
-                                screen = AppScreen.RELATED_EDITOR
-                            },
-                        )
-                    }
-                }
-
-                AppScreen.RELATED_EDITOR -> {
-                    val parentId = selectedEventId
-                    if (parentId == null) {
-                        screen = AppScreen.HOME
-                    } else {
-                        val relatedItems by detailStore.relatedCountdowns(parentId).collectAsState(initial = emptyList())
-                        val item = relatedItems.firstOrNull { it.id == selectedRelatedId }
-                        RelatedCountdownEditorFeature(
-                            item = item,
-                            onBack = { screen = AppScreen.EVENT_DETAIL },
-                            onSave = { saved ->
-                                scope.launch {
-                                    detailStore.saveRelated(parentId, saved)
-                                    screen = AppScreen.EVENT_DETAIL
-                                }
-                            },
-                            onDelete = if (item == null) null else {
-                                {
-                                    scope.launch {
-                                        detailStore.deleteRelated(parentId, item.id)
-                                        screen = AppScreen.EVENT_DETAIL
-                                    }
-                                }
-                            },
-                        )
-                    }
-                }
-
-                AppScreen.EVENT_DETAIL_EDIT -> {
-                    val selectedEvent = homeEvents.firstOrNull { it.id == selectedEventId }
-                    if (selectedEvent == null) {
-                        screen = AppScreen.HOME
-                    } else {
-                        EventCreateFeature(
-                            initialEvent = selectedEvent,
-                            onBack = { screen = AppScreen.EVENT_DETAIL },
-                            onSave = { updated ->
-                                appViewModel.saveEvent(updated)
-                                screen = AppScreen.EVENT_DETAIL
-                            },
-                            onDelete = {
-                                val deletedId = selectedEvent.id
-                                appViewModel.softDeleteEvent(deletedId)
-                                selectedEventId = null
-                                screen = AppScreen.HOME
-                                pendingUndoId = deletedId
-                            },
-                        )
-                    }
-                }
-
-                AppScreen.SETTINGS -> SettingsFeature(
-                    themeMode = uiState.themeMode,
-                    onThemeModeChange = { appViewModel.setThemeMode(it) },
-                    onBack = { screen = AppScreen.HOME },
-                )
-
-                AppScreen.RECYCLE_BIN -> RecycleBinFeature(
-                    deletedEvents = uiState.deletedEvents,
-                    onBack = { screen = AppScreen.HOME },
-                    onRestore = { appViewModel.restoreDeleted(it) },
-                    onPermanentlyDelete = { appViewModel.permanentlyDelete(it) },
-                    onPurge = { appViewModel.purgeDeleted() },
-                )
-
-
-                AppScreen.GROUP_MANAGEMENT -> GroupManagementScreen(
-                    groups = groupItems,
-                    onBack = { screen = AppScreen.HOME },
-                    onCreate = { name -> appViewModel.createGroup(name) },
-                    onRename = { oldName, newName ->
-                        if (selectedGroup == oldName) selectedGroup = newName
-                        appViewModel.renameGroup(oldName, newName)
-                    },
-                    onDelete = { name ->
-                        if (selectedGroup == name) selectedGroup = null
-                        appViewModel.deleteGroup(name)
-                    },
-                )
-
-                AppScreen.EVENT_SETTINGS -> {
-                    val selectedEvent = (homeEvents + SampleEvents.templateGallery)
-                        .firstOrNull { it.id == selectedEventId }
-                        ?.let { event ->
-                            val config = travelConfigOverrides[event.id] ?: event.travelCardConfig
-                            event.copy(
-                                cardTemplateKey = templateOverrides[event.id]
-                                    ?: event.cardTemplateKey,
-                                travelCardConfig = config,
-                                localDate = if (config != null && event.timeType == com.cch.momentmark.domain.model.EventTimeType.ALL_DAY) {
-                                    config.targetDate
-                                } else {
-                                    event.localDate
-                                },
-                            )
-                        }
-                    if (selectedEvent == null) {
-                        screen = AppScreen.HOME
-                    } else {
-                        EventSettingsFeature(
-                            event = selectedEvent,
-                            onBack = { screen = AppScreen.HOME },
-                            onTitleChange = { title ->
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.saveEvent(
-                                        selectedEvent.copy(
-                                            title = title,
-                                            travelCardConfig = selectedEvent.travelCardConfig
-                                                ?.copy(title = title),
-                                        ),
-                                    )
-                                }
-                            },
-                            onSubtitleChange = { subtitle ->
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.saveEvent(
-                                        selectedEvent.copy(
-                                            subtitle = subtitle,
-                                            travelCardConfig = selectedEvent.travelCardConfig
-                                                ?.copy(badgeLabel = subtitle),
-                                        ),
-                                    )
-                                }
-                            },
-                            onGroupLabelChange = { groupLabel ->
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.saveEvent(
-                                        selectedEvent.copy(
-                                            groupLabel = groupLabel,
-                                            travelCardConfig = selectedEvent.travelCardConfig
-                                                ?.copy(groupLabel = groupLabel),
-                                        ),
-                                    )
-                                }
-                            },
-                            onTemplateChange = { template ->
-                                templateOverrides = templateOverrides + (selectedEvent.id to template)
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.saveEvent(selectedEvent.copy(cardTemplateKey = template))
-                                }
-                            },
-                            onTravelConfigChange = { config ->
-                                travelConfigOverrides = travelConfigOverrides + (selectedEvent.id to config)
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.saveEvent(
-                                        selectedEvent.copy(
-                                            localDate = if (selectedEvent.timeType == com.cch.momentmark.domain.model.EventTimeType.ALL_DAY) {
-                                                config.targetDate
-                                            } else {
-                                                selectedEvent.localDate
-                                            },
-                                            travelCardConfig = config.copy(
-                                                title = selectedEvent.title,
-                                                badgeLabel = selectedEvent.subtitle,
-                                                groupLabel = selectedEvent.groupLabel,
-                                            ),
-                                        ),
-                                    )
-                                }
-                            },
-                            onTogglePinned = {
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.setPinned(
-                                        id = selectedEvent.id,
-                                        pinned = !selectedEvent.isPinned,
-                                    )
-                                }
-                            },
-                            onArchive = {
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    appViewModel.archiveEvent(selectedEvent.id)
-                                    selectedEventId = null
-                                    screen = AppScreen.HOME
-                                }
-                            },
-                            onDelete = {
-                                if (homeEvents.any { it.id == selectedEvent.id }) {
-                                    val deletedId = selectedEvent.id
-                                    appViewModel.softDeleteEvent(deletedId)
-                                    selectedEventId = null
-                                    screen = AppScreen.HOME
-                                    pendingUndoId = deletedId
-                                }
-                            },
-                        )
-                    }
-                }
-
-                    AppScreen.EVENT_CREATE -> EventCreateFeature(
-                        initialDate = selectedDaybookDateText?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
-                        onBack = {
-                            selectedDaybookDateText = null
-                            screen = runCatching {
-                                AppScreen.valueOf(eventCreateReturnScreenName)
-                            }.getOrDefault(AppScreen.HOME)
-                        },
-                        onSave = { event ->
-                            appViewModel.saveEvent(event)
-                            val returnScreen = runCatching {
-                                AppScreen.valueOf(eventCreateReturnScreenName)
-                            }.getOrDefault(AppScreen.HOME)
-                            selectedDaybookDateText = null
-                            screen = returnScreen
-                        },
+            AnimatedContent(
+                targetState = SkeletonDestination(nav.selectedTab, nav.overlay),
+                modifier = Modifier.weight(1f),
+                transitionSpec = {
+                    // 8-bit 式快速硬切过渡：不做位移动画
+                    (fadeIn(tween(MomentMarkTokens.MotionPressMs)) togetherWith
+                        fadeOut(tween(MomentMarkTokens.MotionPressMs)))
+                },
+                label = "skeleton-destination",
+            ) { destination ->
+                when (destination.overlay) {
+                    OverlayScreen.MOMENT_FORM -> MomentFormScreen(
+                        viewModel = momentFormViewModel,
+                        momentId = nav.editingMomentId,
+                        onSaved = nav::completeMomentForm,
+                        modifier = Modifier.fillMaxSize(),
                     )
-                }
-                }
-                pendingUndoId?.let { deletedId ->
-                    UndoDeleteToast(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 156.dp),
-                        onUndo = {
-                            pendingUndoId = null
-                            appViewModel.restoreDeleted(deletedId)
+                    OverlayScreen.MOMENT_DETAIL -> MomentDetailScreen(
+                        momentId = requireNotNull(nav.selectedMomentId) {
+                            "Moment detail requires a selected Moment ID"
                         },
+                        viewModel = momentDetailViewModel,
+                        onBack = nav::back,
+                        onEdit = nav::openMomentEdit,
+                        onSealed = { moment ->
+                            undoSeal = UndoSeal(RecycleBinItemType.MOMENT, moment.id, moment.title)
+                            nav.back()
+                        },
+                        modifier = Modifier.fillMaxSize(),
                     )
+                    OverlayScreen.TASK_FORM -> TaskFormScreen(
+                        viewModel = taskFormViewModel,
+                        taskId = nav.editingTaskId,
+                        onSaved = { dueDate ->
+                            daybookViewModel.selectDate(dueDate)
+                            nav.back()
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    OverlayScreen.SETTINGS -> SystemSettingsScreen(
+                        recycleBinState = recycleBinUiState,
+                        onBack = nav::back,
+                        onOpenRecycleBin = nav::openRecycleBin,
+                        onAutoPurgeChanged = recycleBinViewModel::setAutoPurgeEnabled,
+                        groupState = groupUiState,
+                        onCreateGroup = groupViewModel::create,
+                        onRenameGroup = groupViewModel::rename,
+                        onDissolveGroup = groupViewModel::dissolve,
+                        onReorderGroups = groupViewModel::reorder,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    OverlayScreen.RECYCLE_BIN -> RecycleBinScreen(
+                        uiState = recycleBinUiState,
+                        clock = java.time.Clock.systemDefaultZone(),
+                        onBack = nav::openSettings,
+                        onRestore = recycleBinViewModel::restore,
+                        onPermanentlyDelete = recycleBinViewModel::permanentlyDelete,
+                        onPurgeAll = recycleBinViewModel::purgeAll,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    null -> when (destination.tab) {
+                        MainTab.HOME -> MomentHomeScreen(
+                            uiState = homeUiState,
+                            onMomentSelected = nav::openMomentDetail,
+                            onPinnedMove = homeViewModel::movePinned,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MainTab.DAYBOOK -> DaybookScreen(
+                            uiState = daybookUiState,
+                            onAcceptNewTask = nav::openTaskForm,
+                            onOpenSettings = nav::openSettings,
+                            onDateSelected = daybookViewModel::selectDate,
+                            onMonthChanged = daybookViewModel::changeMonth,
+                            onTaskCompletionToggled = daybookViewModel::toggleCompleted,
+                            onTaskEditRequested = nav::openTaskEdit,
+                            onTaskSealRequested = { task ->
+                                daybookViewModel.seal(task) {
+                                    undoSeal = UndoSeal(RecycleBinItemType.TASK, task.id, task.title)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
+            }
+            undoSeal?.let { sealed ->
+                UndoSealBanner(
+                    title = sealed.title,
+                    onUndo = {
+                        recycleBinViewModel.restore(sealed.type, sealed.id)
+                        undoSeal = null
+                    },
+                    onDismiss = { undoSeal = null },
+                )
+            }
+            PixelBottomNav(
+                selectedTab = nav.selectedTab,
+                onTabSelected = nav::selectTab,
+                onNewMoment = nav::openMomentForm,
+            )
+        }
+    }
+}
+
+@Composable
+private fun UndoSealBanner(title: String, onUndo: () -> Unit, onDismiss: () -> Unit) {
+    com.cch.momentmark.ui.components.PixelPanel(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = MaterialTheme.colorScheme.inverseSurface,
+        borderColor = MaterialTheme.colorScheme.outline,
+        shadowColor = MaterialTheme.colorScheme.outline,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            androidx.compose.material3.Text("⚔「$title」已封印", color = MaterialTheme.colorScheme.tertiary)
+            Row(horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard)) {
+                androidx.compose.material3.Text("↩ 撤销", color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = onUndo))
+                androidx.compose.material3.Text("×", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable(onClick = onDismiss))
             }
         }
     }

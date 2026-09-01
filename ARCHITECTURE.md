@@ -133,7 +133,7 @@ J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的
 | 身份 | `id` | 稳定 ID；仅用于领域关系，不再绑旧卡片布局。 |
 | 内容 | `title`、`note` | `note` 根据方向显示为 LORE 或 STORY。 |
 | 创建方向 | `creationDirection: FUTURE_COUNTDOWN / PAST_ACHIEVEMENT` | 必须持久化，表示创建时选择的语义。 |
-| 日期 | `anchorDate: LocalDate` | 未来=目标日期，过去=开始日期；首版只支持全日。 |
+| 日期 | `anchorDate: LocalDate` | 未来=目标日期，过去=开始日期；表单以年/月/日三个独立选择格编辑，提交后合并；Moment 只支持全日。 |
 | 组织 | `groupId?`、`rarity?`、`isPinned`、`pinnedOrder?` | 置顶项全宽优先；多个置顶项的 `pinnedOrder` 由用户手动调整并持久化。 |
 | 生命周期 | `deletedAt`、`createdAt`、`updatedAt` | 供回收站的 30 天规则使用。 |
 
@@ -143,6 +143,7 @@ J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的
 
 - 若其中已有需要保留的真实用户时刻，写一次**显式迁移**到 `Moment`；不得由 UI 悄悄猜测方向。
 - **已确认（2026-08-28，用户拍板）：当前库中只有样例/开发数据，无真实用户数据。** 采用清空开发库 + 全新 `moments`/`tasks` schema，**不编写 `time_events` 数据搬运迁移**。落地仍须遵守 §6.7：提升数据库版本 + 显式建表 Migration（或开发设备卸载重装后以新版本全新建库）；禁止 `fallbackToDestructiveMigration()`。
+- 落地进度：**数据库已升至 v7**，`MIGRATION_4_5` 新建 `moments` 表，`MIGRATION_5_6` 新建独立 `tasks` 表，`MIGRATION_6_7` 删除仅含样例/开发数据的 `time_events` 遗留表（均含 schema JSON 与迁移测试）。开发期 `SampleMoments` 仅 debug 构建空库时写入；Task 不从原型日子簿或 `time_events` 搬运。
 - 若仅有 `SampleEvents` 或开发期原型数据，可在新结构上线时清空开发数据库；不能把原型字段强行带进新模型。
 - 不要为了兼容旧卡片而把 `templateKey`、`TravelCardConfig`、`relativeLabel` 等塞进新 `Moment`。
 
@@ -165,6 +166,8 @@ J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的
 2. 普通过去 Moment：左列、日期由近到远；
 3. 普通未来 Moment：右列、日期由近到远；
 4. 仅用户主动显示的 Task：位于右列、按所属/截止日期由近到远；到期日显示“就是今天”，日期过去后从首页投影隐藏，不改变它的 Task 身份。
+
+落地进度：`HomeMomentProjector` 已输出 `HomeCardItem` 混合右列；`MomentHomeViewModel` 合并观察 `MomentRepository` 与 `TaskRepository` 的活跃记录。投影只接受 `showOnHome=true`、未删除且 `dueLocalDate >= today` 的 Task，按日期与未来 Moment 稳定排序；Task 卡片为只读展示，编辑与完成仍由日子簿负责。
 
 可保留“内容与样式分离”的思想，但旧 `TimeCardFields` / `rememberTimeCardPresentation` 只是可选适配器。新页面应定义面向 J 卡片的单一 `MomentCardPresentation` / `TaskCardPresentation`，不能被旧旅行模板字段、示例标题或旧网格尺寸限制。
 
@@ -199,6 +202,7 @@ Daybook = Task.dueLocalDate 的主视图 + 系统节日/时刻的只读标记
 
 - Task 与 Moment 在 P0 没有必需外键；不得为了“前置目标”展示强行绑定二者。
 - 待办跨日只是在今天的查询中自然不可见，**不**迁移、删除或改写原 `dueLocalDate`。
+- 任务完成态是事实字段；UI 完成态必须同时表现为标题删除线、填充 checkbox 与 `CLEAR +5 EXP`，取消完成后恢复 `TODO`/具体截止时间。
 - `showOnHome=true` 的任务仍是 Task；它只在日期不早于今天时进入首页右列，到期后隐藏，不能因此被时间内核当成过去/未来 Moment。
 - P0 不继承旧 `CardBoard` 的长按自由布局和 `gridWidth/gridHeight`。若 P2 重新引入可自由排版，再为新 `HomeCardItem` 设计独立布局存储；不能复用旧卡片墙语义。
 
@@ -208,7 +212,7 @@ Daybook = Task.dueLocalDate 的主视图 + 系统节日/时刻的只读标记
 | --- | --- | --- |
 | Room `moment_mark.db` | 迁移期 `time_events`；目标 `moments`、`tasks` | 可靠的用户业务事实、需要查询/排序/迁移的数据。 |
 | DataStore `moment_mark_settings` | 主题模式、`autoPurgeEnabled` | 轻量全局设置；自动净化默认关闭。 |
-| DataStore `moment_mark_groups` | 旧分组列表 | 迁移期兼容；新 P0 可先直接保存 `groupId`，P1 再决定是否建 groups 表。 |
+| DataStore `moment_mark_groups` | 旧分组列表 | 仅作迁移来源；本轮分组管理改用 Room `groups` 表，不能继续作为长期真相。 |
 | DataStore `moment_mark_event_details` | 旧背景/关联倒计时 | 不作为 J 最终详情页的必需数据源；保留或迁移须逐项确认。 |
 | DataStore `moment_mark_templates` | 旧模板收藏 | P2 装备库前不参与 P0。 |
 | DataStore `moment_mark_card_board` | 旧自由卡片墙位置 | P0 不读取；待确认后再删除或只做遗留数据清理。 |
@@ -247,6 +251,8 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 
 新 UI 只能使用 `ui/theme/` 中的 `MaterialTheme` 与 `MomentMarkTokens`。禁止新增硬编码 `Color(0x...)`、裸 `dp/sp`、圆角或柔和阴影。变更 token 时同步更新 `DESIGN_SYSTEM.md`；修改设计稿时同步 HTML 基准。
 
+本轮 J 视觉尺寸必须以父容器比例实现：方向块、三格日期选择器、分组 chip、日历列和任务行使用 `weight`、`fillMaxWidth` 或约束比例，不把屏幕/卡片宽高写死。无障碍触摸目标仍以 `TouchTargetMin=44dp` 为硬下限；该下限不等同于视觉格子的固定尺寸。
+
 ### 6.7 Room 迁移是不可跳过的交付物
 
 任何 Room Entity/schema 变更必须同时完成：
@@ -269,28 +275,46 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 | 新任务、勾选、跨日隐藏 | 新 `domain/model/task`、`data/local/task`、`data/repository/task`、`ui/task`，并替换 `ui/daybook/` 数据源 | 不继续扩张 `PrototypeDaybookDataSource` 充当任务数据库。 |
 | 待办显示在首页 | 新 `HomeCardItem` 投影、明确 `showOnHome` | 不将 Task 保存为 TimeEvent。 |
 | 回收站 30 天 | Room DAO 增加 `purgeDeletedBefore(cutoff)`；仅在 `autoPurgeEnabled=true` 的 App 启动时清理，Task 同步实现 | 不使用当前“清空所有 deleted”的方法作为自动到期策略，也不引入后台定时删除。 |
-| 分组 | P0 将 `groupId` 作为 Moment/Task 可选字段；P1 再决定 Room `groups` 表与管理页 | 不让旧 DataStore、模板 JSON 或样例数据成为分组真相。 |
+| 分组 | 本轮将 `groupId` 解析为 Room `groups`（稳定 ID、线路色 token、排序），表单用 HTML 风格 chip 选择，管理页从系统设置进入 | 不让旧 DataStore、模板 JSON 或样例数据成为分组真相。 |
+| 成就详情/里程碑 | 本轮新增 `AchievementPresentation` 与纯函数 `MilestoneCalculator`；由 `anchorDate + Clock` 派生固定节点、下一项时间条和状态，详情复用 `AchievementFrame` | 不把“已 X 天”、里程碑完成或周年状态写回 Moment；不开放自定义或手工勾选。 |
+| 分组管理 | 本轮将字符串组名迁移为 Room `groups`，支持新建/改名/排序/解散；解散用跨 Moment/Task 事务清空引用 | 不新增底部导航入口，不删除组内业务条目。 |
 | 通知/Widget | 复用 `EventTimeCalculator`，在 P1 再引入 WorkManager/Glance 等 | 不在 P0 引入后台定时链路。 |
+
+### 7.1 J ⑦/⑩ 的本轮落地契约
+
+本节对应 `docs/design/J_ROW3_ROW4_UI_LOGIC_PLAN.md`，用于后续实现时保持 UI、数据和迁移边界一致。
+
+**成就详情（⑦）**
+
+- 详情 ViewModel 继续只读取 `MomentRepository`，用注入的 `Clock` 调用 `EventTimeCalculator`；`PAST`，或“过去·正数 + TODAY”时构造 `AchievementPresentation`，其余状态沿用 QUEST 表现。
+- `MilestoneCalculator` 输入 `anchorDate`、当前自然日和内置固定节点配置，输出目标日期、状态（已达成/下一项/远征中）、剩余天数和进度；结果只存在 UI state，跨重启重新计算。不得接受用户自定义节点。
+- 里程碑固定节点为 100、365（一周年）、1000、1200、2000…天，并生成日期排序的只读状态；当前下一项显示剩余天数、目标日期和金色时间条，已达成项显示达成日期，远期项显示“远征中”。2 月 29 日开始的 Moment 在非闰年不生成周年项。周年提醒仍隐藏，直到通知链路另行交付。
+- 成就摘要、STORY、编辑/置顶/封印操作必须复用现有组件与 token；封印仍走 `PixelConfirmationDialog` 和统一回收站流程。
+
+**分组管理（⑩）**
+
+- 建议新增 `GroupEntity`：`id`、`name`、`colorToken`、`sortOrder`、`createdAt`、`updatedAt`；`moments.groupId` 与 `tasks.groupId` 保存稳定 ID，null 表示“无阵营”。
+- `GroupRepository` 提供 Flow 列表、名称唯一校验、改名、排序和 `dissolve(id)`；`dissolve` 在一个 Room 事务内先把两张表的引用置空，再删除 Group 行，软删除项目也必须覆盖。
+- 活动计数由 DAO 统计 `deletedAt IS NULL` 的 Moment/Task，并提供类型拆分；不把封印之地项目混进列表计数。颜色只能是 `MomentMarkTokens`/Material 语义 token 名。
+- 从 `MomentMarkGroupStore` 或名称型 `groupId` 迁移时，先按规范化名称合并 Group，再在单次 migration 中重写两表引用；必须提升数据库版本、导出 schema JSON 并补 migration/事务测试。
+- 入口建议为 `SystemSettingsScreen → 队伍编成`，不改变三入口导航；分组 UI 的改名/解散按钮各自保持 44dp 触摸目标和中文语义。
 
 ## 8. 已知技术债与演进顺序
 
 | 优先级 | 已知问题（代码事实） | 风险 | 建议处理方式 |
 | --- | --- | --- |
 | 高 | 日子簿是 `PrototypeDaybookDataSource`：含硬编码节日、原型用户记录和示例内容，没有 Task 持久化。 | 无法实现 PRD 的真实待办、完成状态、跨日规则。 | 以新 Task Room 模型/Repository 和 J 副本地图替换它，而不是继续修补原型。 |
-| 高 | 现有首页 Hero、旧模板池、自由卡片墙、抽屉筛选和长按拖拽来自旧方案。 | 继续复用会违背 J 最终设计的固定三入口、置顶全宽和左右分列。 | 将这些视为可删除遗留 UI；只在明确映射到 J 设计的部分保留。 |
-| 高 | 回收站当前可 `purgeDeleted()` 一次清空所有软删除，尚未按 `deletedAt`、用户设置实现 30 天到期。 | 与设计稿/PRD 的恢复期不一致，可能误删。 | 加按 cutoff 删除的 DAO；仅在用户开启自动净化后、App 启动时执行；手动清空仍要二次确认。 |
-| 高 | 时刻删除不会原子清理 `EventDetailStore`、卡片布局等 DataStore 附属项。 | 永久删除后遗留孤儿数据；恢复/重建同 ID 时可能读到旧背景或关联倒计时。 | 在永久删除路径增加按 event ID 的清理；多存储操作需设计失败补偿。 |
-| 高 | `advancedConfigJson`、`templateConfigJson` 使用 JSON 字符串承载多个字段。 | 字段演进、查询、迁移和类型安全较弱。 | 不要立即大爆炸重构；新 Task 使用显式列。未来只在确有查询/关系需求时渐进拆列。 |
+| 已解决 | 旧首页 Hero、模板池、自由卡片墙、抽屉筛选和长按拖拽来自旧方案。 | 已迁出运行路径；继续保留会误导后续开发。 | 2026-08-30 已移除，J 大事件首页由 `ui/moment/home/` 唯一承载。 |
+| 已解决 | `advancedConfigJson`、`templateConfigJson` 和旧详情 DataStore 属于 `TimeEvent` 模板体系。 | 旧 JSON/附属键会使新实体边界模糊。 | 2026-08-30 随 `time_events` 与旧 UI 移除；新 Moment/Task 只持久化 P0 事实字段。 |
 | 中 | `MomentMarkApp.kt`（约 600 行）承载旧手工导航、跨页面状态和事件处理。 | 重做 J 页面时旧分支会干扰新路由。 | 以 J 三入口为边界重建协调层；不要迁移无对应页面的旧 screen。 |
-| 中 | `HomeScreen.kt` 仍较大，且混合旧 Hero、搜索、拖拽、卡片墙职责。 | 局部改动容易把旧交互带回新首页。 | 新首页新建 Feature/组件；旧 HomeScreen 迁移完成后删除，不保留拖拽 governor。 |
 | 中 | 当前多个 DataStore 之间无事务；分组重命名同时写 Room 与 DataStore。 | 中途失败可能留下不一致状态。 | 在操作层记录顺序并补偿；分组关系变复杂时迁移到 Room。 |
-| 中 | 空数据库会写入 `SampleEvents.all`。 | 生产用户可能看到样例数据，且“空状态”无法区分。 | 发布前改为仅 debug/预览 seed，或首次启动明确询问是否载入示例。 |
+| 中 | Debug 空数据库会写入 `SampleMoments.all`。 | 生产用户不受影响，但调试时空状态需要显式清库才可验证。 | 保持 debug-only；发布前确认 release 包不会调用 seed。 |
 | 中 | 旧 UI 存在大量旧暖纸风格硬编码色值。 | 新 J 页面会与旧页面视觉冲突。 | 新 J 页面只用 token；迁移完成的旧页面直接移除，不要求为保留它而 token 化。 |
 | 中 | 日子簿的农历节日是按某年公历日期的原型表。 | 跨年后日期错误。 | P1 接入可验证的农历/节气数据源；在此之前不要把原型数据宣称为准确日历。 |
 | 低 | `applicationId` 为 `com.cch.momentmark.app`，Activity package 仍为 `com.cch.momentmark`。 | 改 applicationId 会成为新 App 身份，旧本地数据不会迁移。 | 除非明确做数据迁移，不改 applicationId。 |
 | 低 | 内置字体的再发布许可尚未核验。 | 正式上架存在许可风险。 | 发布前核实字体许可，必要时替换为可再分发字体。 |
 
-推荐实施顺序：**J 三入口/导航骨架 → Moment 新模型与首页/表单/详情 → Task 数据层与副本地图 → 任务表单/勾选/跨日 → 回收站 30 天生命周期 → 清除旧首页/模板/拖拽遗留 → P1 提醒/重复/里程碑**。
+推荐实施顺序：**J 三入口/导航骨架 → Moment 新模型与首页/表单/详情 → Task 数据层与副本地图 → 任务表单/勾选/跨日 → 回收站 30 天生命周期 → 本轮固定里程碑/分组/三格日期与日历视觉 → 清除旧首页/模板/拖拽遗留 → 后续 P1 提醒/重复/筛选**。
 
 ## 9. 修改与验证清单
 

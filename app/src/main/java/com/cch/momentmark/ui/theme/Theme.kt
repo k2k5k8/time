@@ -8,6 +8,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -16,6 +18,49 @@ enum class ThemeMode {
     LIGHT,
     DARK,
 }
+
+/**
+ * 当前界面是否为夜间（洞窟）配色。
+ * 全局深色主题与夜间空间（日子簿副本地图）下为 true，供昼/夜双态组件取色。
+ */
+val LocalMomentMarkNight = staticCompositionLocalOf { false }
+
+/**
+ * colorScheme 之外、无 M3 槽位的成对扩展色（DESIGN_SYSTEM §3.1）。
+ * labelTertiary = HUD 弱注释色；goldInk = 成就深金；manaPurple = 主线紫；amber = 限时橙。
+ */
+data class MmExtendedColors(
+    val labelTertiary: Color,
+    val goldInk: Color,
+    val manaPurple: Color,
+    val amber: Color,
+    val inputSurface: Color,
+)
+
+val LocalMmExtendedColors = staticCompositionLocalOf {
+    MmExtendedColors(
+        labelTertiary = MmLabelTertiaryLight,
+        goldInk = MmGoldInkLight,
+        manaPurple = MmManaPurpleLight,
+        amber = MmAmberLight,
+        inputSurface = MmInputSurfaceLight,
+    )
+}
+
+private val LightExtendedColors = MmExtendedColors(
+    labelTertiary = MmLabelTertiaryLight,
+    goldInk = MmGoldInkLight,
+    manaPurple = MmManaPurpleLight,
+    amber = MmAmberLight,
+    inputSurface = MmInputSurfaceLight,
+)
+private val DarkExtendedColors = MmExtendedColors(
+    labelTertiary = MmLabelTertiaryDark,
+    goldInk = MmGoldInkDark,
+    manaPurple = MmManaPurpleDark,
+    amber = MmAmberDark,
+    inputSurface = MmInputSurfaceDark,
+)
 
 /** 昼 · 任务板（浅色 ColorScheme） */
 private val LightColors = lightColorScheme(
@@ -105,10 +150,15 @@ fun MomentMarkTheme(
         else -> LightColors
     }
 
-    MaterialTheme(
-        colorScheme = colors,
-        typography = MmTypography,
-        shapes = MmShapes,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalMomentMarkNight provides darkTheme,
+        LocalMmExtendedColors provides if (darkTheme) DarkExtendedColors else LightExtendedColors,
+    ) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = MmTypography,
+            shapes = MmShapes,
+            content = content,
+        )
+    }
 }

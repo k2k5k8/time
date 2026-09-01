@@ -19,6 +19,7 @@ val MmLabelSecondaryLight = Color(0xFF6B6152)
 val MmLabelTertiaryLight = Color(0xFFA79B85)
 val MmOutlineLight = Color(0xFF2B2620)
 val MmOutlineVariantLight = Color(0xFFC9BFA6)
+val MmInputSurfaceLight = Color.White
 
 // ── 夜 · 洞窟（深色模式） ─────────────────────────────────
 val MmBackgroundDark = Color(0xFF1B1826)
@@ -29,6 +30,7 @@ val MmLabelSecondaryDark = Color(0xFF9C93B8)
 val MmLabelTertiaryDark = Color(0xFF5E5680)
 val MmOutlineDark = Color(0xFF0E0C16)
 val MmOutlineVariantDark = Color(0xFF37304E)
+val MmInputSurfaceDark = Color(0xFF201B30)
 
 // ── 游戏色 · 昼 ───────────────────────────────────────────
 val MmHpGreenLight = Color(0xFF46C168)      // HP 绿：主操作 / 进度正常（>60%）
@@ -36,6 +38,7 @@ val MmAmberLight = Color(0xFFF5A623)        // 限时橙：紧迫（30–60%）
 val MmDangerLight = Color(0xFFE5484D)       // 危险红：<30% / 删除 / 放弃
 val MmXpBlueLight = Color(0xFF3E9BFF)       // XP 蓝：经验 / 链接 / 支线
 val MmGoldLight = Color(0xFFF5B301)         // 金币金：奖励 / 选中 / 复活
+val MmGoldInkLight = Color(0xFFB98A00)      // 金墨：成就大数字（昼间深金，DESIGN_SYSTEM §4）
 val MmManaPurpleLight = Color(0xFF9B6DFF)   // 魔法紫：主线 / 节日
 
 // ── 游戏色 · 夜（洞窟） ───────────────────────────────────
@@ -44,6 +47,7 @@ val MmAmberDark = Color(0xFFFFB84D)
 val MmDangerDark = Color(0xFFFF6B6F)
 val MmXpBlueDark = Color(0xFF66B0FF)
 val MmGoldDark = Color(0xFFFFC53D)
+val MmGoldInkDark = MmGoldDark              // 夜间成就数字沿用提亮金
 val MmManaPurpleDark = Color(0xFFB79AFF)
 
 // ── 容器色（选中/浅底） ───────────────────────────────────

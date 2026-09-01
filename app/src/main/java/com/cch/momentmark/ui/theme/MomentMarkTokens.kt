@@ -15,11 +15,16 @@ object MomentMarkTokens {
     val SpaceCard = 10.dp        // 卡片/任务卡之间
     val SpaceInner = 12.dp       // 卡片内边距
     val SpaceSection = 18.dp     // 区块之间
+    val SpaceCompact = 8.dp      // 紧凑任务行 / chip
+    val SpaceInput = 10.dp       // 输入内框文字留白
 
     // ── 像素元素 ─────────────────────────────────────────
     val PxBorderWidth = 3.dp     // 全局墨线描边
-    val PxShadowOffset = 3.dp    // 硬偏移阴影（普通）
+    val PxThinBorderWidth = 2.dp // 细描边：血条 / 徽章 / 选中项金线
+    // 与 proposal_J_final.html 的 .px/.px4 一一对应：3/4 CSS px → 3/4dp 基准构图。
+    val PxShadowOffset = 3.dp    // 硬偏移阴影（普通卡/按钮）
     val PxShadowOffsetLarge = 4.dp // 硬偏移阴影（主卡/弹窗）
+    val PxShadowOffsetSmall = 2.dp // 硬偏移阴影（底部导航/小元素）
     val PressOffset = 2.dp       // 按压时位移 + 阴影缩短量
 
     // ── 游戏化组件 ───────────────────────────────────────
@@ -28,6 +33,15 @@ object MomentMarkTokens {
     val XpCellGap = 3.dp
     val HpBarHeight = 10.dp      // 血条高度
     val CheckboxSize = 15.dp     // 目标复选框
+    val TouchTargetMin = 44.dp   // 关键触摸目标最小尺寸
+    val CompactIconSize = 28.dp  // 紧凑像素箭头/图标的视觉盒尺寸
+    val CheckboxStrokeWidth = 2.5.dp // 复选框/虚线新增框描边
+    val AchievementInset = 3.dp  // 成就金线距外框的留白
+    val InputMinHeight = 48.dp   // 像素输入框的最小触摸高度
+    val CursorWidth = 2.dp       // 方块光标宽度
+    // HTML `.badge-tag` 的紧凑内留白（2px 6px），避免徽章描边贴住文字。
+    val BadgePaddingVertical = 2.dp
+    val BadgePaddingHorizontal = 6.dp
 
     // ── 动效 ────────────────────────────────────────────
     const val MotionStepMs = 200          // 阶梯式变化（减血/落位）

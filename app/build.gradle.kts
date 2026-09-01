@@ -57,6 +57,8 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG 用于门控开发期种子数据
+        buildConfig = true
     }
 
     // Package the repository-level background folder as Android assets. The
