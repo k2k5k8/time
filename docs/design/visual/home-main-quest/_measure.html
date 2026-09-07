@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<style>
+:root{--bg:#E8E0CC;--bg-2:#DFD5BB;--panel:#F6F1E3;--panel-line:#2B2620;--ink:#2B2620;--ink-2:#6B6152;--ink-3:#A79B85;--mana:#9B6DFF}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--ink);padding:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700}
+.px4{border:3px solid var(--panel-line);box-shadow:4px 4px 0 var(--panel-line)}
+</style>
+<!-- exact extraction: proposal_J_final.html screen ① line 134-145 -->
+<div id="card" class="px4" style="background:var(--panel);padding:11px 13px;width:290px">
+  <div id="hud" style="display:flex;justify-content:space-between;font-size:9px" class="mono">
+    <span id="hud-left" style="color:var(--mana)">◆ MAIN QUEST 主线 · 倒数</span><span id="hud-right" style="color:var(--ink-3)">EXP +148</span>
+  </div>
+  <div id="main" style="display:flex;align-items:baseline;justify-content:space-between;margin-top:4px">
+    <div id="left">
+      <div id="title" style="font-size:14px;font-weight:800">春节 · 回家的日子</div>
+      <div id="bignum" style="font-size:44px;font-weight:800;line-height:1.05">148<span id="unit" style="font-size:12px;color:var(--ink-2)"> 天后</span></div>
+    </div>
+    <span id="unlock" class="mono" style="font-size:9px;color:var(--ink-3)">UNLOCK<br>2027.02.06</span>
+  </div>
+</div>
+<pre id="out"></pre>
+<script>
+const ids=['card','hud','hud-left','hud-right','main','left','title','bignum','unit','unlock'];
+const o={};
+for(const id of ids){
+  const el=document.getElementById(id);
+  const cs=getComputedStyle(el);
+  o[id]={
+    lineHeight:cs.lineHeight,
+    fontSize:cs.fontSize,
+    fontWeight:cs.fontWeight,
+    fontFamily:cs.fontFamily,
+    color:cs.color,
+    paddingTop:cs.paddingTop,paddingBottom:cs.paddingBottom,paddingLeft:cs.paddingLeft,paddingRight:cs.paddingRight,
+    marginTop:cs.marginTop,
+    borderTop:cs.borderTopWidth,borderLeft:cs.borderLeftWidth,
+    width:cs.width,height:cs.height,
+    display:cs.display,alignItems:cs.alignItems,justifyContent:cs.justifyContent,
+    boxShadow:cs.boxShadow,
+    letterSpacing:cs.letterSpacing,
+  };
+}
+document.getElementById('out').textContent=JSON.stringify(o,null,2);
+</script>
+</html>

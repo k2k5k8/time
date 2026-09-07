@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J · 像素冒险 — 最终版全页面完整稿（11 屏） — 刻间</title>
+<style>
+  :root{
+    --bg:#E8E0CC; --bg-2:#DFD5BB;
+    --panel:#F6F1E3; --panel-line:#2B2620;
+    --ink:#2B2620; --ink-2:#6B6152; --ink-3:#A79B85;
+    --cave:#1B1826; --cave-panel:#262138; --cave-line:#0E0C16;
+    --cave-text:#E4DEF2; --cave-2:#9C93B8; --cave-3:#5E5680;
+    --hp:#46C168; --hp-n:#5BD385;
+    --amber:#F5A623; --danger:#E5484D; --danger-n:#FF6B6F;
+    --xp:#3E9BFF; --xp-n:#66B0FF;
+    --gold:#F5B301; --gold-n:#FFC53D; --gold-ink:#B98A00;
+    --mana:#9B6DFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:linear-gradient(180deg,var(--bg),var(--bg-2));
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
+    color:var(--ink);padding:44px 24px 80px;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700}
+  .px{border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .px4{border:3px solid var(--panel-line);box-shadow:4px 4px 0 var(--panel-line)}
+  .page{max-width:1160px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:36px}
+  .badge{display:inline-block;background:var(--ink);color:var(--gold);font-size:12px;letter-spacing:.3em;padding:6px 14px 6px 20px;margin-bottom:16px;font-weight:800}
+  h1{font-size:36px;font-weight:800}
+  h1 span{color:var(--gold)}
+  .en{font-size:12px;letter-spacing:.4em;color:var(--ink-3);font-weight:800;margin-top:8px}
+  .sub{font-size:15px;color:var(--ink-2);margin-top:12px;font-weight:600;line-height:1.7}
+  .rules{display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .rule{background:var(--panel);border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line);padding:10px 16px;max-width:320px;text-align:left}
+  .rule .h{font-size:12px;font-weight:800;display:flex;align-items:center;gap:7px}
+  .rule .d{font-size:11px;color:var(--ink-2);font-weight:600;margin-top:4px;line-height:1.6}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:46px 30px;justify-items:center;margin-top:26px}
+  .shot{position:relative}
+  .cap{position:absolute;top:-30px;left:2px;font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--ink-2)}
+  .cap b{color:var(--ink)} .cap small{color:var(--ink-3);font-weight:600}
+
+  .phone{
+    width:330px;height:664px;border-radius:18px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;border:8px solid var(--panel-line);box-shadow:7px 7px 0 rgba(43,38,32,.4);
+    background:var(--bg);
+  }
+  .phone.night{background:var(--cave)}
+  .statusbar{display:flex;justify-content:space-between;padding:11px 18px 5px;font-size:11px;font-weight:800;color:var(--ink-2)}
+  .night .statusbar{color:var(--cave-2)}
+  .pagetitle{display:flex;justify-content:space-between;align-items:center;margin:0 12px 10px;background:var(--panel);padding:10px 12px}
+  .pagetitle .t{font-size:15px;font-weight:800}
+  .pagetitle .r{font-size:9px;color:var(--ink-3);letter-spacing:.08em;font-weight:800}
+  .night .pagetitle{background:var(--cave-panel);border:3px solid var(--cave-line);box-shadow:3px 3px 0 var(--cave-line)}
+  .night .pagetitle .t{color:var(--cave-text)} .night .pagetitle .r{color:var(--cave-3)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer}
+  .btn.green{background:var(--hp);color:#fff}
+  .btn.blue{background:var(--xp);color:#fff}
+  .btn.gold{background:var(--gold);color:var(--ink)}
+  .btn.ghost{background:var(--panel);color:var(--ink-2)}
+  .btn.red{background:var(--danger);color:#fff}
+  .btn.px{border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .hpbar{height:10px;border:2px solid var(--panel-line);background:var(--bg-2);position:relative}
+  .hpbar i{position:absolute;left:0;top:0;bottom:0}
+  .xpbar .cells{display:flex;gap:3px}
+  .xpbar .cell{flex:1;height:12px;background:var(--bg-2);border:2px solid var(--panel-line)}
+  .xpbar .cell.fill{background:var(--xp)}
+  .checkbox{width:15px;height:15px;border:2.5px solid var(--ink-3);flex:none;background:var(--panel)}
+  .checkbox.on{background:var(--hp);border-color:var(--ink);position:relative}
+  .checkbox.on::after{content:"✓";position:absolute;inset:-3px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:800}
+  .badge-tag{font-size:8px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border:2px solid currentColor}
+  .star{color:var(--gold);letter-spacing:2px}
+  .fieldlabel{font-size:9px;letter-spacing:.2em;color:var(--ink-3);font-weight:800}
+  .notebox{background:#fff;border:3px solid var(--panel-line);padding:8px 10px;font-size:12px;font-weight:600;line-height:1.65;color:var(--ink);min-height:58px}
+
+  .ach{background:var(--panel);border:3px solid var(--panel-line);position:relative;box-shadow:4px 4px 0 var(--panel-line)}
+  .ach::before{content:"";position:absolute;inset:3px;border:2px solid var(--gold);pointer-events:none}
+
+  .nav{margin-top:auto;display:flex;gap:8px;padding:10px 12px 16px;background:var(--panel);border-top:3px solid var(--panel-line)}
+  .night .nav{background:var(--cave-panel);border-top-color:var(--cave-line)}
+  .nav .item{flex:1;text-align:center;padding:7px 0 6px;border:3px solid var(--panel-line);font-size:10px;font-weight:800;color:var(--ink-2);background:var(--bg)}
+  .night .nav .item{border-color:var(--cave-line);color:var(--cave-2);background:var(--cave)}
+  .nav .item.on{background:var(--ink);color:var(--gold);box-shadow:2px 2px 0 rgba(43,38,32,.4)}
+  .night .nav .item.on{background:var(--gold-n);color:var(--cave-line)}
+  .nav .plus{flex:1.4;background:var(--gold);color:var(--ink);border:3px solid var(--panel-line);font-size:11px;font-weight:800;box-shadow:2px 2px 0 var(--panel-line);padding:3px 0;display:flex;align-items:center;justify-content:center;text-align:center}
+  .night .nav .plus{background:var(--gold-n);color:var(--cave-line);border-color:var(--cave-line);box-shadow:2px 2px 0 var(--cave-line)}
+
+  .form-scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+  .form-scroll::-webkit-scrollbar,.party-rail::-webkit-scrollbar{display:none}
+  .back{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;margin-right:12px;border:3px solid var(--panel-line);box-shadow:2px 2px 0 var(--panel-line);background:var(--bg);font-size:18px;line-height:1}
+  .rarity-stars{display:inline-flex;align-items:baseline;gap:2px;color:var(--gold);line-height:1}
+  .rarity-stars .s1{font-size:13px}.rarity-stars .s2{font-size:17px}.rarity-stars .s3{font-size:21px}
+  .party-rail{display:flex;gap:7px;margin-top:8px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .party-rail > *{flex:0 0 auto}
+
+  /* 首页双列时刻卡：一个组件，只以语义色和时间进度区别。
+     右上角为固定尺寸的用户自选图标槽，图标本身统一缩放。 */
+  .home-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+  .home-small-card{--card-accent:var(--xp);--bar-width:50%;background:var(--panel);padding:10px 11px 9px;min-width:0}
+  .home-small-card.achievement{--card-accent:var(--gold-ink)}
+  .home-small-card.is-long{--card-accent:var(--hp);--bar-width:79%}
+  .home-small-card.is-medium{--card-accent:var(--amber);--bar-width:53%}
+  .home-small-card.is-short{--card-accent:var(--danger);--bar-width:26%}
+  .home-card-top{display:grid;grid-template-columns:minmax(0,1fr) 25px;gap:7px;align-items:center;min-height:25px}
+  .home-card-title-row{min-width:0;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+  .home-card-title{overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:800}
+  .home-card-state{font-size:12px;font-weight:800;flex:none}
+  .home-small-card.achievement .home-card-state{color:var(--ink)}
+  .home-card-icon{width:auto;height:auto;display:flex;align-items:center;justify-content:center;border:0;color:var(--card-accent);font-size:17px;line-height:1;overflow:visible}
+  .home-card-number{height:31px;display:flex;align-items:baseline;margin-top:3px;color:var(--card-accent);font-size:26px;font-weight:800;line-height:1}
+  .home-card-number small{margin-left:3px;color:inherit;font-size:10px}
+  .home-small-card .hpbar{margin-top:5px}
+  .home-small-card .hpbar i{width:var(--bar-width);background:var(--card-accent)}
+  .home-card-meta{min-height:10px;margin-top:4px;font-size:8px;color:var(--ink-3);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .home-scroll{flex:1;min-height:0;overflow-y:auto;padding:0 12px 12px;scrollbar-width:none}
+  .home-scroll::-webkit-scrollbar{display:none}
+
+  /* 日子簿日格 */
+  .dg{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#C8C0E0;background:var(--cave-panel);border:2px solid var(--cave-line);position:relative}
+  .dg.dim{color:#39424E}
+  .dg.today{background:var(--gold-n);color:var(--cave-line);box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+  .dg .fx{position:absolute;bottom:3px;font-size:8px}
+
+  /* 日历横滑翻页 */
+  .cal-swipe{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .cal-swipe::-webkit-scrollbar{display:none}
+  .cal-month{flex:0 0 100%;scroll-snap-align:start}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-arrow{cursor:pointer;user-select:none}
+  /* 主稿的日子簿、设置、封印之地使用昼间 token；原夜间稿保存在页面底部。 */
+  .light-preview{background:var(--bg)!important}
+  .light-preview .statusbar{color:var(--ink-2)}
+  .light-preview .pagetitle{background:var(--panel);border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
+  .light-preview .pagetitle .t{color:var(--ink)} .light-preview .pagetitle .r{color:var(--ink-3)}
+  .light-preview .light-surface{background:var(--panel)!important;border-color:var(--panel-line)!important;box-shadow:3px 3px 0 var(--panel-line)!important}
+  .light-preview .light-text{color:var(--ink)!important}.light-preview .light-muted{color:var(--ink-3)!important}.light-preview .light-success{color:var(--hp)!important}
+  .light-preview .light-divider{border-color:var(--bg-2)!important}
+  .light-preview [style*="background:var(--cave-panel)"]{background:var(--panel)!important}
+  .light-preview [style*="background:var(--cave)"]{background:var(--bg)!important}
+  .light-preview [style*="border:3px solid var(--cave-line)"],.light-preview [style*="border-color:var(--cave-line)"]{border-color:var(--panel-line)!important}
+  .light-preview [style*="box-shadow:3px 3px 0 var(--cave-line)"]{box-shadow:3px 3px 0 var(--panel-line)!important}
+  .light-preview [style*="color:var(--cave-text)"]{color:var(--ink)!important}
+  .light-preview [style*="color:#DAD4EA"]{color:var(--ink)!important}
+  .light-preview [style*="color:var(--cave-2)"],.light-preview [style*="color:var(--cave-3)"]{color:var(--ink-3)!important}
+  .light-preview [style*="color:var(--cave-line)"]{color:var(--ink)!important}
+  .light-preview [style*="border:2px solid var(--cave-3)"]{border-color:var(--bg-2)!important}
+  .light-preview [style*="color:var(--hp-n)"]{color:var(--hp)!important}
+  .light-preview [style*="color:var(--gold-n)"]{color:var(--gold-ink)!important}
+  .light-preview [style*="#37304E"]{border-color:var(--bg-2)!important}
+  .light-preview .checkbox:not(.on){background:var(--panel)!important;border-color:var(--ink-3)!important}
+  .light-preview [style*="text-decoration:line-through"]{color:var(--ink-2)!important;opacity:1!important;text-decoration-color:var(--danger);text-decoration-thickness:2px}
+  .light-preview .dg{color:var(--ink);background:var(--panel);border-color:var(--panel-line)}
+  .light-preview .dg.dim{color:var(--ink-3);background:var(--bg-2)}
+  .light-preview .dg.today{background:var(--gold);color:var(--ink);box-shadow:2px 2px 0 rgba(43,38,32,.4)}
+  .light-preview .xpbar .cell.fill{background:var(--xp)!important}.light-preview .xpbar .cell:not(.fill){background:var(--bg)!important;border-color:var(--panel-line)!important}
+  .light-preview .nav{background:var(--panel);border-top-color:var(--panel-line)}
+  .light-preview .nav .item{border-color:var(--panel-line);color:var(--ink-2);background:var(--bg)}
+  .light-preview .nav .item.on{background:var(--ink);color:var(--gold)}
+  .light-preview .nav .plus{background:var(--gold);color:var(--ink);border-color:var(--panel-line);box-shadow:2px 2px 0 var(--panel-line)}
+  .night-staging{margin-top:68px;padding-top:28px;border-top:3px dashed var(--panel-line)}
+  .night-staging h2{text-align:center;font-size:20px;font-weight:800}.night-staging p{text-align:center;margin-top:7px;color:var(--ink-2);font-size:12px;font-weight:600}
+  .night-staging-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:46px 30px;justify-items:center;margin-top:44px}
+  .night-stage{position:relative}.night-stage h3{position:absolute;top:-27px;left:2px;color:var(--ink-2);font-size:12px;font-weight:800;letter-spacing:.1em}
+
+  footer{margin-top:60px;text-align:center;font-size:12px;color:var(--ink-3);letter-spacing:.2em;font-weight:800}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="badge">风格 J · 最终完整稿 FINAL</div>
+    <h1>像素冒险 · <span>时刻 + 待办</span>双体系 · 全部 11 屏</h1>
+    <div class="en mono">PIXEL QUEST · COMPLETE MOCKUPS · 11 SCREENS</div>
+    <p class="sub">首页大事件 = <b>时刻</b>（未来=任务倒数 ⧖ / 过去=成就正数 🏆），日历页事项 = <b>待办任务</b>（仅副本地图创建）。<br>每张新增表单都带符合世界观的<b>备注字段</b>：任务背景 LORE / 成就故事 STORY / 任务描述 LORE。</p>
+    <div class="rules">
+      <div class="rule">
+        <div class="h" style="color:var(--gold-ink)">✦ ＋ 新时刻 NEW MOMENT</div>
+        <div class="d"><b>底部导航加号</b>（全局统一）。打开「铭刻时刻」页——先选方向：未来倒数 or 过去正数，兼容两种记录。</div>
+      </div>
+      <div class="rule">
+        <div class="h" style="color:var(--hp)">▶ ＋ 新任务 NEW QUEST</div>
+        <div class="d"><b>只出现在日子簿（副本地图）内</b>。创建待办事项，天然面向未来：截止日期/类型/难度/任务描述。</div>
+      </div>
+      <div class="rule">
+        <div class="h" style="color:var(--mana)">🏆 成就 ACHIEVEMENT</div>
+        <div class="d">过去日期的游戏语义：金杯 + 正数天数 + <b>里程碑系统</b>（100天/一周年/1000天…自动追踪）。</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ═══════════ 1 首页：任务 + 成就共存 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>① 首页 · 大事件</b> <small>任务+成就共存 · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>GOLD ×1,280</span></div>
+        <div class="home-scroll">
+          <div class="px4" style="background:var(--panel);padding:11px 13px">
+            <div style="display:flex;justify-content:space-between;font-size:9px" class="mono">
+              <span style="color:var(--mana)">◆ MAIN QUEST 主线 · 倒数</span><span style="color:var(--ink-3)">EXP +148</span>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:4px">
+              <div>
+                <div style="font-size:14px;font-weight:800">春节 · 回家的日子</div>
+                <div style="font-size:44px;font-weight:800;line-height:1.05">148<span style="font-size:12px;color:var(--ink-2)"> 天后</span></div>
+              </div>
+              <span class="mono" style="font-size:9px;color:var(--ink-3)">UNLOCK<br>2027.02.06</span>
+            </div>
+          </div>
+          <div class="ach" style="padding:11px 13px 10px;margin-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center" class="mono">
+              <span style="font-size:9px;color:var(--gold-ink);font-weight:800">🏆 ACHIEVEMENT 成就 · 正数</span>
+              <span style="font-size:9px;color:var(--gold);font-weight:800">★ 置顶</span>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:4px">
+              <div>
+                <div style="font-size:14px;font-weight:800">和小满在一起 💞</div>
+                <div style="font-size:44px;font-weight:800;line-height:1.05;color:var(--gold-ink)">1196<span style="font-size:12px;color:var(--ink-2)"> 天</span></div>
+              </div>
+              <span class="mono" style="font-size:9px;color:var(--ink-3);text-align:right">SINCE<br>2023.05.20</span>
+            </div>
+            <div class="hpbar" style="margin-top:8px"><i style="width:99%;background:var(--gold)"></i></div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;font-weight:800;color:var(--ink-3);margin-top:4px" class="mono"><span>下一里程碑 1200 天 · 还有 4 天</span><span>99%</span></div>
+          </div>
+          <div class="home-card-grid">
+            <div class="home-small-card achievement is-short px">
+              <div class="home-card-top"><div class="home-card-title-row"><span class="home-card-title">论文开题</span></div><span class="home-card-icon" aria-label="自选图标：🎓">🎓</span></div>
+              <div class="home-card-number">18<small>天了</small></div><div class="hpbar"><i></i></div><div class="home-card-meta mono">SINCE 2026.08.15 · 学业</div>
+            </div>
+            <div class="home-small-card is-medium px">
+              <div class="home-card-top"><div class="home-card-title-row"><span class="home-card-title">演唱会</span></div><span class="home-card-icon" aria-label="生活路线图标：💞">💞</span></div>
+              <div class="home-card-number">32<small>天后</small></div><div class="hpbar"><i></i></div><div class="home-card-meta mono">DUE 2026.09.20 · 生活</div>
+            </div>
+            <div class="home-small-card achievement is-medium px">
+              <div class="home-card-top"><div class="home-card-title-row"><span class="home-card-title">入学报到</span></div><span class="home-card-icon" aria-label="自选图标：📚">📚</span></div>
+              <div class="home-card-number">42<small>天了</small></div><div class="hpbar"><i></i></div><div class="home-card-meta mono">SINCE 2026.07.01 · 学业</div>
+            </div>
+            <div class="home-small-card is-long px">
+              <div class="home-card-top"><div class="home-card-title-row"><span class="home-card-title">论文答辩</span></div><span class="home-card-icon" aria-label="学业路线图标：🎓">🎓</span></div>
+              <div class="home-card-number">67<small>天后</small></div><div class="hpbar"><i></i></div><div class="home-card-meta mono">DUE 2026.11.08 · 学业</div>
+            </div>
+            <div class="home-small-card achievement is-long px">
+              <div class="home-card-top"><div class="home-card-title-row"><span class="home-card-title">拿到 offer</span></div><span class="home-card-icon" aria-label="自选图标：💼">💼</span></div>
+              <div class="home-card-number">96<small>天了</small></div><div class="hpbar"><i></i></div><div class="home-card-meta mono">SINCE 2026.05.08 · 工作</div>
+            </div>
+            <div class="home-small-card is-long px">
+              <div class="home-card-top"><div class="home-card-title-row"><span class="home-card-title">毕业旅行</span></div><span class="home-card-icon" aria-label="自选图标：✈️">✈️</span></div>
+              <div class="home-card-number">148<small>天后</small></div><div class="hpbar"><i></i></div><div class="home-card-meta mono">DUE 2027.02.06 · 旅行</div>
+            </div>
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 2 铭刻时刻 · 未来模式 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>② 铭刻时刻 · 未来模式</b> <small>倒数 ⧖</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>NEW MOMENT</span></div>
+        <div class="pagetitle px"><span class="t"><span class="back">‹</span>✦ 铭刻时刻</span><span class="r mono">首页大事件 · MARK</span></div>
+        <div class="form-scroll"><div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div class="px4" style="background:var(--panel);padding:11px 12px">
+            <div class="fieldlabel mono">▸ 这个时刻 DIRECTION</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="btn blue mono px" style="flex:1;flex-direction:column;gap:3px;padding:9px 0;font-size:12px">
+                <span style="font-size:17px">⧖</span>未来 · 倒数
+              </div>
+              <div class="btn ghost mono px" style="flex:1;flex-direction:column;gap:3px;padding:9px 0;font-size:12px">
+                <span style="font-size:17px">🏆</span>过去 · 正数
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--xp);font-weight:700;margin-top:8px" class="mono">▸ 记录一个期待的日子，倒数前往</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div class="fieldlabel mono">▸ 时刻名称 NAME ★</div>
+            <div class="mono" style="margin-top:7px;background:#fff;border:3px solid var(--panel-line);padding:8px 10px;font-size:14px;font-weight:700">毕业旅行 · 东京<span style="animation:blink 1s steps(1) infinite">▮</span></div>
+            <style>@keyframes blink{50%{opacity:0}}</style>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fieldlabel mono">▸ 目标日期 TARGET DATE ★</span>
+              <span class="mono" style="font-size:9px;font-weight:800;color:var(--hp)">[x] 全天</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="mono" style="flex:1.2;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">2027<span style="font-size:9px;color:var(--ink-3)">年</span></div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">03<span style="font-size:9px;color:var(--ink-3)">月</span></div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">28<span style="font-size:9px;color:var(--ink-3)">日</span></div>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fieldlabel mono">▸ 任务背景 LORE</span>
+              <span class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800">选填 · 将显示在详情页</span>
+            </div>
+            <div class="notebox" style="margin-top:7px">计划了很久的毕业旅行，樱花季出发，抢到机票的那天记得截图留念！</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div class="fieldlabel mono">▸ 分组线路 PARTY</div>
+            <div class="party-rail">
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🎓 学业</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">💞 生活</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--hp);color:#fff;background:var(--hp)">✈️ 旅行</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">💼 工作</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🏠 家庭</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🍎 健康</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🎁 纪念</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">💡 灵感</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+              <span class="fieldlabel mono">▸ 重要度 RARITY</span>
+              <span class="rarity-stars mono"><span class="s1">★</span><span class="s2">★</span><span class="s3" style="color:#D8CFB8">★</span></span>
+            </div>
+          </div>
+          <span class="btn blue mono px" style="padding:12px 0;font-size:14px">⧖ 铭刻 · 开始倒数！</span>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 3 铭刻时刻 · 过去模式 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>③ 铭刻时刻 · 过去模式</b> <small>正数 🏆</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>NEW MOMENT</span></div>
+        <div class="pagetitle px"><span class="t"><span class="back">‹</span>✦ 铭刻时刻</span><span class="r mono">首页大事件 · MARK</span></div>
+        <div class="form-scroll"><div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div class="px4 ach" style="background:var(--panel);padding:11px 12px">
+            <div class="fieldlabel mono">▸ 这个时刻 DIRECTION</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="btn ghost mono px" style="flex:1;flex-direction:column;gap:3px;padding:9px 0;font-size:12px">
+                <span style="font-size:17px">⧖</span>未来 · 倒数
+              </div>
+              <div class="btn gold mono px" style="flex:1;flex-direction:column;gap:3px;padding:9px 0;font-size:12px">
+                <span style="font-size:17px">🏆</span>过去 · 正数
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--gold-ink);font-weight:700;margin-top:8px" class="mono">▸ 珍藏一段已经开始的时光，正数相伴</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div class="fieldlabel mono">▸ 时刻名称 NAME ★</div>
+            <div class="mono" style="margin-top:7px;background:#fff;border:3px solid var(--panel-line);padding:8px 10px;font-size:14px;font-weight:700">和小满在一起<span style="animation:blink 1s steps(1) infinite">▮</span></div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fieldlabel mono">▸ 开始日期 SINCE DATE ★</span>
+              <span class="mono" style="font-size:9px;font-weight:800;color:var(--gold)">从这天起 · 每天 +1</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="mono" style="flex:1.2;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">2023<span style="font-size:9px;color:var(--ink-3)">年</span></div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">05<span style="font-size:9px;color:var(--ink-3)">月</span></div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:15px;font-weight:800;text-align:center">20<span style="font-size:9px;color:var(--ink-3)">日</span></div>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fieldlabel mono">▸ 成就故事 STORY</span>
+              <span class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800">选填 · 将显示在成就页</span>
+            </div>
+            <div class="notebox" style="margin-top:7px">2023.05.20，在学校樱花树下告白成功 🌸 从这天起，每天 +1。</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div class="fieldlabel mono">▸ 分组线路 PARTY</div>
+            <div class="party-rail">
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🎓 学业</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--danger);color:#fff;background:var(--danger)">💞 生活</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">✈️ 旅行</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">💼 工作</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🏠 家庭</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🍎 健康</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">🎁 纪念</span>
+              <span class="mono" style="flex:0 0 auto;font-size:10px;font-weight:800;padding:4px 9px;border:2.5px solid var(--panel-line);color:var(--ink-2)">💡 灵感</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+              <span class="fieldlabel mono">▸ 重要度 RARITY</span>
+              <span class="rarity-stars mono"><span class="s1">★</span><span class="s2">★</span><span class="s3">★</span></span>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:800">🔔 周年提醒</span>
+            <span class="mono" style="font-size:9px;font-weight:800;color:var(--hp)">[x] 每年 05.20 提醒我</span>
+          </div>
+          <span class="btn gold mono px" style="padding:12px 0;font-size:14px">🏆 铭刻 · 开始珍藏！</span>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 4 新任务 · 待办 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>④ 新任务 · 待办</b> <small>仅副本地图入口</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>NEW QUEST</span></div>
+        <div class="pagetitle px"><span class="t"><span class="back">‹</span>▶ 接受新任务</span><span class="r mono">待办 · 来自日子簿</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div class="fieldlabel mono">▸ 任务名称 NAME ★</div>
+            <div class="mono" style="margin-top:7px;background:#fff;border:3px solid var(--panel-line);padding:8px 10px;font-size:14px;font-weight:700">抢演唱会门票<span style="animation:blink 1s steps(1) infinite">▮</span></div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fieldlabel mono">▸ 截止日期 DUE ★</span>
+              <span class="mono" style="font-size:9px;font-weight:800;color:var(--ink-3)">[ ] 全天</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div class="mono" style="flex:1.4;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:14px;font-weight:800;text-align:center">2026.09.18</div>
+              <div class="mono" style="flex:1;background:#fff;border:3px solid var(--panel-line);padding:7px 8px;font-size:14px;font-weight:800;text-align:center">10:00</div>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fieldlabel mono">▸ 任务描述 LORE</span>
+              <span class="mono" style="font-size:8px;color:var(--ink-3);font-weight:800">选填 · 攻略/备注/链接</span>
+            </div>
+            <div class="notebox" style="margin-top:7px">10:00 大麦开票，抢内场！记得提前登录、填好观演人，定 09:55 闹钟。</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+              <span class="fieldlabel mono">▸ 难度 DIFFICULTY</span>
+              <span style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:17px;font-weight:800;letter-spacing:3px"><span class="mono" style="color:var(--gold)">★</span><span style="color:#D8CFB8">★★</span></span>
+              </span>
+            </div>
+          </div>
+          <span class="btn green mono px" style="padding:12px 0;font-size:14px">▶ 开始执行</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 5 日子簿 · 副本地图（昼） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑤ 日子簿 · 副本地图</b> <small>待办之家 · 昼</small></div>
+      <div class="phone night light-preview daybook-light">
+        <div class="statusbar mono"><span>♥×3</span><span>DUNGEON MAP</span></div>
+        <div class="pagetitle"><span class="t"><span class="cal-arrow" style="font-size:12px;margin-right:8px;color:var(--cave-2)">◀</span><span class="cal-label">八月 2026</span><span class="cal-arrow" style="font-size:12px;margin-left:8px;color:var(--cave-2)">▶</span></span><span class="r mono">DAYBOOK · CAL-08 · SWIPE</span></div>
+        <div class="form-scroll"><div style="padding:0 14px">
+          <div class="mono" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:9px;color:var(--cave-2);margin-bottom:6px;font-weight:800">
+            <span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span>
+          </div>
+          <div class="cal-swipe">
+            <div class="cal-month"><div class="cal-grid">
+              <span class="dg dim mono">28</span><span class="dg dim mono">29</span><span class="dg dim mono">30</span><span class="dg mono">1<i class="fx">🎓</i></span><span class="dg mono">2</span><span class="dg mono">3</span><span class="dg mono">4</span>
+              <span class="dg mono">5</span><span class="dg mono">6</span><span class="dg mono">7</span><span class="dg mono">8</span><span class="dg mono">9</span><span class="dg mono">10</span><span class="dg mono">11</span>
+              <span class="dg mono">12</span><span class="dg mono">13</span><span class="dg mono">14</span><span class="dg mono">15</span><span class="dg mono">16</span><span class="dg mono">17</span><span class="dg mono">18</span>
+              <span class="dg mono">19</span><span class="dg mono">20</span><span class="dg mono">21</span><span class="dg mono">22</span><span class="dg mono">23</span><span class="dg mono">24</span><span class="dg mono">25</span>
+              <span class="dg mono">26</span><span class="dg mono">27</span><span class="dg mono">28</span><span class="dg mono">29</span><span class="dg mono">30</span><span class="dg mono">31</span><span class="dg dim mono">1</span>
+            </div></div>
+            <div class="cal-month"><div class="cal-grid">
+              <span class="dg dim mono">26</span><span class="dg dim mono">27</span><span class="dg dim mono">28</span><span class="dg dim mono">29</span><span class="dg dim mono">30</span><span class="dg dim mono">31</span><span class="dg mono">1</span>
+              <span class="dg mono">2</span><span class="dg mono">3</span><span class="dg mono">4</span><span class="dg mono">5</span><span class="dg mono">6</span><span class="dg mono">7</span><span class="dg mono">8</span>
+              <span class="dg mono">9</span><span class="dg mono">10</span><span class="dg mono">11</span><span class="dg today mono">12</span><span class="dg mono">13</span><span class="dg mono">14</span><span class="dg mono">15</span>
+              <span class="dg mono">16<i class="fx">🎁</i></span><span class="dg mono">17</span><span class="dg mono">18</span><span class="dg mono">19</span><span class="dg mono">20</span><span class="dg mono">21</span><span class="dg mono">22</span>
+              <span class="dg mono">23</span><span class="dg mono">24</span><span class="dg mono">25</span><span class="dg mono">26</span><span class="dg mono">27</span><span class="dg mono">28</span><span class="dg mono">29</span>
+              <span class="dg mono">30</span><span class="dg mono">31</span><span class="dg dim mono">1</span><span class="dg dim mono">2</span><span class="dg dim mono">3</span><span class="dg dim mono">4</span><span class="dg dim mono">5</span>
+            </div></div>
+            <div class="cal-month"><div class="cal-grid">
+              <span class="dg dim mono">30</span><span class="dg dim mono">31</span><span class="dg mono">1</span><span class="dg mono">2</span><span class="dg mono">3</span><span class="dg mono">4</span><span class="dg mono">5</span>
+              <span class="dg mono">6</span><span class="dg mono">7</span><span class="dg mono">8</span><span class="dg mono">9</span><span class="dg mono">10</span><span class="dg mono">11</span><span class="dg mono">12</span>
+              <span class="dg mono">13</span><span class="dg mono">14</span><span class="dg mono">15</span><span class="dg mono">16</span><span class="dg mono">17</span><span class="dg mono">18</span><span class="dg mono">19</span>
+              <span class="dg mono">20<i class="fx">🎫</i></span><span class="dg mono">21</span><span class="dg mono">22</span><span class="dg mono">23</span><span class="dg mono">24</span><span class="dg mono">25</span><span class="dg mono">26</span>
+              <span class="dg mono">27</span><span class="dg mono">28</span><span class="dg mono">29</span><span class="dg mono">30</span><span class="dg dim mono">1</span><span class="dg dim mono">2</span><span class="dg dim mono">3</span>
+            </div></div>
+          </div>
+          <div style="margin-top:12px;background:var(--cave-panel);border:3px solid var(--cave-line);box-shadow:3px 3px 0 var(--cave-line);padding:11px 13px">
+            <div style="font-size:9px;font-weight:800;letter-spacing:.25em;color:var(--gold-n)" class="mono">▸ 今日掉落 · 08.12 TODO</div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #37304E">
+              <span class="checkbox on"></span><span style="font-size:13px;font-weight:700;color:#DAD4EA;text-decoration:line-through;opacity:.6">早起打卡</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--hp-n)">CLEAR +5</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #37304E">
+              <span class="checkbox" style="background:var(--cave)"></span><span style="font-size:13px;font-weight:700;color:#DAD4EA">抢演唱会门票</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--cave-3)">10:00 截止</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #37304E">
+              <span class="checkbox on"></span><span style="font-size:13px;font-weight:700;color:#DAD4EA;text-decoration:line-through;opacity:.6">整理旅行清单</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--hp-n)">CLEAR +5</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #37304E">
+              <span class="checkbox" style="background:var(--cave)"></span><span style="font-size:13px;font-weight:700;color:#DAD4EA">提交报名表</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--gold-n)">全天</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #37304E">
+              <span class="checkbox on"></span><span style="font-size:13px;font-weight:700;color:#DAD4EA;text-decoration:line-through;opacity:.6">晨跑 3 公里</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--hp-n)">CLEAR +5</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #37304E">
+              <span class="checkbox" style="background:var(--cave)"></span><span style="font-size:13px;font-weight:700;color:#DAD4EA">预约牙医复诊</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--cave-3)">14:30 截止</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 0 2px">
+              <span style="width:15px;height:15px;border:2.5px dashed var(--hp-n);flex:none"></span>
+              <span style="font-size:13px;font-weight:800;color:var(--hp-n)">＋ 接受新任务（待办）</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--cave-3)">NEW QUEST</span>
+            </div>
+          </div>
+        </div></div>
+        <div style="height:10px"></div>
+        <div class="nav mono">
+          <div class="item">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item on">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 6 任务详情（未来） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑥ 任务详情</b> <small>QUEST DETAIL · 未来 · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>QUEST DETAIL</span></div>
+        <div style="padding:0 12px">
+          <div class="px4" style="background:var(--panel);padding:12px 13px">
+            <div style="display:flex;justify-content:space-between;font-size:9px" class="mono">
+              <span style="color:var(--mana)">◆ MAIN QUEST 主线</span><span style="color:var(--ink-3)">EXP +148</span>
+            </div>
+            <div style="font-size:17px;font-weight:800;margin-top:5px">春节 · 回家的日子</div>
+            <div style="font-size:48px;font-weight:800;line-height:1;margin-top:4px">148<span style="font-size:13px;color:var(--ink-2)"> 天后开启</span></div>
+            <div class="xpbar" style="margin-top:9px">
+              <div class="cells">
+                <i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i>
+                <i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i>
+                <i class="cell fill"></i><i class="cell fill"></i><i class="cell fill"></i><i class="cell"></i>
+                <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:8px;font-weight:800;color:var(--ink-3);margin-top:4px" class="mono"><span>PROGRESS 69%</span><span>UNLOCK 2027.02.06</span></div>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 13px;margin-top:10px">
+            <div class="fieldlabel mono">▸ 任务背景 LORE</div>
+            <div style="font-size:13px;line-height:1.7;margin-top:6px;font-weight:600">农历新年的团圆时刻。回家前需完成前置任务：期末考试、实习答辩、抢到车票。</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 13px;margin-top:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="fieldlabel mono">▸ 前置目标 OBJECTIVES</div>
+              <span class="btn blue mono px" style="width:24px;height:24px;padding:0;font-size:16px;line-height:1">＋</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:2px dashed #E0D8C2">
+              <span class="checkbox on"></span><span style="font-size:13px;font-weight:700;text-decoration:line-through;color:var(--ink-3)">抢到回家的车票</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--hp)">CLEAR</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0">
+              <span class="checkbox"></span><span style="font-size:13px;font-weight:700">给家人带礼物</span>
+              <span class="mono" style="margin-left:auto;font-size:8px;color:var(--ink-3)">TODO</span>
+            </div>
+          </div>
+          <div class="px mono" style="background:var(--panel);padding:10px 13px;margin-top:10px;display:flex;justify-content:space-between">
+            <div><div style="font-size:8px;color:var(--ink-3);font-weight:800">DUE</div><div style="font-size:12px;font-weight:800">2027.02.06</div></div>
+            <div><div style="font-size:8px;color:var(--ink-3);font-weight:800">GROUP</div><div style="font-size:12px;font-weight:800">家庭</div></div>
+            <div><div style="font-size:8px;color:var(--ink-3);font-weight:800">RARITY</div><div class="star" style="font-size:12px">★★☆</div></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <span class="btn blue mono px" style="flex:1;padding:10px 0;font-size:13px">✎ 编辑任务</span>
+            <span class="btn green mono px" style="flex:1.3;padding:10px 0;font-size:13px">◆ 继续冒险</span>
+          </div>
+          <div style="text-align:center;margin-top:9px"><span class="mono" style="font-size:9px;color:var(--danger);font-weight:800;border-bottom:2px solid var(--danger);padding-bottom:1px">✕ 放弃任务（移入回收站）</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 7 成就详情（过去） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑦ 成就详情</b> <small>ACHIEVEMENT · 过去 · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>ACHIEVEMENT</span></div>
+        <div style="padding:0 12px">
+          <div class="ach px4" style="background:var(--panel);padding:13px 14px;text-align:center">
+            <div style="font-size:34px">🏆</div>
+            <div class="mono" style="font-size:9px;color:var(--gold-ink);font-weight:800;margin-top:2px;letter-spacing:.15em">ACHIEVEMENT · 成就珍藏中</div>
+            <div style="font-size:16px;font-weight:800;margin-top:5px">和小满在一起 💞</div>
+            <div style="font-size:50px;font-weight:800;line-height:1.05;color:var(--gold-ink)">已 1196<span style="font-size:13px;color:var(--ink-2)"> 天</span></div>
+            <div class="mono" style="font-size:9px;color:var(--ink-3);font-weight:800">SINCE 2023.05.20 · 星期六 · 生活线</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 13px;margin-top:10px">
+            <div class="fieldlabel mono">▸ 成就故事 STORY</div>
+            <div style="font-size:13px;line-height:1.7;margin-top:6px;font-weight:600">2023.05.20，在学校樱花树下告白成功 🌸 从这天起，每天 +1。</div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:11px 13px;margin-top:10px">
+            <div class="fieldlabel mono">▸ 里程碑 MILESTONES</div>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:2px dashed #E0D8C2">
+              <span class="checkbox on"></span>
+              <span style="font-size:12px;font-weight:800;width:56px">100 天</span>
+              <span class="mono" style="flex:1;font-size:9px;color:var(--ink-3)">2023.08.27 达成</span>
+              <span class="mono" style="font-size:9px;color:var(--hp);font-weight:800">✓</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:2px dashed #E0D8C2">
+              <span class="checkbox on"></span>
+              <span style="font-size:12px;font-weight:800;width:56px">一周年</span>
+              <span class="mono" style="flex:1;font-size:9px;color:var(--ink-3)">2024.05.20 · 365 天</span>
+              <span class="mono" style="font-size:9px;color:var(--hp);font-weight:800">✓</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:2px dashed #E0D8C2">
+              <span class="checkbox on"></span>
+              <span style="font-size:12px;font-weight:800;width:56px">1000 天</span>
+              <span class="mono" style="flex:1;font-size:9px;color:var(--ink-3)">2026.02.14 达成 🎁</span>
+              <span class="mono" style="font-size:9px;color:var(--hp);font-weight:800">✓</span>
+            </div>
+            <div style="padding:8px 0 4px;border-bottom:2px dashed #E0D8C2">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:15px;height:15px;border:2.5px solid var(--gold);flex:none;background:linear-gradient(135deg,var(--gold) 50%,transparent 50%)"></span>
+                <span style="font-size:12px;font-weight:800;width:56px;color:var(--gold-ink)">1200 天</span>
+                <span class="mono" style="flex:1;font-size:9px;color:var(--gold-ink)">还有 4 天 · 2026.09.01</span>
+                <span class="mono" style="font-size:9px;color:var(--gold);font-weight:800">99%</span>
+              </div>
+              <div class="hpbar" style="margin-top:7px"><i style="width:99%;background:var(--gold)"></i></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0 2px">
+              <span style="width:15px;height:15px;border:2.5px solid var(--ink-3);flex:none"></span>
+              <span style="font-size:12px;font-weight:800;width:56px;color:var(--ink-2)">2000 天</span>
+              <span class="mono" style="flex:1;font-size:9px;color:var(--ink-3)">2028.11.09 · 远征中</span>
+            </div>
+          </div>
+          <div class="px" style="background:var(--panel);padding:10px 13px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:800">🔔 周年提醒</span>
+            <span class="mono" style="font-size:9px;font-weight:800;color:var(--hp)">[x] 每年 05.20</span>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <span class="btn blue mono px" style="flex:1;padding:10px 0;font-size:13px">✎ 编辑</span>
+            <span class="btn gold mono px" style="flex:1.3;padding:10px 0;font-size:13px">🏆 珍藏中</span>
+          </div>
+          <div style="text-align:center;margin-top:9px"><span class="mono" style="font-size:9px;color:var(--danger);font-weight:800;border-bottom:2px solid var(--danger);padding-bottom:1px">✕ 封印此成就（移入回收站）</span></div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 8 分类抽屉 + 搜索 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑧ 分类抽屉 · 搜索</b> <small>MAP FILTER · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>MAP FILTER</span></div>
+        <div style="padding:0 12px 8px">
+          <div class="px" style="background:#fff;padding:9px 12px;display:flex;align-items:center;gap:9px">
+            <span style="font-size:14px;color:var(--xp)">⌕</span>
+            <span style="font-size:13px;font-weight:700;color:var(--ink-3)">搜索任务与成就…</span>
+            <span class="mono" style="margin-left:auto;font-size:8px;color:var(--ink-3);border:2px solid var(--panel-line);padding:1px 6px">ESC</span>
+          </div>
+        </div>
+        <div style="flex:1;position:relative">
+          <div style="position:absolute;inset:0;background:rgba(43,38,32,.45);z-index:1"></div>
+          <div style="position:absolute;inset:0;padding:14px 12px;display:flex;flex-direction:column;gap:9px;opacity:.35">
+            <div class="px" style="background:var(--panel);padding:10px 12px"><div style="font-size:13px;font-weight:800">考研初试</div><div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:3px">96 DAYS · DUE 12.19</div></div>
+            <div class="px" style="background:var(--panel);padding:10px 12px"><div style="font-size:13px;font-weight:800">演唱会</div><div class="mono" style="font-size:9px;color:var(--ink-3);margin-top:3px">32 DAYS · DUE 09.20</div></div>
+          </div>
+          <div class="px4" style="position:absolute;left:10px;top:6px;bottom:6px;width:222px;background:var(--panel);z-index:2;padding:12px 12px;display:flex;flex-direction:column;gap:11px">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.15em" class="mono">▸ 地图筛选 FILTER</div>
+            <div>
+              <div style="font-size:8px;letter-spacing:.2em;color:var(--ink-3);font-weight:800;margin-bottom:6px" class="mono">状态 STATUS</div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <span class="mono" style="font-size:9px;font-weight:800;padding:4px 8px;background:var(--ink);color:var(--gold);border:2.5px solid var(--panel-line)">全部 ×6</span>
+                <span class="mono" style="font-size:9px;font-weight:800;padding:4px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2)">倒数中</span>
+                <span class="mono" style="font-size:9px;font-weight:800;padding:4px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2)">正数中</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:8px;letter-spacing:.2em;color:var(--ink-3);font-weight:800;margin-bottom:6px" class="mono">分组 PARTY LINES</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--panel-line);display:flex;justify-content:space-between"><span>🎓 学业</span><span style="color:var(--ink-3)">×3</span></div>
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--danger);color:var(--danger);display:flex;justify-content:space-between"><span>💞 生活</span><span>×2</span></div>
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2);display:flex;justify-content:space-between"><span>✈️ 旅行</span><span>×1</span></div>
+                <div class="mono" style="font-size:10px;font-weight:800;padding:5px 8px;border:2.5px solid var(--panel-line);color:var(--ink-2);display:flex;justify-content:space-between"><span>💼 工作</span><span style="color:var(--ink-3)">×0</span></div>
+              </div>
+            </div>
+            <span class="btn ghost mono px" style="padding:7px 0;font-size:10px;margin-top:auto">⚙ 管理分组 →</span>
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 9 设置（昼） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑨ 设置</b> <small>SYSTEM · 昼</small></div>
+      <div class="phone night light-preview settings-light">
+        <div class="statusbar mono"><span>♥×3</span><span>SYSTEM</span></div>
+        <div class="pagetitle"><span class="t">系统设置</span><span class="r mono">OPTIONS</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);box-shadow:3px 3px 0 var(--cave-line);padding:12px 13px;display:flex;gap:12px;align-items:center">
+            <div style="width:52px;height:52px;flex:none;background:var(--gold-n);border:3px solid var(--cave-line);display:flex;align-items:center;justify-content:center;font-size:24px">🧙</div>
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:800;color:var(--cave-text)">冒险者 · cch</div>
+              <div class="mono" style="font-size:9px;color:var(--gold-n);font-weight:800;margin-top:2px">LV.07 · 连续打卡 12 天 🔥</div>
+              <div class="xpbar" style="margin-top:7px">
+                <div class="cells">
+                  <i class="cell fill" style="background:var(--xp-n)"></i><i class="cell fill" style="background:var(--xp-n)"></i><i class="cell fill" style="background:var(--xp-n)"></i><i class="cell fill" style="background:var(--xp-n)"></i>
+                  <i class="cell fill" style="background:var(--xp-n)"></i><i class="cell" style="background:var(--cave);border-color:var(--cave-line)"></i><i class="cell" style="background:var(--cave);border-color:var(--cave-line)"></i><i class="cell" style="background:var(--cave);border-color:var(--cave-line)"></i>
+                </div>
+              </div>
+              <div class="mono" style="font-size:8px;color:var(--cave-3);font-weight:800;margin-top:4px">EXP 61% → LV.08</div>
+            </div>
+          </div>
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 13px">
+            <div style="font-size:9px;letter-spacing:.2em;color:var(--cave-3);font-weight:800" class="mono">▸ 显示模式 DISPLAY</div>
+            <div style="display:flex;gap:7px;margin-top:8px">
+              <span class="mono" style="flex:1;text-align:center;font-size:10px;font-weight:800;padding:7px 0;border:3px solid var(--cave-line);color:var(--cave-2)">昼间地图</span>
+              <span class="mono" style="flex:1;text-align:center;font-size:10px;font-weight:800;padding:7px 0;border:3px solid var(--cave-line);color:var(--cave-2)">洞窟</span>
+              <span class="mono" style="flex:1.2;text-align:center;font-size:10px;font-weight:800;padding:7px 0;border:3px solid var(--gold-n);background:var(--gold-n);color:var(--cave-line)">跟随系统 ✓</span>
+            </div>
+          </div>
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:2px dashed #37304E">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">🔊 战斗音效</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--cave-3)">[ ] OFF</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:2px dashed #37304E">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">📳 命中震动</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--hp-n)">[x] ON</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:2px dashed #37304E">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">🗑 封印之地（回收站）</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--cave-3)">3 件 ›</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 13px">
+              <span style="font-size:13px;font-weight:700;color:var(--cave-text)">ℹ 关于刻间</span>
+              <span class="mono" style="font-size:10px;font-weight:800;color:var(--cave-3)">v0.1.0 ›</span>
+            </div>
+          </div>
+          <div class="mono" style="text-align:center;font-size:8px;color:var(--cave-3);font-weight:800;letter-spacing:.15em">MOMENT MARK · MADE WITH ♥ · SAVE FILE LOCAL</div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="nav mono">
+          <div class="item">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item on">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 10 回收站（昼） ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑩ 回收站 · 封印之地</b> <small>GRAVEYARD · 昼</small></div>
+      <div class="phone night light-preview graveyard-light">
+        <div class="statusbar mono"><span>♥×3</span><span>GRAVEYARD</span></div>
+        <div class="pagetitle"><span class="t">◂ 封印之地</span><span class="r mono">3 件封存 · 30 天后净化</span></div>
+        <div style="padding:0 12px;display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;font-weight:800;color:var(--cave-3)">🔗 演唱会</span>
+              <span class="mono" style="font-size:8px;font-weight:800;color:var(--cave-3);border:2px solid var(--cave-3);padding:1px 6px">任务 · 已封印</span>
+            </div>
+            <div class="mono" style="font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px">封存于 3 天前 · 剩余 27 天后永久净化</div>
+            <div style="display:flex;gap:8px;margin-top:9px">
+              <span class="btn gold mono px" style="flex:1;padding:7px 0;font-size:11px">✚ 复活</span>
+              <span class="btn ghost mono px" style="padding:7px 12px;font-size:11px;color:var(--cave-2)">永久净化</span>
+            </div>
+          </div>
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;font-weight:800;color:var(--cave-3)">🔗 实习答辩</span>
+              <span class="mono" style="font-size:8px;font-weight:800;color:var(--cave-3);border:2px solid var(--cave-3);padding:1px 6px">任务 · 已封印</span>
+            </div>
+            <div class="mono" style="font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px">封存于 12 天前 · 剩余 18 天</div>
+            <div style="display:flex;gap:8px;margin-top:9px">
+              <span class="btn gold mono px" style="flex:1;padding:7px 0;font-size:11px">✚ 复活</span>
+              <span class="btn ghost mono px" style="padding:7px 12px;font-size:11px;color:var(--cave-2)">永久净化</span>
+            </div>
+          </div>
+          <div style="background:var(--cave-panel);border:3px solid var(--cave-line);padding:11px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;font-weight:800;color:var(--cave-3)">🔗 旧手机退役 🏆</span>
+              <span class="mono" style="font-size:8px;font-weight:800;color:var(--cave-3);border:2px solid var(--cave-3);padding:1px 6px">成就 · 已封印</span>
+            </div>
+            <div class="mono" style="font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px">封存于 21 天前 · 剩余 9 天</div>
+            <div style="display:flex;gap:8px;margin-top:9px">
+              <span class="btn gold mono px" style="flex:1;padding:7px 0;font-size:11px">✚ 复活</span>
+              <span class="btn ghost mono px" style="padding:7px 12px;font-size:11px;color:var(--cave-2)">永久净化</span>
+            </div>
+          </div>
+          <div class="mono" style="text-align:center;font-size:9px;color:var(--cave-3);font-weight:800;margin-top:4px;letter-spacing:.1em">被净化的时刻与任务将永远消失 · 无法复活</div>
+        </div>
+        <div style="margin-top:auto;padding:0 12px 12px">
+          <span class="btn ghost mono px" style="width:100%;padding:10px 0;font-size:12px;color:var(--danger-n)">⚔ 全部净化（清空回收站）</span>
+        </div>
+        <div class="nav mono">
+          <div class="item">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item on">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ 11 删除确认 + 撤销 ═══════════ -->
+    <div class="shot">
+      <div class="cap"><b>⑪ 删除确认 · 撤销</b> <small>SEAL · 昼</small></div>
+      <div class="phone">
+        <div class="statusbar mono"><span>LV.07</span><span>CONFIRM</span></div>
+        <div style="flex:1;position:relative">
+          <div style="position:absolute;inset:0;background:rgba(43,38,32,.5)"></div>
+          <div style="position:absolute;inset:0;padding:60px 18px 0">
+            <div class="px4" style="background:var(--panel);padding:16px 16px 14px">
+              <div class="mono" style="text-align:center;font-size:26px">⚠️</div>
+              <div style="text-align:center;font-size:17px;font-weight:800;margin-top:8px">放弃这个任务？</div>
+              <div style="text-align:center;font-size:12px;color:var(--ink-2);font-weight:600;line-height:1.7;margin-top:7px">「演唱会」的进度与任务描述<br>将被封存进回收站，30 天内可复活。</div>
+              <div style="display:flex;gap:10px;margin-top:14px">
+                <span class="btn ghost mono px" style="flex:1;padding:10px 0;font-size:13px">继续冒险</span>
+                <span class="btn red mono px" style="flex:1;padding:10px 0;font-size:13px">✕ 确认放弃</span>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:14px;right:14px;bottom:86px;background:var(--ink);border:3px solid var(--panel-line);box-shadow:3px 3px 0 rgba(43,38,32,.4);padding:11px 13px;display:flex;justify-content:space-between;align-items:center;z-index:3">
+            <span class="mono" style="font-size:11px;color:#F6F1E3;font-weight:700">⚔「演唱会」已封印入封印之地</span>
+            <span class="mono" style="font-size:11px;color:var(--gold);font-weight:800;border-bottom:2px solid var(--gold);padding-bottom:1px">↩ 撤销</span>
+          </div>
+        </div>
+        <div class="nav mono">
+          <div class="item on">◉ 大事件</div><div class="plus">＋ 新时刻</div><div class="item">▤ 日子簿</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <section class="night-staging" aria-label="夜间 UI 暂存区">
+    <h2>夜间 UI 暂存区</h2>
+    <p>以下为从主稿暂存的洞窟版本，不作为当前页面的默认视觉。</p>
+    <div class="night-staging-grid">
+      <article class="night-stage" data-source="daybook-light"><h3>⑤ 日子簿 · 夜间暂存</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-source="settings-light"><h3>⑨ 设置 · 夜间暂存</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-source="graveyard-light"><h3>⑩ 封印之地 · 夜间暂存</h3><div class="night-slot"></div></article>
+    </div>
+  </section>
+
+  <footer>刻间 MOMENT MARK · 风格 J 最终完整稿 · 时刻（任务⧖ + 成就🏆）× 待办（新任务▶）· 全部 11 屏</footer>
+</div>
+
+<script>
+(function(){
+  var sw=document.querySelector('.cal-swipe');
+  if(!sw||sw.children.length<2)return;
+  var months=['七月 2026','八月 2026','九月 2026'];
+  var label=document.querySelector('.cal-label');
+  var step=sw.children[1].offsetLeft-sw.children[0].offsetLeft;
+  sw.scrollLeft=step;
+  function update(){
+    var i=Math.round(sw.scrollLeft/step);
+    if(label&&months[i])label.textContent=months[i];
+  }
+  sw.addEventListener('scroll',update);
+  update();
+  var arrows=document.querySelectorAll('.cal-arrow');
+  if(arrows[0])arrows[0].onclick=function(){sw.scrollBy({left:-step})};
+  if(arrows[1])arrows[1].onclick=function(){sw.scrollBy({left:step})};
+})();
+(function(){
+  document.querySelectorAll('.night-stage[data-source]').forEach(function(stage){
+    var source=document.querySelector('.phone.'+stage.dataset.source);
+    var slot=stage.querySelector('.night-slot');
+    if(!source||!slot)return;
+    var preview=source.cloneNode(true);
+    preview.classList.remove('light-preview',stage.dataset.source);
+    slot.appendChild(preview);
+    var swipe=preview.querySelector('.cal-swipe');
+    if(swipe&&swipe.children.length>1)swipe.scrollLeft=swipe.children[1].offsetLeft-swipe.children[0].offsetLeft;
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+:root{--bg:#E8E0CC;--bg-2:#DFD5BB;--panel:#F6F1E3;--panel-line:#2B2620;--ink:#2B2620;--ink-2:#6B6152;--ink-3:#A79B85;--mana:#9B6DFF}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--ink);padding:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700}
+
+/* HomeMainQuestCard 浏览器镜像：DOM/CSS 数值与 proposal_J_final.html ① 主线横幅卡一致。 */
+.home-main-quest-card{background:var(--panel);border:3px solid var(--panel-line);box-shadow:4px 4px 0 var(--panel-line);padding:11px 13px;width:290px}
+.home-main-quest-card__hud{display:flex;justify-content:space-between;font-size:9px}
+.home-main-quest-card__hud .home-main-quest-card__quest{color:var(--mana)}
+.home-main-quest-card__hud .home-main-quest-card__exp{color:var(--ink-3)}
+.home-main-quest-card__main{display:flex;align-items:baseline;justify-content:space-between;margin-top:4px}
+.home-main-quest-card__title{font-size:14px;font-weight:800}
+.home-main-quest-card__number{font-size:44px;font-weight:800;line-height:1.05}
+.home-main-quest-card__unit{font-size:12px;color:var(--ink-2)}
+.home-main-quest-card__unlock{font-size:9px;color:var(--ink-3)}

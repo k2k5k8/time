@@ -17,8 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import com.cch.momentmark.domain.model.MomentCardState
 import com.cch.momentmark.domain.model.TaskCardState
 import com.cch.momentmark.domain.model.TaskType
@@ -29,6 +33,7 @@ import com.cch.momentmark.ui.components.PixelPanel
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 import java.time.format.DateTimeFormatter
+import java.time.LocalDate
 
 /** J 卡片的日期角标格式：DUE/SINCE 用 2026.12.19 风格。 */
 private val CardDateFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
@@ -68,125 +73,52 @@ fun MomentPinnedCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    HomeAchievementCard(
+        title = card.title,
+        days = card.days,
+        anchorDate = card.anchorDate,
+        milestoneLabel = card.nextMilestone?.label,
+        milestoneDaysRemaining = card.nextMilestone?.daysRemaining,
+        milestoneProgress = card.nextMilestone?.progressFraction,
+        isPinned = card.isPinned,
+        onClick = onClick,
+        modifier = modifier,
+        semanticDescription = card.accessibilityDescription(),
+    )
+}
+
+/**
+ * 第①屏 `.ach` 的等值组件。元素顺序严格保持：HUD → 主信息 → HP → 元数据。
+ */
+@Composable
+fun HomeAchievementCard(
+    title: String = "和小满在一起 💞",
+    days: Long = 1196,
+    anchorDate: LocalDate = LocalDate.of(2023, 5, 20),
+    milestoneLabel: String? = "1200 天",
+    milestoneDaysRemaining: Long? = 4,
+    milestoneProgress: Float? = 0.99f,
+    isPinned: Boolean = true,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    semanticDescription: String? = null,
+) {
     val extended = LocalMmExtendedColors.current
-    val isAchievement = card.status == EventTimeStatus.PAST
-    val badgeColor = if (isAchievement) {
-        extended.goldInk
-    } else {
-        extended.manaPurple
-    }
-    val numberColor = if (isAchievement) extended.goldInk else MaterialTheme.colorScheme.onSurface
     val frameModifier = modifier
         .fillMaxWidth()
         .clickable(role = Role.Button, onClick = onClick)
         .semantics(mergeDescendants = true) {
-            contentDescription = card.accessibilityDescription()
+            contentDescription = semanticDescription
+                ?: "$title，已 $days 天，${anchorDate.format(CardDateFormatter)}${if (isPinned) "，已置顶" else ""}"
         }
     val content: @Composable () -> Unit = {
         Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(MomentMarkTokens.SpaceInner),
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit),
-        ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                // ① 的主线/成就 HUD 是一行完整语义；EXP/GOLD 等示例数据不落入业务。
-                Text(
-                    text = if (isAchievement) {
-                        "🏆 ACHIEVEMENT 成就 · 正数"
-                    } else {
-                        "◆ MAIN QUEST 主线 · 倒数"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = badgeColor,
-                )
-                if (isAchievement) {
-                    Text(
-                        text = "★ 置顶",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(end = MomentMarkTokens.TouchTargetMin),
-                    )
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit * 2),
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = card.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                MomentNumberText(card = card, big = true, color = numberColor)
-                if (isAchievement) {
-                    card.nextMilestone?.let { milestone ->
-                        PixelHpBar(
-                            fraction = milestone.progressFraction ?: 0f,
-                            fillColor = extended.goldInk,
-                            modifier = Modifier.padding(top = MomentMarkTokens.SpaceUnit),
-                        )
-                        Text(
-                            text = "下一里程碑 ${milestone.label} · 还有 ${milestone.daysRemaining} 天",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = extended.labelTertiary,
-                        )
-                    }
-                }
-                }
-                Text(
-                    text = if (isAchievement) {
-                        "SINCE\n${card.anchorDate.format(CardDateFormatter)}"
-                    } else {
-                        "UNLOCK\n${card.anchorDate.format(CardDateFormatter)}"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = extended.labelTertiary,
-                    textAlign = TextAlign.End,
-                )
-            }
-        }
-    }
-    if (isAchievement) {
-        AchievementFrame(modifier = frameModifier) { content() }
-    } else PixelPanel(
-        modifier = frameModifier,
-        variant = com.cch.momentmark.ui.components.PixelPanelVariant.Emphasized,
-    ) {
-        content()
-    }
-}
-
-/** 双列网格 · 未来任务卡：大数字 + 血条 + mono 元数据行。 */
-@Composable
-fun MomentQuestCard(
-    card: MomentCardState,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val extended = LocalMmExtendedColors.current
-    PixelPanel(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) {
-                contentDescription = card.accessibilityDescription()
-            },
-        // HTML ① 的普通未来卡是 `.px`：3dp 墨线 + 3dp 实体影；
-        // 只有置顶主线才使用 `.px4` 的强调级 4dp 影。
-        variant = com.cch.momentmark.ui.components.PixelPanelVariant.Raised,
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(MomentMarkTokens.SpaceInner),
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit),
+            Modifier.fillMaxWidth().padding(
+                start = MomentMarkTokens.HomeAchievementPaddingHorizontal,
+                top = MomentMarkTokens.HomeAchievementPaddingTop,
+                end = MomentMarkTokens.HomeAchievementPaddingHorizontal,
+                bottom = MomentMarkTokens.HomeAchievementPaddingBottom,
+            ),
         ) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -194,27 +126,350 @@ fun MomentQuestCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = card.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    text = "🏆 ACHIEVEMENT 成就 · 正数",
+                    style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementHudFontSize, lineHeight = 11.sp),
+                    color = extended.goldInk,
+                )
+                if (isPinned) {
+                    Text(
+                        text = "★ 置顶",
+                        style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementHudFontSize, lineHeight = 11.sp),
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().padding(top = MomentMarkTokens.HomeAchievementMainGap),
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        style = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementTitleFontSize, lineHeight = 17.sp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = days.toString(),
+                            style = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementNumberFontSize, lineHeight = MomentMarkTokens.HomeAchievementNumberLineHeight),
+                            color = extended.goldInk,
+                        )
+                        Text(
+                            text = " 天",
+                            style = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = MomentMarkTokens.HomeAchievementUnitFontSize, lineHeight = 14.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = MomentMarkTokens.HomeAchievementUnitBaselineOffset),
+                        )
+                    }
+                }
+                Text(
+                    text = "SINCE\n${anchorDate.format(CardDateFormatter)}",
+                    style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 11.sp),
+                    color = extended.labelTertiary,
+                    textAlign = TextAlign.End,
+                )
+            }
+            if (milestoneLabel != null && milestoneDaysRemaining != null && milestoneProgress != null) {
+                PixelHpBar(
+                    fraction = milestoneProgress,
+                    fillColor = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.padding(top = MomentMarkTokens.HomeAchievementHpGap),
+                )
+                Row(
+                    Modifier.fillMaxWidth().padding(top = MomentMarkTokens.HomeAchievementMetaGap),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "下一里程碑 $milestoneLabel · 还有 $milestoneDaysRemaining 天",
+                        style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementMetaFontSize, lineHeight = 10.sp),
+                        color = extended.labelTertiary,
+                    )
+                    Text(
+                        text = "${(milestoneProgress * 100).toInt()}%",
+                        style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementMetaFontSize, lineHeight = 10.sp),
+                        color = extended.labelTertiary,
+                    )
+                }
+            }
+        }
+    }
+    AchievementFrame(modifier = frameModifier) { content() }
+}
+
+/**
+ * 第①屏「主线任务横幅卡」（MAIN QUEST）的等值组件。
+ * 元素顺序严格保持：HUD → 主信息行；数字与单位共用原 HTML 的 line-height 1.05。
+ */
+@Composable
+fun HomeMainQuestCard(
+    title: String = "春节 · 回家的日子",
+    days: Long = 148,
+    unitLabel: String = " 天后",
+    anchorDate: LocalDate = LocalDate.of(2027, 2, 6),
+    questLabel: String = "◆ MAIN QUEST 主线 · 倒数",
+    expLabel: String? = "EXP +148",
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    semanticDescription: String? = null,
+) {
+    val extended = LocalMmExtendedColors.current
+    val hudStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Bold,
+        fontSize = MomentMarkTokens.HomeMainQuestHudFontSize,
+        lineHeight = MomentMarkTokens.HomeMainQuestHudLineHeight,
+    )
+    val titleStyle = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = MomentMarkTokens.HomeMainQuestTitleFontSize,
+        lineHeight = MomentMarkTokens.HomeMainQuestTitleLineHeight,
+    )
+    val numberStyle = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = MomentMarkTokens.HomeMainQuestNumberFontSize,
+        lineHeight = MomentMarkTokens.HomeMainQuestNumberLineHeight,
+    )
+    val unitStyle = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = MomentMarkTokens.HomeMainQuestUnitFontSize,
+        lineHeight = MomentMarkTokens.HomeMainQuestUnitLineHeight,
+    )
+    val unlockStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Bold,
+        fontSize = MomentMarkTokens.HomeMainQuestHudFontSize,
+        lineHeight = MomentMarkTokens.HomeMainQuestHudLineHeight,
+    )
+
+    PixelPanel(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription
+                    ?: "$title，还有 $days 天，${anchorDate.format(CardDateFormatter)}"
+            },
+        variant = com.cch.momentmark.ui.components.PixelPanelVariant.Emphasized,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = MomentMarkTokens.HomeMainQuestPaddingHorizontal,
+                    vertical = MomentMarkTokens.HomeMainQuestPaddingVertical,
+                ),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = questLabel,
+                    style = hudStyle,
+                    color = extended.manaPurple,
+                )
+                expLabel?.let {
+                    Text(
+                        text = it,
+                        style = hudStyle,
+                        color = extended.labelTertiary,
+                    )
+                }
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = MomentMarkTokens.HomeMainQuestMainGap),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        style = titleStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = days.toString(),
+                            style = numberStyle,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = unitLabel,
+                            style = unitStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Text(
+                    text = "UNLOCK\n${anchorDate.format(CardDateFormatter)}",
+                    style = unlockStyle,
+                    color = extended.labelTertiary,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 首页①双列小卡的唯一视觉骨架。它对应 HTML `.px` 的 DOM 顺序：
+ * Header(title + badge) → value → hpbar（可选）→ DUE/SINCE 元数据。
+ *
+ * Moment 与 Task 只通过参数提供内容，不能在这里互换领域语义；进度条颜色
+ * 由 [PixelHpBar] 按剩余比例实时选择绿/橙/红，长度始终是 [progressFraction]。
+ */
+@Composable
+fun HomeSmallCard(
+    title: String,
+    value: String,
+    unitLabel: String,
+    badgeLabel: String,
+    badgeColor: Color,
+    metadata: String,
+    progressFraction: Float? = null,
+    progressColor: Color? = null,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    semanticDescription: String? = null,
+) {
+    PixelPanel(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = semanticDescription ?: "$title，$value$unitLabel，$metadata"
+            },
+        variant = com.cch.momentmark.ui.components.PixelPanelVariant.Raised,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = MomentMarkTokens.HomeSmallCardPaddingHorizontal,
+                    top = MomentMarkTokens.HomeSmallCardPaddingTop,
+                    end = MomentMarkTokens.HomeSmallCardPaddingHorizontal,
+                    bottom = MomentMarkTokens.HomeSmallCardPaddingBottom,
+                ),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = TextStyle(
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = MomentMarkTokens.HomeSmallCardTitleFontSize,
+                        lineHeight = MomentMarkTokens.HomeSmallCardTitleLineHeight,
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                MomentBadge(
-                    kind = card.badgeKind(),
-                    color = if (card.isLimited) extended.amber else MaterialTheme.colorScheme.secondary,
+                Text(
+                    text = badgeLabel,
+                    style = TextStyle(
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 8.sp,
+                        lineHeight = 10.sp,
+                    ),
+                    color = badgeColor,
+                    modifier = Modifier
+                        .border(MomentMarkTokens.PxThinBorderWidth, badgeColor)
+                        .padding(
+                            horizontal = MomentMarkTokens.BadgePaddingHorizontal,
+                            vertical = MomentMarkTokens.BadgePaddingVertical,
+                        ),
                 )
             }
-            MomentNumberText(card = card, big = false, color = MaterialTheme.colorScheme.onSurface)
-            card.hpFraction?.let { PixelHpBar(fraction = it) }
-            MomentMetaRow(
-                prefix = if (card.status == EventTimeStatus.TODAY) "TODAY" else "DUE",
-                dateText = card.anchorDate.format(CardDateFormatter),
-                groupId = card.groupId,
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.padding(top = MomentMarkTokens.HomeSmallCardTitleToNumberGap),
+            ) {
+                Text(
+                    text = value,
+                    style = TextStyle(
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = MomentMarkTokens.HomeSmallCardNumberFontSize,
+                        lineHeight = MomentMarkTokens.HomeSmallCardNumberLineHeight,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = unitLabel,
+                    style = TextStyle(
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = MomentMarkTokens.HomeSmallCardUnitFontSize,
+                        lineHeight = 12.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            progressFraction?.let { fraction ->
+                PixelHpBar(
+                    fraction = fraction,
+                    fillColor = progressColor,
+                    modifier = Modifier.padding(top = MomentMarkTokens.HomeSmallCardNumberToBarGap),
+                )
+            }
+            Text(
+                text = metadata,
+                style = TextStyle(
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = MomentMarkTokens.HomeSmallCardMetaFontSize,
+                    lineHeight = MomentMarkTokens.HomeSmallCardMetaLineHeight,
+                ),
+                color = LocalMmExtendedColors.current.labelTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = MomentMarkTokens.HomeSmallCardBarToMetaGap),
             )
         }
     }
+}
+
+/** 双列网格 · 未来时刻卡：领域投影适配到共享小卡骨架。 */
+@Composable
+fun MomentQuestCard(
+    card: MomentCardState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val badgeColor = if (card.isLimited) LocalMmExtendedColors.current.amber
+    else MaterialTheme.colorScheme.secondary
+    HomeSmallCard(
+        title = card.title,
+        value = if (card.status == EventTimeStatus.TODAY) "就是今天" else card.days.toString(),
+        unitLabel = if (card.status == EventTimeStatus.TODAY) "" else " 天",
+        badgeLabel = when (card.badgeKind()) {
+            MomentBadgeKind.MAIN -> "◆"
+            MomentBadgeKind.LIMITED -> "⧗"
+            else -> "◇"
+        },
+        badgeColor = badgeColor,
+        metadata = "${if (card.status == EventTimeStatus.TODAY) "TODAY" else "DUE"} ${card.anchorDate.format(CardDateFormatter)}" +
+            (card.groupId?.let { " · $it" } ?: ""),
+        progressFraction = card.hpFraction,
+        onClick = onClick,
+        modifier = modifier,
+        semanticDescription = card.accessibilityDescription(),
+    )
 }
 
 /**
@@ -225,69 +480,22 @@ fun HomeTaskCard(
     card: TaskCardState,
     modifier: Modifier = Modifier,
 ) {
-    val extended = LocalMmExtendedColors.current
-    PixelPanel(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) {
-                contentDescription = card.accessibilityDescription()
-            },
-        backgroundColor = if (card.isCompleted) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            MaterialTheme.colorScheme.surface
+    HomeSmallCard(
+        title = card.title,
+        value = when {
+            card.isCompleted -> "CLEAR"
+            card.daysUntilDue == 0L -> "就是今天"
+            else -> card.daysUntilDue.toString()
         },
-        // Task 首页投影同样是普通 `.px` 卡，避免与置顶主线争夺视觉层级。
-        variant = com.cch.momentmark.ui.components.PixelPanelVariant.Raised,
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(MomentMarkTokens.SpaceInner),
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit),
-        ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = card.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = card.taskType.badgeLabel(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.border(
-                        MomentMarkTokens.PxThinBorderWidth,
-                        MaterialTheme.colorScheme.secondary,
-                    ).padding(
-                        horizontal = MomentMarkTokens.BadgePaddingHorizontal,
-                        vertical = MomentMarkTokens.BadgePaddingVertical,
-                    ),
-                )
-            }
-            Text(
-                text = when {
-                    card.isCompleted -> "CLEAR"
-                    card.daysUntilDue == 0L -> "就是今天"
-                    else -> "${card.daysUntilDue} 天后"
-                },
-                style = MaterialTheme.typography.titleLarge,
-                color = if (card.isCompleted) extended.labelTertiary else MaterialTheme.colorScheme.onSurface,
-            )
-            MomentMetaRow(
-                prefix = if (card.daysUntilDue == 0L) "TODAY" else "DUE",
-                dateText = card.dueLocalDate.format(CardDateFormatter),
-                groupId = card.groupId,
-            )
-        }
-    }
+        unitLabel = if (card.isCompleted || card.daysUntilDue == 0L) "" else " 天后",
+        badgeLabel = card.taskType.badgeLabel(),
+        badgeColor = MaterialTheme.colorScheme.secondary,
+        metadata = "${if (card.daysUntilDue == 0L) "TODAY" else "DUE"} ${card.dueLocalDate.format(CardDateFormatter)}" +
+            (card.groupId?.let { " · $it" } ?: ""),
+        onClick = {},
+        modifier = modifier,
+        semanticDescription = card.accessibilityDescription(),
+    )
 }
 
 private fun TaskCardState.accessibilityDescription(): String {

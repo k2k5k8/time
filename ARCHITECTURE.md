@@ -162,6 +162,8 @@ J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的
 
 新 J 首页不是旧模板池或自由卡片墙。它应先从 `Moment` 和已开启 `showOnHome` 的 `Task` 建立只读展示投影，再按 PRD 排列：
 
+`iconKey` 属于 `Group`，不是 Moment/Task 字段。首页投影通过条目的 `groupId` 解析分组图标，并显示在小卡右上角固定尺寸图标槽；`groupId=null` 时使用统一默认图标。
+
 1. 置顶 Moment：全宽、按用户调整的 `pinnedOrder`；
 2. 普通过去 Moment：左列、日期由近到远；
 3. 普通未来 Moment：右列、日期由近到远；
@@ -274,6 +276,7 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 | 统一时刻详情 | 新 `ui/moment/detail/`，一套组件按派生 `displayState` 切换内容 | 不为过去/未来各复制一整套数据模型。 |
 | 新任务、勾选、跨日隐藏 | 新 `domain/model/task`、`data/local/task`、`data/repository/task`、`ui/task`，并替换 `ui/daybook/` 数据源 | 不继续扩张 `PrototypeDaybookDataSource` 充当任务数据库。 |
 | 待办显示在首页 | 新 `HomeCardItem` 投影、明确 `showOnHome` | 不将 Task 保存为 TimeEvent。 |
+| 首页小卡分组图标 | `Group.iconKey` + `HomeCardItem` 投影 | 不把图标复制到 Moment/Task、写死在卡片组件或复用旧模板配置。 |
 | 回收站 30 天 | Room DAO 增加 `purgeDeletedBefore(cutoff)`；仅在 `autoPurgeEnabled=true` 的 App 启动时清理，Task 同步实现 | 不使用当前“清空所有 deleted”的方法作为自动到期策略，也不引入后台定时删除。 |
 | 分组 | 本轮将 `groupId` 解析为 Room `groups`（稳定 ID、线路色 token、排序），表单用 HTML 风格 chip 选择，管理页从系统设置进入 | 不让旧 DataStore、模板 JSON 或样例数据成为分组真相。 |
 | 成就详情/里程碑 | 本轮新增 `AchievementPresentation` 与纯函数 `MilestoneCalculator`；由 `anchorDate + Clock` 派生固定节点、下一项时间条和状态，详情复用 `AchievementFrame` | 不把“已 X 天”、里程碑完成或周年状态写回 Moment；不开放自定义或手工勾选。 |
@@ -293,8 +296,8 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 
 **分组管理（⑩）**
 
-- 建议新增 `GroupEntity`：`id`、`name`、`colorToken`、`sortOrder`、`createdAt`、`updatedAt`；`moments.groupId` 与 `tasks.groupId` 保存稳定 ID，null 表示“无阵营”。
-- `GroupRepository` 提供 Flow 列表、名称唯一校验、改名、排序和 `dissolve(id)`；`dissolve` 在一个 Room 事务内先把两张表的引用置空，再删除 Group 行，软删除项目也必须覆盖。
+- 建议新增 `GroupEntity`：`id`、`name`、`colorToken`、`iconKey`、`sortOrder`、`createdAt`、`updatedAt`；`moments.groupId` 与 `tasks.groupId` 保存稳定 ID，null 表示“无阵营”。
+- `GroupRepository` 提供 Flow 列表、名称唯一校验、图标/线路色更新、改名、排序和 `dissolve(id)`；`dissolve` 在一个 Room 事务内先把两张表的引用置空，再删除 Group 行，软删除项目也必须覆盖。
 - 活动计数由 DAO 统计 `deletedAt IS NULL` 的 Moment/Task，并提供类型拆分；不把封印之地项目混进列表计数。颜色只能是 `MomentMarkTokens`/Material 语义 token 名。
 - 从 `MomentMarkGroupStore` 或名称型 `groupId` 迁移时，先按规范化名称合并 Group，再在单次 migration 中重写两表引用；必须提升数据库版本、导出 schema JSON 并补 migration/事务测试。
 - 入口建议为 `SystemSettingsScreen → 队伍编成`，不改变三入口导航；分组 UI 的改名/解散按钮各自保持 44dp 触摸目标和中文语义。

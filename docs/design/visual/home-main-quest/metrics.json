@@ -1,0 +1,28 @@
+{
+  "viewport": "320x145",
+  "total_pixels": 46400,
+  "differing_pixels": 0,
+  "pixel_difference_rate_pct": 0.0,
+  "pixel_similarity_pct": 100.0,
+  "ssim": 1.0,
+  "color_mae_rgb": 0.0,
+  "color_mae_background": 0.0,
+  "content_bbox_original": [
+    12,
+    12,
+    305,
+    126
+  ],
+  "content_bbox_component": [
+    12,
+    12,
+    305,
+    126
+  ],
+  "bbox_offset_px": [
+    0,
+    0,
+    0,
+    0
+  ]
+}
