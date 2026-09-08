@@ -1,7 +1,6 @@
 package com.cch.momentmark.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.cch.momentmark.ui.theme.MomentMarkTokens
@@ -84,50 +80,21 @@ fun PixelConfirmationDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard),
                     ) {
-                        PixelDialogAction(
+                        PixelButton(
                             label = dismissLabel,
-                            description = dismissLabel,
                             onClick = onDismiss,
+                            variant = PixelButtonVariant.Ghost,
                             modifier = Modifier.weight(1f),
                         )
-                        PixelDialogAction(
+                        PixelButton(
                             label = confirmLabel,
-                            description = confirmLabel,
                             onClick = onConfirm,
-                            danger = true,
+                            variant = PixelButtonVariant.Danger,
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PixelDialogAction(
-    label: String,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    danger: Boolean = false,
-) {
-    val background = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surface
-    val foreground = if (danger) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSurface
-    val border = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
-    PixelPanel(
-        modifier = modifier
-            .semantics { contentDescription = description }
-            .clickable(role = Role.Button, onClick = onClick),
-        backgroundColor = background,
-        borderColor = border,
-        shadowColor = border,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = foreground,
-            modifier = Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
-        )
     }
 }

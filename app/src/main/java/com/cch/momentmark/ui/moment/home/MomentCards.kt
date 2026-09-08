@@ -1,7 +1,6 @@
 package com.cch.momentmark.ui.moment.home
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +28,8 @@ import com.cch.momentmark.domain.model.TaskType
 import com.cch.momentmark.domain.time.EventTimeStatus
 import com.cch.momentmark.ui.components.AchievementFrame
 import com.cch.momentmark.ui.components.PixelHpBar
+import com.cch.momentmark.ui.components.PixelBadge
+import com.cch.momentmark.ui.components.PixelBadgeVariant
 import com.cch.momentmark.ui.components.PixelPanel
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MomentMarkTokens
@@ -378,21 +379,9 @@ fun HomeSmallCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = badgeLabel,
-                    style = TextStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 8.sp,
-                        lineHeight = 10.sp,
-                    ),
+                PixelBadge(
+                    label = badgeLabel,
                     color = badgeColor,
-                    modifier = Modifier
-                        .border(MomentMarkTokens.PxThinBorderWidth, badgeColor)
-                        .padding(
-                            horizontal = MomentMarkTokens.BadgePaddingHorizontal,
-                            vertical = MomentMarkTokens.BadgePaddingVertical,
-                        ),
                 )
             }
             Row(
@@ -610,16 +599,15 @@ private fun MomentNumberText(card: MomentCardState, big: Boolean, color: Color) 
 /** mono 小徽章：2dp currentColor 描边（proposal_J_final .badge-tag）。 */
 @Composable
 private fun MomentBadge(kind: MomentBadgeKind, color: Color) {
-    Text(
-        text = kind.label,
-        style = MaterialTheme.typography.labelSmall,
+    PixelBadge(
+        label = kind.label,
+        variant = when (kind) {
+            MomentBadgeKind.MAIN -> PixelBadgeVariant.Main
+            MomentBadgeKind.SIDE -> PixelBadgeVariant.Side
+            MomentBadgeKind.LIMITED -> PixelBadgeVariant.Limited
+            MomentBadgeKind.ACHIEVEMENT -> PixelBadgeVariant.Achievement
+        },
         color = color,
-        modifier = Modifier
-            .border(MomentMarkTokens.PxThinBorderWidth, color)
-            .padding(
-                horizontal = MomentMarkTokens.BadgePaddingHorizontal,
-                vertical = MomentMarkTokens.BadgePaddingVertical,
-            ),
     )
 }
 
