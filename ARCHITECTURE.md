@@ -1,7 +1,7 @@
-# Moment Mark 技术架构（v0.2：J 最终设计迁移版）
+# Moment Mark 技术架构（v0.3：design.html 逐页复刻版）
 
-> 用途：指导以 `PRD.md` 和 `docs/design/proposal_J_final.html` 为目标的 UI 重做与功能扩展。  
-> 事实来源：技术栈与现有数据风险来自当前代码；产品行为、页面和视觉以 PRD/J 最终设计稿为准。  
+> 用途：指导以 `PRD.md` 和根目录 `design.html` 为目标的逐页 UI 复刻、视觉审核与功能完善。
+> 事实来源：技术栈与现有数据风险来自当前代码；产品行为以 PRD 为准，页面和视觉以根目录 `design.html` 为准。
 > 迁移立场：旧页面、旧卡片模板、旧首页 Hero、自由拖拽排版和原型日子簿均可废弃或重写；它们只可作为数据迁移或可复用底层代码的参考，绝不是必须保留的交互约束。
 
 ## 1. 文档与决策优先级
@@ -9,8 +9,8 @@
 遇到冲突时，按以下顺序决策：
 
 1. `PRD.md`：产品行为、页面入口、数据归属、P0/P1/P2 和验收标准。
-2. `docs/design/proposal_J_final.html`：最终页面编排、布局和交互表达；`proposal_J.html`、`proposal_J_app.html` 仅作补充。
-3. `DESIGN_SYSTEM.md`：视觉 token、组件规格与词表。若它仍引用旧方案，必须随本次 J 最终设计迁移同步更新，不能反向覆盖 J 最终设计。
+2. `design.html`：当前页面编排、布局和视觉细节；历史页面不参与当前验收。
+3. `DESIGN_SYSTEM.md`：视觉 token、组件规格与词表。
 4. 本文：目标数据模型、实施边界、遗留代码的退出路径和技术债。
 5. 现有代码：仅是技术栈、可迁移数据和已验证底层能力的参考。与前四项冲突时，应修改或移除旧代码，而不是迁就旧行为。
 
@@ -26,12 +26,12 @@
 | UI | Jetpack Compose + Material 3 | Compose BOM 2025.08.00 | 单 Activity 声明式 UI。 |
 | 生命周期 | AndroidX Lifecycle ViewModel | 2.9.0 | 持有应用级 UI 状态和协程。 |
 | 关系数据 | Room | 2.7.2，KAPT，schema 导出 | 时刻的可靠本地持久化与迁移。 |
-| 轻量配置 | DataStore Preferences | 1.1.7 | 主题、分组、模板收藏、详情附属数据、卡片布局。 |
+| 轻量配置 | DataStore Preferences | 1.1.7 | 当前主题偏好、自动净化等轻量设置；分组和业务事实进入 Room。 |
 | 时间 | `java.time` | Android API 26+ | 使用 `LocalDate`、`Instant`、`ZoneId`。 |
 | 异步 | Kotlin Coroutines / Flow | Coroutines 1.8.1 | 数据流与 UI 状态。 |
 | 测试 | JUnit 4、Compose UI Test、Espresso、Room Testing | Espresso 3.7.0 | JVM、界面及 Room 迁移测试。 |
 
-目标架构仍可保持**单模块 `:app`、单 Activity、Compose、MVVM + Repository、本地优先、无网络**。当前手工 `AppScreen` 路由和 `AppContainer` 可短期沿用；若重做 J 最终设计的页面流时它们妨碍返回栈或参数传递，可局部替换为清晰的导航层。不要为保留旧路由而保留旧页面行为。
+目标架构仍可保持**单模块 `:app`、单 Activity、Compose、MVVM + Repository、本地优先、无网络**。当前手工 `AppScreen` 路由和 `AppContainer` 可短期沿用；若重做 `design.html` 当前页面流时它们妨碍返回栈或参数传递，可局部替换为清晰的导航层。不要为保留旧路由而保留旧页面行为。
 
 构建命令：
 
@@ -46,7 +46,7 @@
 
 ```text
 MainActivity
-  └─ MomentMarkApp（Compose 根；只协调 J 最终设计的页面流）
+  └─ MomentMarkApp（Compose 根；只协调 `design.html` 当前页面流）
        ├─ AppViewModel / Navigator（页面状态、一次性事件）
        ├─ AppContainer（手工装配即可）
        │    ├─ MomentRepository ─ Room / moments（或迁移期 time_events）
@@ -56,7 +56,7 @@ MainActivity
        ├─ ui/moment/（大事件首页、铭刻时刻表单、统一时刻详情）
        ├─ ui/daybook/ + ui/task/（副本地图、任务表单/详情）
        ├─ ui/recyclebin/ + ui/settings/
-       └─ ui/theme + ui/components（J 最终设计的共享 token/组件）
+       └─ ui/theme + ui/components（`design.html` 当前设计的共享 token/组件）
 
 Domain：Moment、Task、HomeCardItem、EventTimeCalculator
 ```
@@ -115,7 +115,7 @@ Domain：Moment、Task、HomeCardItem、EventTimeCalculator
 
 目录约束：
 
-- J 最终设计的新页面优先落入 `ui/moment/`、`ui/task/`、`ui/daybook/` 等明确 Feature；不要继续把大型业务 UI 堆进 `MomentMarkApp.kt`，也不必被旧 `eventsettings/` 的页面结构绑住。
+- `design.html` 当前设计的新页面优先落入 `ui/moment/`、`ui/task/`、`ui/daybook/` 等明确 Feature；不要继续把大型业务 UI 堆进 `MomentMarkApp.kt`，也不必被旧 `eventsettings/` 的页面结构绑住。
 - 新持久化事实先定义 `domain/model`，再加 `data/local` 与 `data/repository`；Composable 不可直接读写 Room 或 DataStore。
 - 新视觉 token 只能进入 `ui/theme/`，并同步 `DESIGN_SYSTEM.md`。
 - 设计稿 HTML 是可读规范，不是运行时 UI；不要把 HTML/WebView 引入 App。
@@ -124,7 +124,7 @@ Domain：Moment、Task、HomeCardItem、EventTimeCalculator
 
 ### 5.1 目标时刻模型：`Moment`
 
-J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的产品实体。创建表单显式让用户选择“未来·倒数”或“过去·正数”；该选择记录创建语义，而实际展示状态由创建语义和本地日期统一推导。
+`design.html` 当前设计中的“时刻”不是旧首页卡片的别名，而是独立的产品实体。创建表单显式让用户选择“未来·倒数”或“过去·正数”；该选择记录创建语义，而实际展示状态由创建语义和本地日期统一推导。
 
 建议新的 `MomentEntity` / `Moment` 使用以下事实字段：
 
@@ -143,7 +143,7 @@ J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的
 
 - 若其中已有需要保留的真实用户时刻，写一次**显式迁移**到 `Moment`；不得由 UI 悄悄猜测方向。
 - **已确认（2026-08-28，用户拍板）：当前库中只有样例/开发数据，无真实用户数据。** 采用清空开发库 + 全新 `moments`/`tasks` schema，**不编写 `time_events` 数据搬运迁移**。落地仍须遵守 §6.7：提升数据库版本 + 显式建表 Migration（或开发设备卸载重装后以新版本全新建库）；禁止 `fallbackToDestructiveMigration()`。
-- 落地进度：**数据库已升至 v7**，`MIGRATION_4_5` 新建 `moments` 表，`MIGRATION_5_6` 新建独立 `tasks` 表，`MIGRATION_6_7` 删除仅含样例/开发数据的 `time_events` 遗留表（均含 schema JSON 与迁移测试）。开发期 `SampleMoments` 仅 debug 构建空库时写入；Task 不从原型日子簿或 `time_events` 搬运。
+- 落地进度：**数据库当前为 v8**，`MIGRATION_4_5` 新建 `moments` 表，`MIGRATION_5_6` 新建独立 `tasks` 表，`MIGRATION_6_7` 删除仅含样例/开发数据的 `time_events` 遗留表，`MIGRATION_7_8` 新建 Room `groups` 表。当前确认没有真实用户数据；开发期 `SampleMoments` 仅 debug 构建空库时写入，Task 不从原型日子簿或 `time_events` 搬运。
 - 若仅有 `SampleEvents` 或开发期原型数据，可在新结构上线时清空开发数据库；不能把原型字段强行带进新模型。
 - 不要为了兼容旧卡片而把 `templateKey`、`TravelCardConfig`、`relativeLabel` 等塞进新 `Moment`。
 
@@ -173,9 +173,9 @@ J 最终设计中的“时刻”不是旧首页卡片的别名，而是独立的
 
 可保留“内容与样式分离”的思想，但旧 `TimeCardFields` / `rememberTimeCardPresentation` 只是可选适配器。新页面应定义面向 J 卡片的单一 `MomentCardPresentation` / `TaskCardPresentation`，不能被旧旅行模板字段、示例标题或旧网格尺寸限制。
 
-### 5.4 P0 待新增：日常待办（`Task`）
+### 5.4 当前日常待办（`Task`）
 
-当前日子簿只用 `PrototypeDaybookDataSource` 将系统节日、已有时刻和示例记录映射为 `DaybookEvent`；它**不是**可完成、可持久化的待办系统。实现 PRD 的“新任务”时，应新增独立 Task 聚合，不能将任务伪装为 `TimeEvent`。
+当前产品使用独立 `Task` 聚合、`tasks` 表和 `TaskRepository`；`PrototypeDaybookDataSource` 及其样例/节日映射属于待退出的遗留来源，不能重新成为待办事实源。
 
 建议新增 `TaskEntity` / `Task` / `TaskRepository`（名称可按项目惯例调整）：
 
@@ -215,7 +215,7 @@ Daybook = Task.dueLocalDate 的主视图 + 系统节日/时刻的只读标记
 | Room `moment_mark.db` | 迁移期 `time_events`；目标 `moments`、`tasks` | 可靠的用户业务事实、需要查询/排序/迁移的数据。 |
 | DataStore `moment_mark_settings` | 主题模式、`autoPurgeEnabled` | 轻量全局设置；自动净化默认关闭。 |
 | DataStore `moment_mark_groups` | 旧分组列表 | 仅作迁移来源；本轮分组管理改用 Room `groups` 表，不能继续作为长期真相。 |
-| DataStore `moment_mark_event_details` | 旧背景/关联倒计时 | 不作为 J 最终详情页的必需数据源；保留或迁移须逐项确认。 |
+| DataStore `moment_mark_event_details` | 旧背景/关联倒计时 | 不作为当前详情页的必需数据源；保留或迁移须逐项确认。 |
 | DataStore `moment_mark_templates` | 旧模板收藏 | P2 装备库前不参与 P0。 |
 | DataStore `moment_mark_card_board` | 旧自由卡片墙位置 | P0 不读取；待确认后再删除或只做遗留数据清理。 |
 
@@ -243,7 +243,7 @@ Daybook = Task.dueLocalDate 的主视图 + 系统节日/时刻的只读标记
 
 ### 6.4 内容与 J 最终卡片样式分离
 
-J 最终设计的卡片需要一个集中展示投影，保证标题、日期、倒数/正数、分组、重要度都来自 Moment/Task 事实。旧 `TemplateCatalog`、旅行卡、Small/Wide 选择器、旧渲染分发器并非 P0 依赖；可删除、下线或留待 P2 装备库重构后再接入。
+`design.html` 当前卡片需要一个集中展示投影，保证标题、日期、倒数/正数、分组、重要度都来自 Moment/Task 事实。旧模板、旅行卡、Small/Wide 选择器、旧渲染分发器并非当前依赖；可删除、下线或留待后续装备库重构后再接入。
 
 ### 6.5 首页顺序属于产品规则，不继承自由排版
 
@@ -253,7 +253,7 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 
 新 UI 只能使用 `ui/theme/` 中的 `MaterialTheme` 与 `MomentMarkTokens`。禁止新增硬编码 `Color(0x...)`、裸 `dp/sp`、圆角或柔和阴影。变更 token 时同步更新 `DESIGN_SYSTEM.md`；修改设计稿时同步 HTML 基准。
 
-本轮 J 视觉尺寸必须以父容器比例实现：方向块、三格日期选择器、分组 chip、日历列和任务行使用 `weight`、`fillMaxWidth` 或约束比例，不把屏幕/卡片宽高写死。无障碍触摸目标仍以 `TouchTargetMin=44dp` 为硬下限；该下限不等同于视觉格子的固定尺寸。
+当前设计视觉尺寸必须以父容器比例实现：方向块、三格日期选择器、分组 chip、日历列和任务行使用 `weight`、`fillMaxWidth` 或约束比例，不把屏幕/卡片宽高写死。无障碍触摸目标仍以 `TouchTargetMin=44dp` 为硬下限；该下限不等同于视觉格子的固定尺寸。
 
 ### 6.7 Room 迁移是不可跳过的交付物
 
@@ -283,9 +283,9 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 | 分组管理 | 本轮将字符串组名迁移为 Room `groups`，支持新建/改名/排序/解散；解散用跨 Moment/Task 事务清空引用 | 不新增底部导航入口，不删除组内业务条目。 |
 | 通知/Widget | 复用 `EventTimeCalculator`，在 P1 再引入 WorkManager/Glance 等 | 不在 P0 引入后台定时链路。 |
 
-### 7.1 J ⑦/⑩ 的本轮落地契约
+### 7.1 成就详情与分组管理契约
 
-本节对应 `docs/design/J_ROW3_ROW4_UI_LOGIC_PLAN.md`，用于后续实现时保持 UI、数据和迁移边界一致。
+本节对应根目录 `design.html` 的成就详情与分组管理页面，用于保持 UI、数据和迁移边界一致。
 
 **成就详情（⑦）**
 
@@ -296,7 +296,7 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 
 **分组管理（⑩）**
 
-- 建议新增 `GroupEntity`：`id`、`name`、`colorToken`、`iconKey`、`sortOrder`、`createdAt`、`updatedAt`；`moments.groupId` 与 `tasks.groupId` 保存稳定 ID，null 表示“无阵营”。
+- `GroupEntity` 最终需要包含 `id`、`name`、`colorToken`、`iconKey`、`sortOrder`、`createdAt`、`updatedAt`；当前 v8 表仍缺少 `iconKey`，后续必须用显式 Room migration 补齐。`moments.groupId` 与 `tasks.groupId` 保存稳定 ID，null 表示“无阵营”。
 - `GroupRepository` 提供 Flow 列表、名称唯一校验、图标/线路色更新、改名、排序和 `dissolve(id)`；`dissolve` 在一个 Room 事务内先把两张表的引用置空，再删除 Group 行，软删除项目也必须覆盖。
 - 活动计数由 DAO 统计 `deletedAt IS NULL` 的 Moment/Task，并提供类型拆分；不把封印之地项目混进列表计数。颜色只能是 `MomentMarkTokens`/Material 语义 token 名。
 - 从 `MomentMarkGroupStore` 或名称型 `groupId` 迁移时，先按规范化名称合并 Group，再在单次 migration 中重写两表引用；必须提升数据库版本、导出 schema JSON 并补 migration/事务测试。
@@ -306,18 +306,19 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 
 | 优先级 | 已知问题（代码事实） | 风险 | 建议处理方式 |
 | --- | --- | --- |
-| 高 | 日子簿是 `PrototypeDaybookDataSource`：含硬编码节日、原型用户记录和示例内容，没有 Task 持久化。 | 无法实现 PRD 的真实待办、完成状态、跨日规则。 | 以新 Task Room 模型/Repository 和 J 副本地图替换它，而不是继续修补原型。 |
+| 高 | 当前 UI 与 `design.html` 的卡片尺寸、内容密度和细节仍有明显视觉差异；自动化 UI 测试不能证明视觉一致。 | 逐页复刻无法稳定验收。 | 以固定 fixture 和 viewport 生成设计稿/实现/差异三件套，记录 SSIM、像素差异和布局/字体误差，未达阈值不得标记完成。 |
+| 已解决 | 日子簿是 `PrototypeDaybookDataSource`：含硬编码节日、原型用户记录和示例内容，没有 Task 持久化。 | 无法实现 PRD 的真实待办、完成状态、跨日规则。 | 已由独立 Task Room 模型/Repository 承载；继续清理原型来源。 |
 | 已解决 | 旧首页 Hero、模板池、自由卡片墙、抽屉筛选和长按拖拽来自旧方案。 | 已迁出运行路径；继续保留会误导后续开发。 | 2026-08-30 已移除，J 大事件首页由 `ui/moment/home/` 唯一承载。 |
 | 已解决 | `advancedConfigJson`、`templateConfigJson` 和旧详情 DataStore 属于 `TimeEvent` 模板体系。 | 旧 JSON/附属键会使新实体边界模糊。 | 2026-08-30 随 `time_events` 与旧 UI 移除；新 Moment/Task 只持久化 P0 事实字段。 |
 | 中 | `MomentMarkApp.kt`（约 600 行）承载旧手工导航、跨页面状态和事件处理。 | 重做 J 页面时旧分支会干扰新路由。 | 以 J 三入口为边界重建协调层；不要迁移无对应页面的旧 screen。 |
 | 中 | 当前多个 DataStore 之间无事务；分组重命名同时写 Room 与 DataStore。 | 中途失败可能留下不一致状态。 | 在操作层记录顺序并补偿；分组关系变复杂时迁移到 Room。 |
 | 中 | Debug 空数据库会写入 `SampleMoments.all`。 | 生产用户不受影响，但调试时空状态需要显式清库才可验证。 | 保持 debug-only；发布前确认 release 包不会调用 seed。 |
 | 中 | 旧 UI 存在大量旧暖纸风格硬编码色值。 | 新 J 页面会与旧页面视觉冲突。 | 新 J 页面只用 token；迁移完成的旧页面直接移除，不要求为保留它而 token 化。 |
-| 中 | 日子簿的农历节日是按某年公历日期的原型表。 | 跨年后日期错误。 | P1 接入可验证的农历/节气数据源；在此之前不要把原型数据宣称为准确日历。 |
+| 中 | 日子簿的农历节日是按某年公历日期的原型表。 | 跨年后日期错误。 | 当前不把原型节日当作业务事实；P1 接入可验证的农历/节气数据源。 |
 | 低 | `applicationId` 为 `com.cch.momentmark.app`，Activity package 仍为 `com.cch.momentmark`。 | 改 applicationId 会成为新 App 身份，旧本地数据不会迁移。 | 除非明确做数据迁移，不改 applicationId。 |
 | 低 | 内置字体的再发布许可尚未核验。 | 正式上架存在许可风险。 | 发布前核实字体许可，必要时替换为可再分发字体。 |
 
-推荐实施顺序：**J 三入口/导航骨架 → Moment 新模型与首页/表单/详情 → Task 数据层与副本地图 → 任务表单/勾选/跨日 → 回收站 30 天生命周期 → 本轮固定里程碑/分组/三格日期与日历视觉 → 清除旧首页/模板/拖拽遗留 → 后续 P1 提醒/重复/筛选**。
+推荐实施顺序：**按 `design.html` 屏幕编号逐页复刻 → 每页完成视觉回归与量化 → 完善该页真实逻辑与持久化 → 做跨页流程和重启验证 → 清理旧页面/模板/拖拽遗留 → 后续夜间主题、提醒、重复、搜索/筛选和装备库**。
 
 ## 9. 修改与验证清单
 
@@ -325,8 +326,8 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 
 ### 修改 UI 时
 
-- [ ] 读取本文件、`PRD.md`、`DESIGN_SYSTEM.md` 和对应的 `proposal_J*.html` 屏幕。
-- [ ] 以 J 最终设计的三入口、固定首页规则和页面层级为准；旧模板、Hero、拖拽排版只在设计稿明确保留时才迁移。
+- [ ] 读取本文件、`PRD.md`、`DESIGN_SYSTEM.md`、`AGENTS.md` 和 `design.html` 对应屏幕。
+- [ ] 以 `design.html` 的三入口、固定首页规则和页面层级为准；旧模板、Hero、拖拽排版只在当前设计明确保留时才迁移。
 - [ ] 新视觉值来自 token；若新增 token，同步 `DESIGN_SYSTEM.md`。
 - [ ] 检查 130%/200% 字体缩放、中文语义描述、触摸目标、边到边系统栏。
 - [ ] 跑 `assembleDebug`；涉及交互再跑对应 Compose 测试或真机检查。
@@ -342,9 +343,17 @@ J 最终设计的卡片需要一个集中展示投影，保证标题、日期、
 - [ ] 编辑不会意外修改 `pinnedOrder`、`deletedAt`、Task 完成状态或已确认需要迁移的详情数据。
 - [ ] 清楚报告 JVM、模拟器、真机和未验证范围，不能只报告“构建成功”。
 
+### 视觉复刻时
+
+- [ ] 为当前屏幕建立固定 fixture、viewport、device scale factor、字体和截图边界记录。
+- [ ] 生成原始 `design.html` 截图、当前实现截图、差异图和量化报告。
+- [ ] 记录 Pixel Difference Rate、SSIM、颜色误差、元素位置/尺寸/间距/边框/硬影偏差和字体属性偏差。
+- [ ] 默认要求 Pixel Difference Rate < 1%、SSIM > 0.95；未达标必须迭代或记录有证据的例外。
+- [ ] 视觉通过后，单独验证真实数据流、交互、重启、大字体、系统栏 inset 和 TalkBack；不得用截图或构建结果代替逻辑/设备验证。
+
 ### P2 重新引入模板/装备库时
 
 - [ ] 定义新的 Moment/Task 展示投影，不使用静态示例内容。
 - [ ] 只有 P2 已确认时才接入模板目录、选择器、分发器和预览页。
 - [ ] 不因旧 `TemplateCatalog` 存在而恢复旧模板或 Small/Wide 自由网格。
-- [ ] 验证与 J 最终首页布局兼容的 span、滚动性能和无障碍语义。
+- [ ] 验证与 `design.html` 当前首页布局兼容的 span、滚动性能和无障碍语义。
