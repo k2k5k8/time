@@ -6,8 +6,15 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * 开发期种子时刻，镜像 proposal_J_final ① 首页排布，仅 debug 构建空库时写入。
- * 不是业务真相；仅供 debug 空库演示，release 不写入。
+ * 首页默认事件：新安装首次启动即注入的初始内容（镜像 design.html 第①屏首页排布），
+ * 同时兼作 DEBUG 视觉回归 fixture（`debug.momentmark.seed samples` + 冻结时钟 2026-08-28）。
+ *
+ * 注入仅发生一次：首页 ViewModel 在 DataStore 一次性标记 `default_moments_seeded`
+ * 未置位且数据库为空时才写入，随后落标记。此后这些事件完全等同用户自己创建的数据，
+ * 可自由编辑标题/故事/日期、置顶排序、封印删除；删除（含全部净化）后不会在下次启动复活，
+ * 也不会被每次启动的清理逻辑抹掉。
+ * 这些 id 使用保留的 `sample-` 前缀命名空间：仅首次注入前做一次性清理，
+ * 用于清除历史开发期残留的旧示例行（用户数据 id 为 UUID，不会命中）。
  */
 object SampleMoments {
 
@@ -32,17 +39,17 @@ object SampleMoments {
             updatedAt = 0,
         ),
         Moment(
-            id = "sample-xiaoman",
-            title = "和小满在一起 💞",
-            note = "2023.05.20，在学校樱花树下告白成功 🌸 从这天起，每天 +1。",
+            id = "sample-tiantian",
+            title = "和甜甜在一起 💞",
+            note = "西安➡️天水➡️宝鸡➡️爱情",
             creationDirection = MomentDirection.PAST_ACHIEVEMENT,
-            anchorDate = LocalDate.of(2023, 5, 20),
+            anchorDate = LocalDate.of(2026, 5, 4),
             groupId = "生活",
             rarity = 3,
             isPinned = true,
             pinnedOrder = 1,
             deletedAt = null,
-            createdAt = millisOf(LocalDate.of(2023, 5, 20)),
+            createdAt = millisOf(LocalDate.of(2026, 5, 4)),
             updatedAt = 0,
         ),
         Moment(
@@ -74,18 +81,46 @@ object SampleMoments {
             updatedAt = 0,
         ),
         Moment(
-            id = "sample-old-phone",
-            title = "旧手机退役 🏆",
-            note = "陪了四年的老伙计功成身退。",
+            id = "sample-paper-opening",
+            title = "论文开题",
+            note = "",
             creationDirection = MomentDirection.PAST_ACHIEVEMENT,
-            anchorDate = LocalDate.of(2024, 3, 2),
-            groupId = "生活",
+            anchorDate = LocalDate.of(2026, 8, 15),
+            groupId = "学业",
             rarity = 1,
             isPinned = false,
             pinnedOrder = null,
             deletedAt = null,
-            createdAt = millisOf(LocalDate.of(2024, 3, 2)),
+            createdAt = millisOf(LocalDate.of(2026, 8, 15)),
             updatedAt = 0,
+        ),
+        Moment(
+            id = "sample-enrollment", title = "入学报到", note = "",
+            creationDirection = MomentDirection.PAST_ACHIEVEMENT,
+            anchorDate = LocalDate.of(2026, 7, 1), groupId = "学业", rarity = 2,
+            isPinned = false, pinnedOrder = null, deletedAt = null,
+            createdAt = millisOf(LocalDate.of(2026, 7, 1)), updatedAt = 0,
+        ),
+        Moment(
+            id = "sample-offer", title = "拿到 offer", note = "",
+            creationDirection = MomentDirection.PAST_ACHIEVEMENT,
+            anchorDate = LocalDate.of(2026, 5, 8), groupId = "工作", rarity = 3,
+            isPinned = false, pinnedOrder = null, deletedAt = null,
+            createdAt = millisOf(LocalDate.of(2026, 5, 8)), updatedAt = 0,
+        ),
+        Moment(
+            id = "sample-defense", title = "论文答辩", note = "",
+            creationDirection = MomentDirection.FUTURE_COUNTDOWN,
+            anchorDate = LocalDate.of(2026, 11, 8), groupId = "学业", rarity = 2,
+            isPinned = false, pinnedOrder = null, deletedAt = null,
+            createdAt = millisOf(LocalDate.of(2026, 8, 9)), updatedAt = 0,
+        ),
+        Moment(
+            id = "sample-trip", title = "毕业旅行", note = "",
+            creationDirection = MomentDirection.FUTURE_COUNTDOWN,
+            anchorDate = LocalDate.of(2027, 2, 6), groupId = "旅行", rarity = 2,
+            isPinned = false, pinnedOrder = null, deletedAt = null,
+            createdAt = millisOf(LocalDate.of(2026, 7, 15)), updatedAt = 0,
         ),
     )
 }

@@ -1,0 +1,131 @@
+[
+  {
+    "file": "design.png",
+    "size": [
+      628,
+      1296
+    ],
+    "panel_runs": [
+      {
+        "top": 63,
+        "bottom": 144,
+        "height": 82
+      },
+      {
+        "top": 177,
+        "bottom": 288,
+        "height": 112
+      },
+      {
+        "top": 313,
+        "bottom": 363,
+        "height": 51
+      },
+      {
+        "top": 396,
+        "bottom": 458,
+        "height": 63
+      },
+      {
+        "top": 465,
+        "bottom": 520,
+        "height": 56
+      },
+      {
+        "top": 527,
+        "bottom": 548,
+        "height": 22
+      },
+      {
+        "top": 581,
+        "bottom": 661,
+        "height": 81
+      },
+      {
+        "top": 666,
+        "bottom": 746,
+        "height": 81
+      },
+      {
+        "top": 751,
+        "bottom": 831,
+        "height": 81
+      },
+      {
+        "top": 836,
+        "bottom": 916,
+        "height": 81
+      },
+      {
+        "top": 1178,
+        "bottom": 1197,
+        "height": 20
+      },
+      {
+        "top": 1268,
+        "bottom": 1295,
+        "height": 28
+      }
+    ],
+    "nav_top": 1268,
+    "nav_bottom": 1295,
+    "nav_height": 28
+  },
+  {
+    "file": "current-implementation.png",
+    "size": [
+      628,
+      1296
+    ],
+    "panel_runs": [
+      {
+        "top": 63,
+        "bottom": 146,
+        "height": 84
+      },
+      {
+        "top": 179,
+        "bottom": 290,
+        "height": 112
+      },
+      {
+        "top": 315,
+        "bottom": 368,
+        "height": 54
+      },
+      {
+        "top": 401,
+        "bottom": 464,
+        "height": 64
+      },
+      {
+        "top": 471,
+        "bottom": 527,
+        "height": 57
+      },
+      {
+        "top": 534,
+        "bottom": 555,
+        "height": 22
+      },
+      {
+        "top": 588,
+        "bottom": 960,
+        "height": 373
+      },
+      {
+        "top": 1178,
+        "bottom": 1197,
+        "height": 20
+      },
+      {
+        "top": 1268,
+        "bottom": 1295,
+        "height": 28
+      }
+    ],
+    "nav_top": 1268,
+    "nav_bottom": 1295,
+    "nav_height": 28
+  }
+]

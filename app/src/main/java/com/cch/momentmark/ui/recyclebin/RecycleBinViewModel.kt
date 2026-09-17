@@ -129,13 +129,12 @@ class RecycleBinViewModelFactory(context: Context) : ViewModelProvider.Factory {
         require(modelClass.isAssignableFrom(RecycleBinViewModel::class.java)) {
             "Unknown ViewModel class: ${modelClass.name}"
         }
-        val container = AppContainer(applicationContext)
+        val container = AppContainer.get(applicationContext)
         return RecycleBinViewModel(
             momentRepository = container.momentRepository,
             taskRepository = container.taskRepository,
             settingsStore = container.settingsStore,
             clock = container.clock,
-            onClearedCallback = container::close,
         ) as T
     }
 }

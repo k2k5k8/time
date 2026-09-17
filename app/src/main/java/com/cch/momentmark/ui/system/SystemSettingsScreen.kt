@@ -1,190 +1,439 @@
 package com.cch.momentmark.ui.system
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.cch.momentmark.ui.app.MainTab
 import com.cch.momentmark.ui.components.PageTitlePanel
+import com.cch.momentmark.ui.components.PixelBottomNav
+import com.cch.momentmark.ui.components.PixelDashedDivider
 import com.cch.momentmark.ui.components.PixelPanel
-import com.cch.momentmark.ui.components.PixelTextInput
-import com.cch.momentmark.ui.components.PixelConfirmationDialog
 import com.cch.momentmark.ui.recyclebin.RecycleBinUiState
+import com.cch.momentmark.ui.theme.LocalMmExtendedColors
+import com.cch.momentmark.ui.theme.MmGoldDark
 import com.cch.momentmark.ui.theme.MomentMarkTokens
-import com.cch.momentmark.data.repository.Group
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import com.cch.momentmark.ui.theme.ThemeMode
 
-/** J ⑪ 的轻量系统设置入口；只承载 P0 回收站与自动净化设置。 */
+/**
+ * J ⑨ 设置 SYSTEM · 昼（design.html 第⑨屏）。
+ *
+ * 结构：页题 → 冒险者卡（头像/LV/XP 条）→ 显示模式三态 → 设置列表
+ * （战斗音效/命中震动/封印之地/关于刻间）→ footer → 底部导航（日子簿选中）。
+ *
+ * 后端未设计的项（冒险者等级/连续天数/XP、音效、震动、关于）仅静态展示；
+ * 已有逻辑的项（封印之地计数与入口、显示模式 ThemeMode）接入真实回调。
+ */
 @Composable
 fun SystemSettingsScreen(
     recycleBinState: RecycleBinUiState,
     onBack: () -> Unit,
     onOpenRecycleBin: () -> Unit,
-    onAutoPurgeChanged: (Boolean) -> Unit,
-    groupState: GroupUiState = GroupUiState(),
-    onCreateGroup: (String) -> Unit = {},
-    onRenameGroup: (String, String) -> Unit = { _, _ -> },
-    onDissolveGroup: (String) -> Unit = {},
-    onReorderGroups: (List<String>) -> Unit = {},
     modifier: Modifier = Modifier,
+    selectedTab: MainTab = MainTab.DAYBOOK,
+    onTabSelected: (MainTab) -> Unit = {},
+    onNewMoment: () -> Unit = {},
+    themeMode: ThemeMode? = null,
+    onThemeModeChanged: (ThemeMode) -> Unit = {},
+    versionName: String = "v0.1.0",
 ) {
     Column(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = MomentMarkTokens.SpacePage, vertical = MomentMarkTokens.SpaceCard),
-        verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard),
+            .background(MaterialTheme.colorScheme.background),
     ) {
-        PageTitlePanel("◂ 系统设置", "OPTIONS")
-        SettingsRow("◂ 返回日子簿", "返回日子簿", onBack)
-        PixelPanel(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.fillMaxWidth()) {
-                SettingsListRow(
-                    label = "🗑 封印之地（回收站）",
-                    description = "打开封印之地",
-                    trailing = "${recycleBinState.items.size} 件 ›",
-                    onClick = onOpenRecycleBin,
-                    divider = true,
+        Column(
+            Modifier
+                .weight(1f)
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            // design `.statusbar{padding:11px 18px 5px;font-size:11px mono/800;color:var(--ink-2)}`
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 18.dp, end = 18.dp, top = 11.dp, bottom = 5.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "♥×3",
+                    style = monoStyle(fontSize = 11.sp, lineHeight = 14.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                SettingsListRow(
-                    label = "30 天后自动净化",
-                    description = "切换 30 天后自动净化",
-                    trailing = if (recycleBinState.autoPurgeEnabled) "[x] ON" else "[ ] OFF",
-                    onClick = { onAutoPurgeChanged(!recycleBinState.autoPurgeEnabled) },
+                Text(
+                    text = "SYSTEM",
+                    style = monoStyle(fontSize = 11.sp, lineHeight = 14.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        GroupManagementPanel(groupState, onCreateGroup, onRenameGroup, onDissolveGroup, onReorderGroups)
-        Text(
-            "▸ 自动净化默认关闭。开启后，仅在下一次打开 App 时清理已封存满 30 天的条目；不会后台删除。",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = MomentMarkTokens.SpaceUnit),
-        )
-        recycleBinState.errorMessage?.let { Text("⚠ $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
-    }
-}
-
-@Composable
-private fun GroupManagementPanel(state: GroupUiState, onCreate: (String) -> Unit, onRename: (String, String) -> Unit, onDissolve: (String) -> Unit, onReorder: (List<String>) -> Unit) {
-    var draft by remember { mutableStateOf("") }
-    var editingId by remember { mutableStateOf<String?>(null) }
-    var editingDraft by remember { mutableStateOf("") }
-    var confirmGroup by remember { mutableStateOf<Group?>(null) }
-    PixelPanel(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner), verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCompact)) {
-            Text("▸ 队伍编成 GROUPS · ${state.groups.size}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { contentDescription = "队伍编成管理，当前 ${state.groups.size} 组" })
-            state.groups.forEachIndexed { index, group ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("▰ ${group.name}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    if (index > 0) Text("↑", modifier = Modifier.clickable { onReorder(state.groups.map { it.id }.toMutableList().apply { add(index - 1, removeAt(index)) }) }.padding(MomentMarkTokens.SpaceCompact))
-                    if (index < state.groups.lastIndex) Text("↓", modifier = Modifier.clickable { onReorder(state.groups.map { it.id }.toMutableList().apply { add(index + 1, removeAt(index)) }) }.padding(MomentMarkTokens.SpaceCompact))
-                    Text("✎", style = MaterialTheme.typography.labelMedium, modifier = Modifier.semantics { contentDescription = "改名 ${group.name}" }.clickable { editingId = group.id; editingDraft = group.name }.padding(MomentMarkTokens.SpaceCompact))
-                    Text("✕", style = MaterialTheme.typography.labelMedium, modifier = Modifier.semantics { contentDescription = "解散 ${group.name}" }.clickable { confirmGroup = group }.padding(MomentMarkTokens.SpaceCompact))
-                }
-                if (editingId == group.id) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCompact)) {
-                        PixelTextInput("", editingDraft, "分组名称", "改名输入", { editingDraft = it }, Modifier.weight(1f), singleLine = true)
-                        PixelPanel(Modifier.clickable { onRename(group.id, editingDraft); editingId = null }) { Text("保存", modifier = Modifier.padding(MomentMarkTokens.SpaceCompact)) }
-                    }
-                }
+            // design `.pagetitle{margin:0 12px 10px}` —— 无返回箭头（⑨ 设置页题纯标题）。
+            PageTitlePanel(
+                title = "系统设置",
+                hud = "OPTIONS",
+                modifier = Modifier.padding(horizontal = MomentMarkTokens.SettingsContentPaddingHorizontal),
+            )
+            Spacer(Modifier.height(MomentMarkTokens.SpaceCard))
+            Column(
+                Modifier.padding(horizontal = MomentMarkTokens.SettingsContentPaddingHorizontal),
+                verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SettingsContentGap),
+            ) {
+                AdventurerCard()
+                DisplayModePanel(
+                    themeMode = themeMode ?: ThemeMode.SYSTEM,
+                    onThemeModeChanged = onThemeModeChanged,
+                )
+                SettingsListPanel(
+                    recycleBinCount = recycleBinState.items.size,
+                    onOpenRecycleBin = onOpenRecycleBin,
+                    versionName = versionName,
+                )
+                Text(
+                    text = "MOMENT MARK · MADE WITH ♥ · SAVE FILE LOCAL",
+                    style = monoStyle(
+                        fontSize = MomentMarkTokens.SettingsFooterFontSize,
+                        lineHeight = MomentMarkTokens.SettingsFooterLineHeight,
+                        letterSpacing = MomentMarkTokens.SettingsFooterLetterSpacing,
+                    ),
+                    color = LocalMmExtendedColors.current.labelTertiary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCompact), verticalAlignment = Alignment.CenterVertically) {
-                PixelTextInput(label = "", value = draft, placeholder = "新建分组", contentDescription = "新建分组名称", onValueChange = { draft = it }, singleLine = true, modifier = Modifier.weight(1f))
-                PixelPanel(Modifier.weight(0.5f).clickable { onCreate(draft); draft = "" }) { Text("＋ 新建", modifier = Modifier.padding(MomentMarkTokens.SpaceCompact)) }
-            }
-            state.errorMessage?.let { Text("⚠ $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall) }
+            Spacer(Modifier.height(MomentMarkTokens.SettingsBottomSpacer))
         }
-    }
-    confirmGroup?.let { group ->
-        PixelConfirmationDialog(
-            title = "解散「${group.name}」？",
-            message = "只解除条目归属，Moment/Task 不会删除。",
-            confirmLabel = "确认解散",
-            onConfirm = { onDissolve(group.id); confirmGroup = null },
-            onDismiss = { confirmGroup = null },
+        PixelBottomNav(
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+            onNewMoment = onNewMoment,
         )
     }
 }
 
+// ── 冒险者卡 ──────────────────────────────────────────────
+
 @Composable
-private fun SettingsRow(
-    label: String,
-    description: String,
-    onClick: () -> Unit,
-    trailing: String? = null,
-) {
+private fun AdventurerCard() {
     PixelPanel(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = description }
-            .clickable(role = Role.Button, onClick = onClick),
-        shadowColor = MaterialTheme.colorScheme.outline,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = MomentMarkTokens.SettingsAdventurerPaddingVertical,
+                    horizontal = MomentMarkTokens.SettingsAdventurerPaddingHorizontal,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SettingsAdventurerGap),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-            trailing?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary) }
+            // 头像 `width:52px;height:52px;background:var(--gold-n);border:3px;font-size:24px`
+            // light-preview 不覆盖 gold-n 背景，故渲染为 #FFC53D（MmGoldDark），非昼间 tertiary #F5B301。
+            Box(
+                Modifier
+                    .size(MomentMarkTokens.SettingsAvatarSize)
+                    .background(MmGoldDark)
+                    .border(MomentMarkTokens.PxBorderWidth, MaterialTheme.colorScheme.outline),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "🧙",
+                    fontSize = MomentMarkTokens.SettingsAvatarFontSize,
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "冒险者 · cch",
+                    style = TextStyle(
+                        fontSize = MomentMarkTokens.SettingsAdventurerTitleFontSize,
+                        lineHeight = MomentMarkTokens.SettingsAdventurerTitleLineHeight,
+                        fontWeight = FontWeight.ExtraBold,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(MomentMarkTokens.SettingsLvTopGap))
+                Text(
+                    text = "LV.07 · 连续打卡 12 天 🔥",
+                    style = monoStyle(
+                        fontSize = MomentMarkTokens.SettingsLvFontSize,
+                        lineHeight = MomentMarkTokens.SettingsLvLineHeight,
+                    ),
+                    color = LocalMmExtendedColors.current.goldInk,
+                )
+                Spacer(Modifier.height(MomentMarkTokens.SettingsXpBarTopGap))
+                SettingsXpBar(filledCells = 4)
+                Spacer(Modifier.height(MomentMarkTokens.SettingsExpTopGap))
+                Text(
+                    text = "EXP 61% → LV.08",
+                    style = monoStyle(
+                        fontSize = MomentMarkTokens.SettingsExpFontSize,
+                        lineHeight = MomentMarkTokens.SettingsExpLineHeight,
+                    ),
+                    color = LocalMmExtendedColors.current.labelTertiary,
+                )
+            }
         }
     }
 }
 
+/** 设置页专用 8 格 XP 条（空格用 background 色，与 design `.light-preview .xpbar .cell:not(.fill)` 一致）。 */
 @Composable
-private fun SettingsListRow(
-    label: String,
-    description: String,
-    trailing: String,
-    onClick: () -> Unit,
-    divider: Boolean = false,
-) {
-    val separatorColor = MaterialTheme.colorScheme.outlineVariant
+private fun SettingsXpBar(filledCells: Int) {
+    val count = MomentMarkTokens.SettingsXpCellCount
     Row(
         Modifier
             .fillMaxWidth()
-            .semantics { contentDescription = description }
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = MomentMarkTokens.SpaceInner, vertical = MomentMarkTokens.SpaceCompact)
-            .drawBehind {
-                if (divider) {
-                    drawLine(
-                        color = separatorColor,
-                        start = Offset(0f, size.height),
-                        end = Offset(size.width, size.height),
-                        strokeWidth = MomentMarkTokens.PxThinBorderWidth.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(
-                            floatArrayOf(MomentMarkTokens.SpaceUnit.toPx(), MomentMarkTokens.SpaceUnit.toPx()),
-                        ),
-                    )
-                }
-            },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+            .height(MomentMarkTokens.XpCellHeight),
+        horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.XpCellGap),
     ) {
-        Text(label, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-        Text(trailing, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+        repeat(count) { index ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(MomentMarkTokens.XpCellHeight)
+                    .background(
+                        if (index < filledCells) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.background
+                        },
+                    )
+                    .border(MomentMarkTokens.PxThinBorderWidth, MaterialTheme.colorScheme.outline),
+            )
+        }
     }
 }
+
+// ── 显示模式 ──────────────────────────────────────────────
+
+@Composable
+private fun DisplayModePanel(
+    themeMode: ThemeMode,
+    onThemeModeChanged: (ThemeMode) -> Unit,
+) {
+    PixelPanel(
+        modifier = Modifier.fillMaxWidth(),
+        shadowColor = Color.Transparent,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = MomentMarkTokens.SettingsDisplayPaddingVertical,
+                    horizontal = MomentMarkTokens.SettingsDisplayPaddingHorizontal,
+                ),
+        ) {
+            Text(
+                text = "▸ 显示模式 DISPLAY",
+                style = monoStyle(
+                    fontSize = MomentMarkTokens.SettingsDisplayLabelFontSize,
+                    lineHeight = MomentMarkTokens.SettingsDisplayLabelLineHeight,
+                    letterSpacing = MomentMarkTokens.SettingsDisplayLabelLetterSpacing,
+                ),
+                color = LocalMmExtendedColors.current.labelTertiary,
+            )
+            Spacer(Modifier.height(MomentMarkTokens.SettingsDisplayRowTopGap))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SettingsDisplayRowGap),
+            ) {
+                DisplayModeButton(
+                    label = "昼间地图",
+                    selected = themeMode == ThemeMode.LIGHT,
+                    onClick = { onThemeModeChanged(ThemeMode.LIGHT) },
+                    modifier = Modifier.weight(1f),
+                )
+                DisplayModeButton(
+                    label = "洞窟",
+                    selected = themeMode == ThemeMode.DARK,
+                    onClick = { onThemeModeChanged(ThemeMode.DARK) },
+                    modifier = Modifier.weight(1f),
+                )
+                DisplayModeButton(
+                    label = "跟随系统 ✓",
+                    selected = themeMode == ThemeMode.SYSTEM,
+                    onClick = { onThemeModeChanged(ThemeMode.SYSTEM) },
+                    modifier = Modifier.weight(MomentMarkTokens.SettingsDisplaySelectedWeight),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DisplayModeButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val bgColor = if (selected) MmGoldDark else MaterialTheme.colorScheme.surface
+    val borderColor = if (selected) MmGoldDark else MaterialTheme.colorScheme.outline
+    val textColor = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    PixelPanel(
+        modifier = modifier
+            .semantics {
+                contentDescription = label
+                role = Role.Button
+            }
+            .clickable(role = Role.Button, onClick = onClick),
+        backgroundColor = bgColor,
+        borderColor = borderColor,
+        shadowColor = Color.Transparent,
+    ) {
+        Text(
+            text = label,
+            style = monoStyle(
+                fontSize = MomentMarkTokens.SettingsDisplayButtonFontSize,
+                lineHeight = MomentMarkTokens.SettingsDisplayButtonLineHeight,
+            ),
+            color = textColor,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = MomentMarkTokens.SettingsDisplayButtonPaddingVertical),
+        )
+    }
+}
+
+// ── 设置列表 ──────────────────────────────────────────────
+
+@Composable
+private fun SettingsListPanel(
+    recycleBinCount: Int,
+    onOpenRecycleBin: () -> Unit,
+    versionName: String,
+) {
+    PixelPanel(
+        modifier = Modifier.fillMaxWidth(),
+        shadowColor = Color.Transparent,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(MomentMarkTokens.SettingsListPanelPadding),
+        ) {
+            SettingsListItem(
+                label = "🔊 战斗音效",
+                trailing = "[ ] OFF",
+                onClick = {},
+                showDivider = true,
+            )
+            SettingsListItem(
+                label = "📳 命中震动",
+                trailing = "[x] ON",
+                trailingColor = MaterialTheme.colorScheme.primary,
+                onClick = {},
+                showDivider = true,
+            )
+            SettingsListItem(
+                label = "🗑 封印之地（回收站）",
+                trailing = "$recycleBinCount 件 ›",
+                trailingColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = onOpenRecycleBin,
+                showDivider = true,
+            )
+            SettingsListItem(
+                label = "ℹ 关于刻间",
+                trailing = "$versionName ›",
+                trailingColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = {},
+                showDivider = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsListItem(
+    label: String,
+    trailing: String,
+    onClick: () -> Unit,
+    showDivider: Boolean,
+    trailingColor: Color = LocalMmExtendedColors.current.labelTertiary,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = label
+                role = Role.Button
+            }
+            .clickable(role = Role.Button, onClick = onClick),
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = MomentMarkTokens.SettingsRowPaddingVertical,
+                    horizontal = MomentMarkTokens.SettingsRowPaddingHorizontal,
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = TextStyle(
+                    fontSize = MomentMarkTokens.SettingsRowLabelFontSize,
+                    lineHeight = MomentMarkTokens.SettingsRowLabelLineHeight,
+                    fontWeight = FontWeight.Bold,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = trailing,
+                style = monoStyle(
+                    fontSize = MomentMarkTokens.SettingsRowTrailingFontSize,
+                    lineHeight = MomentMarkTokens.SettingsRowTrailingLineHeight,
+                ),
+                color = trailingColor,
+            )
+        }
+        if (showDivider) {
+            PixelDashedDivider()
+        }
+    }
+}
+
+// ── 工具 ──────────────────────────────────────────────────
+
+/** mono 字体 + ExtraBold 的统一 TextStyle 工厂（design.html `.mono{font-weight:700}`）。 */
+private fun monoStyle(
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    lineHeight: androidx.compose.ui.unit.TextUnit,
+    letterSpacing: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+): TextStyle = TextStyle(
+    fontFamily = FontFamily.Monospace,
+    fontWeight = FontWeight.ExtraBold,
+    fontSize = fontSize,
+    lineHeight = lineHeight,
+    letterSpacing = letterSpacing,
+)

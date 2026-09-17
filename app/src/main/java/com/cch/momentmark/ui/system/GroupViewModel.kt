@@ -30,8 +30,8 @@ class GroupViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val appContext = context.applicationContext
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         require(modelClass.isAssignableFrom(GroupViewModel::class.java))
-        val container = AppContainer(appContext)
+        val container = AppContainer.get(appContext)
         @Suppress("UNCHECKED_CAST")
-        return GroupViewModel(container.groupRepository, container::close) as T
+        return GroupViewModel(container.groupRepository) as T
     }
 }

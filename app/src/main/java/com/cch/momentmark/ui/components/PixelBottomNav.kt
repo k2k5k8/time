@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cch.momentmark.ui.app.MainTab
 import com.cch.momentmark.ui.theme.LocalMomentMarkNight
+import com.cch.momentmark.ui.theme.MmNoFontPadding
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 
 /** 选中项硬影透明度：proposal_J_final .nav .item.on 的 rgba(43,38,32,.4)。 */
@@ -70,9 +71,10 @@ fun PixelBottomNav(
             Modifier
                 .navigationBarsPadding()
                 .padding(
-                    top = MomentMarkTokens.SpaceCard,
-                    start = MomentMarkTokens.SpaceInner,
-                    end = MomentMarkTokens.SpaceInner,
+                    top = MomentMarkTokens.NavPaddingTop,
+                    bottom = MomentMarkTokens.NavPaddingBottom,
+                    start = MomentMarkTokens.NavPaddingHorizontal,
+                    end = MomentMarkTokens.NavPaddingHorizontal,
                 ),
             horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit * 2),
         ) {
@@ -197,12 +199,15 @@ private fun PixelNavItem(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium.copy(platformStyle = MmNoFontPadding),
             color = contentColor,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = MomentMarkTokens.SpaceUnit * 2),
+                .padding(
+                    top = MomentMarkTokens.NavItemPaddingTop,
+                    bottom = MomentMarkTokens.NavItemPaddingBottom,
+                ),
         )
     }
 }

@@ -1,18 +1,31 @@
 package com.cch.momentmark.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
+import com.cch.momentmark.R
 import androidx.compose.ui.unit.sp
 
 /**
- * 与网页基准一致的角色分工：标题/正文使用系统中文 sans，HUD 固定等宽。
- * 仓库内的第三方中文字体尚未完成再发布许可核验，因此不在发布 UI 中引用它们。
+ * 全局正文保持 Android SansSerif；HTML ①屏的近似字体只由首页显式引用，避免影响其他页面。
  */
 val MmDisplayFont = FontFamily.SansSerif
 val MmBodyFont = FontFamily.SansSerif
 val MmHudFont = FontFamily.Monospace
+val MmHomeDisplayFont = FontFamily(Font(R.font.lantinghei_sc_heavy, weight = FontWeight.ExtraBold))
+
+/**
+ * 关闭 Compose 默认的 `includeFontPadding`。
+ *
+ * `design.html` 里每个文字块的行盒高度 = 浏览器 `line-height:normal` 的实测值（已逐项登记为
+ * `*LineHeight` token）；Compose 默认会在这个行盒外再补一份字体 ascent/descent 留白，
+ * 使盒高比 token 多 1–2dp，逐块累积成整页下移（⑤ 屏实测：月标题面板 +1dp、状态栏 +2dp）。
+ * 因此凡是以「HTML 行盒 = lineHeight token」为前提复刻的文字，都应套用本样式。
+ */
+val MmNoFontPadding = PlatformTextStyle(includeFontPadding = false)
 
 /**
  * 字阶：像素冒险用超粗标题 + mono HUD 标签营造游戏感。

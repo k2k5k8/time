@@ -58,4 +58,8 @@ interface MomentDao {
 
     @Query("UPDATE moments SET groupId = NULL WHERE groupId = :groupId")
     suspend fun clearGroup(groupId: String)
+
+    /** 一次性迁移：清理历史开发期种子示例（id 保留 `sample-` 前缀命名空间；用户数据 id 为 UUID，不会命中）。 */
+    @Query("DELETE FROM moments WHERE id LIKE 'sample-%'")
+    suspend fun deleteSamples()
 }

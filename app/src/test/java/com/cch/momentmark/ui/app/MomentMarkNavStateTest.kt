@@ -148,4 +148,20 @@ class MomentMarkNavStateTest {
         assertEquals(OverlayScreen.TASK_FORM, restored?.overlay)
         assertEquals("task-42", restored?.editingTaskId)
     }
+
+    @Test
+    fun `Saver 缺少详情 ID 时丢弃详情目的地`() {
+        val restored = MomentMarkNavState.Saver.restore(listOf("HOME", "MOMENT_DETAIL", ""))
+
+        assertNull(restored?.overlay)
+        assertNull(restored?.selectedMomentId)
+    }
+
+    @Test
+    fun `Saver 遇到未知目的地时回到安全页签`() {
+        val restored = MomentMarkNavState.Saver.restore(listOf("UNKNOWN", "UNKNOWN_OVERLAY"))
+
+        assertEquals(MainTab.HOME, restored?.selectedTab)
+        assertNull(restored?.overlay)
+    }
 }

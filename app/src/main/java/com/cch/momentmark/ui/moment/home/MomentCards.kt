@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,16 +25,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import com.cch.momentmark.domain.model.MomentCardState
 import com.cch.momentmark.domain.model.TaskCardState
 import com.cch.momentmark.domain.model.TaskType
 import com.cch.momentmark.domain.time.EventTimeStatus
 import com.cch.momentmark.ui.components.AchievementFrame
 import com.cch.momentmark.ui.components.PixelHpBar
+import com.cch.momentmark.ui.components.resolveHpAccentColor
+import com.cch.momentmark.ui.components.PixelIconSlot
 import com.cch.momentmark.ui.components.PixelBadge
 import com.cch.momentmark.ui.components.PixelBadgeVariant
 import com.cch.momentmark.ui.components.PixelPanel
+import com.cch.momentmark.ui.components.PixelStarRating
+import com.cch.momentmark.ui.components.MomentMetaRow
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
+import com.cch.momentmark.ui.theme.MmHomeDisplayFont
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 import java.time.format.DateTimeFormatter
 import java.time.LocalDate
@@ -93,12 +102,12 @@ fun MomentPinnedCard(
  */
 @Composable
 fun HomeAchievementCard(
-    title: String = "和小满在一起 💞",
-    days: Long = 1196,
-    anchorDate: LocalDate = LocalDate.of(2023, 5, 20),
-    milestoneLabel: String? = "1200 天",
-    milestoneDaysRemaining: Long? = 4,
-    milestoneProgress: Float? = 0.99f,
+    title: String = "和甜甜在一起 💞",
+    days: Long = 136,
+    anchorDate: LocalDate = LocalDate.of(2026, 5, 4),
+    milestoneLabel: String? = "一周年",
+    milestoneDaysRemaining: Long? = 229,
+    milestoneProgress: Float? = 0.37f,
     isPinned: Boolean = true,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -107,6 +116,9 @@ fun HomeAchievementCard(
     val extended = LocalMmExtendedColors.current
     val frameModifier = modifier
         .fillMaxWidth()
+        // aspectRatio 已按兰亭黑实际行高调整为 290/150，比 DESIGN 142dp 多 8dp 容纳数字行，
+        // meta 行（下一里程碑 X 天）距 bottom border 12.5dp，与 DESIGN 一致。
+        .aspectRatio(MomentMarkTokens.HomeAchievementAspectRatio)
         .clickable(role = Role.Button, onClick = onClick)
         .semantics(mergeDescendants = true) {
             contentDescription = semanticDescription
@@ -140,35 +152,38 @@ fun HomeAchievementCard(
                 }
             }
             Row(
-                verticalAlignment = Alignment.Bottom,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth().padding(top = MomentMarkTokens.HomeAchievementMainGap),
             ) {
                 Column {
                     Text(
                         text = title,
-                        style = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementTitleFontSize, lineHeight = 17.sp),
+                        style = TextStyle(fontFamily = MmHomeDisplayFont, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementTitleFontSize, lineHeight = 17.sp),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Row(verticalAlignment = Alignment.Bottom) {
+                    Row {
                         Text(
                             text = days.toString(),
-                            style = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementNumberFontSize, lineHeight = MomentMarkTokens.HomeAchievementNumberLineHeight),
+                            style = TextStyle(fontFamily = MmHomeDisplayFont, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementNumberFontSize, lineHeight = MomentMarkTokens.HomeAchievementNumberLineHeight),
                             color = extended.goldInk,
+                            modifier = Modifier.alignByBaseline(),
                         )
                         Text(
                             text = " 天",
-                            style = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = MomentMarkTokens.HomeAchievementUnitFontSize, lineHeight = 14.sp),
+                            style = TextStyle(fontFamily = MmHomeDisplayFont, fontWeight = FontWeight.ExtraBold, fontSize = MomentMarkTokens.HomeAchievementUnitFontSize, lineHeight = 14.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = MomentMarkTokens.HomeAchievementUnitBaselineOffset),
+                            modifier = Modifier
+                                .alignByBaseline()
+                                .padding(bottom = MomentMarkTokens.HomeAchievementUnitBaselineOffset),
                         )
                     }
                 }
                 Text(
                     text = "SINCE\n${anchorDate.format(CardDateFormatter)}",
-                    style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 11.sp),
+                    style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 9.sp, lineHeight = 11.sp),
                     color = extended.labelTertiary,
                     textAlign = TextAlign.End,
                 )
@@ -219,31 +234,31 @@ fun HomeMainQuestCard(
     val extended = LocalMmExtendedColors.current
     val hudStyle = TextStyle(
         fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = MomentMarkTokens.HomeMainQuestHudFontSize,
         lineHeight = MomentMarkTokens.HomeMainQuestHudLineHeight,
     )
     val titleStyle = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = MmHomeDisplayFont,
         fontWeight = FontWeight.ExtraBold,
         fontSize = MomentMarkTokens.HomeMainQuestTitleFontSize,
         lineHeight = MomentMarkTokens.HomeMainQuestTitleLineHeight,
     )
     val numberStyle = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = MmHomeDisplayFont,
         fontWeight = FontWeight.ExtraBold,
         fontSize = MomentMarkTokens.HomeMainQuestNumberFontSize,
         lineHeight = MomentMarkTokens.HomeMainQuestNumberLineHeight,
     )
     val unitStyle = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = MmHomeDisplayFont,
         fontWeight = FontWeight.ExtraBold,
         fontSize = MomentMarkTokens.HomeMainQuestUnitFontSize,
         lineHeight = MomentMarkTokens.HomeMainQuestUnitLineHeight,
     )
     val unlockStyle = TextStyle(
         fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         fontSize = MomentMarkTokens.HomeMainQuestHudFontSize,
         lineHeight = MomentMarkTokens.HomeMainQuestHudLineHeight,
     )
@@ -251,12 +266,17 @@ fun HomeMainQuestCard(
     PixelPanel(
         modifier = modifier
             .fillMaxWidth()
+            // aspectRatio 调整为 290/116，容纳兰亭黑 44sp 数字实际行高。
+            .aspectRatio(MomentMarkTokens.HomeMainQuestAspectRatio)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = semanticDescription
                     ?: "$title，还有 $days 天，${anchorDate.format(CardDateFormatter)}"
             },
         variant = com.cch.momentmark.ui.components.PixelPanelVariant.Emphasized,
+        // 描边盒必须撑满 aspectRatio 外框（DESIGN_SYSTEM §3.3）：边框若按内容高度 wrap，
+        // 硬影仍按外框全高绘制，不同屏宽/字体渲染下会出现「主体过小 + 悬空阴影」。
+        fillContent = true,
     ) {
         Column(
             Modifier
@@ -287,7 +307,7 @@ fun HomeMainQuestCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = MomentMarkTokens.HomeMainQuestMainGap),
-                verticalAlignment = Alignment.Bottom,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
@@ -336,8 +356,11 @@ fun HomeSmallCard(
     badgeLabel: String,
     badgeColor: Color,
     metadata: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
     progressFraction: Float? = null,
     progressColor: Color? = null,
+    iconKey: String? = null,
+    showBadgeAlongsideIcon: Boolean = false,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     semanticDescription: String? = null,
@@ -345,11 +368,14 @@ fun HomeSmallCard(
     PixelPanel(
         modifier = modifier
             .fillMaxWidth()
+            .aspectRatio(MomentMarkTokens.HomeSmallCardAspectRatio)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = semanticDescription ?: "$title，$value$unitLabel，$metadata"
             },
         variant = com.cch.momentmark.ui.components.PixelPanelVariant.Raised,
+        // 描边盒撑满 aspectRatio 外框，边框与硬影在任何屏宽/字体下严格对齐。
+        fillContent = true,
     ) {
         Column(
             Modifier
@@ -369,7 +395,7 @@ fun HomeSmallCard(
                 Text(
                     text = title,
                     style = TextStyle(
-                        fontFamily = FontFamily.SansSerif,
+                        fontFamily = MmHomeDisplayFont,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = MomentMarkTokens.HomeSmallCardTitleFontSize,
                         lineHeight = MomentMarkTokens.HomeSmallCardTitleLineHeight,
@@ -379,34 +405,43 @@ fun HomeSmallCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                PixelBadge(
-                    label = badgeLabel,
-                    color = badgeColor,
-                )
+                if (iconKey == null) {
+                    PixelBadge(label = badgeLabel, color = badgeColor)
+                } else {
+                    PixelIconSlot(
+                        iconKey = iconKey,
+                        iconColor = valueColor,
+                        showBackground = false,
+                        boxSize = MomentMarkTokens.HomeSmallCardIconSize,
+                        iconFontSize = MomentMarkTokens.HomeSmallCardIconFontSize,
+                    )
+                    if (showBadgeAlongsideIcon) {
+                        PixelBadge(label = badgeLabel, color = badgeColor)
+                    }
+                }
             }
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                modifier = Modifier.padding(top = MomentMarkTokens.HomeSmallCardTitleToNumberGap),
-            ) {
+            Row(modifier = Modifier.padding(top = MomentMarkTokens.HomeSmallCardTitleToNumberGap)) {
                 Text(
                     text = value,
                     style = TextStyle(
-                        fontFamily = FontFamily.SansSerif,
+                        fontFamily = MmHomeDisplayFont,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = MomentMarkTokens.HomeSmallCardNumberFontSize,
                         lineHeight = MomentMarkTokens.HomeSmallCardNumberLineHeight,
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = valueColor,
+                    modifier = Modifier.alignByBaseline(),
                 )
                 Text(
                     text = unitLabel,
                     style = TextStyle(
-                        fontFamily = FontFamily.SansSerif,
+                        fontFamily = MmHomeDisplayFont,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = MomentMarkTokens.HomeSmallCardUnitFontSize,
                         lineHeight = 12.sp,
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = valueColor,
+                    modifier = Modifier.alignByBaseline(),
                 )
             }
             progressFraction?.let { fraction ->
@@ -442,22 +477,26 @@ fun MomentQuestCard(
 ) {
     val badgeColor = if (card.isLimited) LocalMmExtendedColors.current.amber
     else MaterialTheme.colorScheme.secondary
+    val valueColor = card.hpFraction?.let { resolveHpAccentColor(it) }
+        ?: MaterialTheme.colorScheme.onSurface
     HomeSmallCard(
         title = card.title,
         value = if (card.status == EventTimeStatus.TODAY) "就是今天" else card.days.toString(),
-        unitLabel = if (card.status == EventTimeStatus.TODAY) "" else " 天",
+        unitLabel = if (card.status == EventTimeStatus.TODAY) "" else " 天后",
         badgeLabel = when (card.badgeKind()) {
             MomentBadgeKind.MAIN -> "◆"
             MomentBadgeKind.LIMITED -> "⧗"
             else -> "◇"
         },
         badgeColor = badgeColor,
+        valueColor = valueColor,
         metadata = "${if (card.status == EventTimeStatus.TODAY) "TODAY" else "DUE"} ${card.anchorDate.format(CardDateFormatter)}" +
             (card.groupId?.let { " · $it" } ?: ""),
         progressFraction = card.hpFraction,
         onClick = onClick,
         modifier = modifier,
         semanticDescription = card.accessibilityDescription(),
+        iconKey = card.groupIconKey(),
     )
 }
 
@@ -484,6 +523,8 @@ fun HomeTaskCard(
         onClick = {},
         modifier = modifier,
         semanticDescription = card.accessibilityDescription(),
+        iconKey = card.taskGroupIconKey(),
+        showBadgeAlongsideIcon = true,
     )
 }
 
@@ -510,56 +551,40 @@ fun MomentAchievementCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val extended = LocalMmExtendedColors.current
-    AchievementFrame(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) {
-                contentDescription = card.accessibilityDescription()
-            },
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(MomentMarkTokens.SpaceInner),
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit),
-        ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MomentBadge(kind = MomentBadgeKind.ACHIEVEMENT, color = extended.goldInk)
-                RarityStars(rarity = card.rarity)
-            }
-            Text(
-                text = card.title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            MomentNumberText(card = card, big = false, color = extended.goldInk)
-            card.nextMilestone?.let { milestone ->
-                PixelHpBar(
-                    fraction = milestone.progressFraction ?: 0f,
-                    fillColor = extended.goldInk,
-                    modifier = Modifier.padding(top = MomentMarkTokens.SpaceUnit),
-                )
-                Text(
-                    text = "下一里程碑 ${milestone.label} · 还有 ${milestone.daysRemaining} 天",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = extended.labelTertiary,
-                )
-            }
-            MomentMetaRow(
-                prefix = "SINCE",
-                dateText = card.anchorDate.format(CardDateFormatter),
-                groupId = card.groupId,
-            )
-        }
-    }
+    // 血条与数字同用「下一里程碑进度」的三段色（design.html .is-short/.is-medium/.is-long）。
+    val progress = card.nextMilestone?.progressFraction
+    val valueColor = progress?.let { resolveHpAccentColor(it) }
+        ?: MaterialTheme.colorScheme.onSurface
+    HomeSmallCard(
+        title = card.title,
+        value = card.days.toString(),
+        unitLabel = " 天了",
+        badgeLabel = "",
+        badgeColor = valueColor,
+        valueColor = valueColor,
+        metadata = "SINCE ${card.anchorDate.format(CardDateFormatter)}" + (card.groupId?.let { " · $it" } ?: ""),
+        progressFraction = progress,
+        iconKey = card.groupIconKey(),
+        onClick = onClick,
+        modifier = modifier,
+        semanticDescription = card.accessibilityDescription(),
+    )
+}
+
+private fun MomentCardState.groupIconKey(): String = when (groupId) {
+    "旅行" -> "travel"
+    "工作" -> "work"
+    "生活", "家庭" -> "heart"
+    "学业" -> "study"
+    else -> "default"
+}
+
+private fun TaskCardState.taskGroupIconKey(): String = when (groupId) {
+    "旅行" -> "travel"
+    "工作" -> "work"
+    "生活", "家庭" -> "heart"
+    "学业" -> "study"
+    else -> "default"
 }
 
 /** 大数字行：目标日当天显示「就是今天」，否则数字 + 单位文案。 */
@@ -611,44 +636,9 @@ private fun MomentBadge(kind: MomentBadgeKind, color: Color) {
     )
 }
 
-/** mono 元数据行：DUE/SINCE 日期 + 分组。 */
-@Composable
-private fun MomentMetaRow(prefix: String, dateText: String, groupId: String?) {
-    val meta = buildString {
-        append(prefix)
-        append(' ')
-        append(dateText)
-        if (!groupId.isNullOrBlank()) {
-            append(" · ")
-            append(groupId)
-        }
-    }
-    Text(
-        text = meta,
-        style = MaterialTheme.typography.labelSmall,
-        color = LocalMmExtendedColors.current.labelTertiary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
 /** 重要度星级：填充金色、空星弱化色，最多 3 星；null 不渲染。 */
 @Composable
 private fun RarityStars(rarity: Int?) {
     if (rarity == null) return
-    val filled = rarity.coerceIn(0, 3)
-    Row {
-        Text(
-            text = "★".repeat(filled),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.tertiary,
-        )
-        if (filled < 3) {
-            Text(
-                text = "★".repeat(3 - filled),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-        }
-    }
+    PixelStarRating(value = rarity, max = 3)
 }

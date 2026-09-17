@@ -3,10 +3,13 @@ package com.cch.momentmark.ui.recyclebin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -22,19 +25,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cch.momentmark.domain.model.RecycleBinItem
+import com.cch.momentmark.ui.app.MainTab
 import com.cch.momentmark.ui.components.PageTitlePanel
+import com.cch.momentmark.ui.components.PixelBottomNav
 import com.cch.momentmark.ui.components.PixelConfirmationDialog
 import com.cch.momentmark.ui.components.PixelPanel
+import com.cch.momentmark.ui.components.PixelPanelVariant
+import com.cch.momentmark.ui.components.PixelStatusHud
+import com.cch.momentmark.ui.components.RecycleBinItemCard
+import com.cch.momentmark.ui.components.RecycleBinItemPresentation
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
+import com.cch.momentmark.ui.theme.MmDangerDark
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 import java.time.Clock
 import java.time.Duration
 
 private val RecycleDays = Duration.ofDays(30)
 
-/** J ⑫ 夜间封印之地：只展示已软删除条目，复活与净化均由 VM 落库。 */
+/**
+ * J ⑩ 回收站 · 封印之地（design.html 第⑩屏 GRAVEYARD · 昼）。
+ *
+ * 结构：自定义状态栏（♥×3 | GRAVEYARD）→ 页题（◂ 封印之地 | N 件封存 · 30 天后净化）→
+ * 可滚动内容区（封印条目卡列表 + 底部提示文字）→ 底部固定区（⚔ 全部净化）→ 底部导航（日子簿选中）。
+ *
+ * 后端逻辑已接入真实 Repository（复活/净化/自动净化）；本页仅做视觉复刻，不改动数据层。
+ * [fixtureState] / [fixtureClock] 仅用于 DEBUG 视觉回归截图，生产构建始终为 null。
+ */
 @Composable
 fun RecycleBinScreen(
     uiState: RecycleBinUiState,
@@ -44,50 +68,123 @@ fun RecycleBinScreen(
     onPermanentlyDelete: (RecycleBinItem) -> Unit,
     onPurgeAll: () -> Unit,
     modifier: Modifier = Modifier,
+    selectedTab: MainTab = MainTab.DAYBOOK,
+    onTabSelected: (MainTab) -> Unit = {},
+    onNewMoment: () -> Unit = {},
+    fixtureState: RecycleBinUiState? = null,
+    fixtureClock: Clock? = null,
 ) {
+    val effectiveState = fixtureState ?: uiState
+    val effectiveClock = fixtureClock ?: clock
     var pendingDelete by remember { mutableStateOf<RecycleBinItem?>(null) }
     var confirmPurgeAll by remember { mutableStateOf(false) }
     val extended = LocalMmExtendedColors.current
+
     Column(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = MomentMarkTokens.SpacePage, vertical = MomentMarkTokens.SpaceCard),
-        verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard),
+            .background(MaterialTheme.colorScheme.background),
     ) {
-        PageTitlePanel("◂ 封印之地", "${uiState.items.size} 件封存 · 30 天后净化")
-        PixelActionRow("◂ 返回系统设置", "返回系统设置", onBack)
-        when {
-            uiState.isLoading -> Text("▸ LOADING…", style = MaterialTheme.typography.labelSmall, color = extended.labelTertiary)
-            uiState.items.isEmpty() -> PixelPanel(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "封印之地暂时空无一物。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(MomentMarkTokens.SpaceInner),
-                )
-            }
-            else -> {
-                uiState.items.forEach { item ->
-                    RecycleBinRow(
-                        item = item,
-                        clock = clock,
-                        onRestore = { onRestore(item) },
-                        onPermanentlyDelete = { pendingDelete = item },
+        // 可滚动内容区
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            // 自定义状态栏 `♥×3 | GRAVEYARD`（design .statusbar{padding:11px 18px 5px;11px mono/800;ink-2}）
+            PixelStatusHud(
+                leftText = "♥\uFE0E×3",
+                rightText = "GRAVEYARD",
+                modifier = Modifier.statusBarsPadding(),
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // 页题面板
+            PageTitlePanel(
+                title = "◂ 封印之地",
+                hud = "${effectiveState.items.size} 件封存 · 30 天后净化",
+                modifier = Modifier.padding(horizontal = MomentMarkTokens.RecycleBinContentPaddingHorizontal),
+            )
+            Spacer(Modifier.height(MomentMarkTokens.RecycleBinContentGap))
+            // 内容区
+            Column(
+                Modifier.padding(horizontal = MomentMarkTokens.RecycleBinContentPaddingHorizontal),
+                verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.RecycleBinContentGap),
+            ) {
+                when {
+                    effectiveState.isLoading -> Text(
+                        "▸ LOADING…",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = extended.labelTertiary,
                     )
+                    effectiveState.items.isEmpty() -> PixelPanel(
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = PixelPanelVariant.Flat,
+                    ) {
+                        Text(
+                            "封印之地暂时空无一物。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(MomentMarkTokens.SpaceInner),
+                        )
+                    }
+                    else -> {
+                        effectiveState.items.forEach { item ->
+                            val sealedDaysAgo = Duration.between(item.deletedAt, effectiveClock.instant()).toDays().coerceAtLeast(0)
+                            val remainingDays = (RecycleDays.minus(Duration.between(item.deletedAt, effectiveClock.instant())).toDays()).coerceAtLeast(0)
+                            RecycleBinItemCard(
+                                presentation = RecycleBinItemPresentation(
+                                    title = item.title,
+                                    typeLabel = item.type.label,
+                                    sealedDaysAgo = sealedDaysAgo,
+                                    remainingDays = remainingDays,
+                                ),
+                                onRestore = { onRestore(item) },
+                                onPermanentlyDelete = { pendingDelete = item },
+                            )
+                        }
+                        // 底部提示文字
+                        Text(
+                            text = "被净化的时刻与任务将永远消失 · 无法复活",
+                            fontSize = MomentMarkTokens.RecycleBinFooterFontSize,
+                            lineHeight = MomentMarkTokens.RecycleBinFooterLineHeight,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = MomentMarkTokens.RecycleBinFooterLetterSpacing,
+                            color = extended.labelTertiary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = MomentMarkTokens.RecycleBinFooterTopGap),
+                        )
+                    }
                 }
-                PixelActionRow(
-                    label = "⚔ 全部净化（清空回收站）",
-                    description = "清空回收站",
-                    onClick = { confirmPurgeAll = true },
-                    danger = true,
-                )
+                effectiveState.errorMessage?.let {
+                    Text("⚠ $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                }
             }
         }
-        uiState.errorMessage?.let { Text("⚠ $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+        // 底部固定区：全部净化按钮
+        if (effectiveState.items.isNotEmpty() && !effectiveState.isLoading) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = MomentMarkTokens.RecycleBinContentPaddingHorizontal,
+                        end = MomentMarkTokens.RecycleBinContentPaddingHorizontal,
+                        bottom = MomentMarkTokens.RecycleBinPurgeAllContainerPaddingBottom,
+                    ),
+            ) {
+                PurgeAllButton(onClick = { confirmPurgeAll = true })
+            }
+        }
+        // 底部导航（日子簿选中）
+        PixelBottomNav(
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+            onNewMoment = onNewMoment,
+        )
     }
+
     pendingDelete?.let { item ->
         ConfirmDialog(
             title = "永久净化「${item.title}」？",
@@ -108,72 +205,33 @@ fun RecycleBinScreen(
     }
 }
 
+/**
+ * ⑩ 全部净化按钮：ghost（panel 底）+ danger-n(#FF6B6F) 文字，width 100%，padding 10dp 垂直，12sp。
+ * 带 .px 硬影。不使用通用 PixelButton，因其文字颜色无法设为 MmDangerDark。
+ */
 @Composable
-private fun RecycleBinRow(
-    item: RecycleBinItem,
-    clock: Clock,
-    onRestore: () -> Unit,
-    onPermanentlyDelete: () -> Unit,
-) {
-    val remainingDays = (RecycleDays.minus(Duration.between(item.deletedAt, clock.instant())).toDays()).coerceAtLeast(0)
-    PixelPanel(modifier = Modifier.fillMaxWidth(), shadowColor = MaterialTheme.colorScheme.outline) {
-        Column(
-            Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit * 2),
-        ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("🔗 ${item.title}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                Text(
-                    "${item.type.label} · 已封印",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = LocalMmExtendedColors.current.labelTertiary,
-                )
-            }
-            Text(
-                "封存中 · 剩余 $remainingDays 天后永久净化",
-                style = MaterialTheme.typography.labelSmall,
-                color = LocalMmExtendedColors.current.labelTertiary,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard)) {
-                PixelActionRow("✚ 复活", "复活 ${item.title}", onRestore, Modifier.weight(1f), emphasize = true)
-                PixelActionRow("永久净化", "永久净化 ${item.title}", onPermanentlyDelete, danger = true, modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun PixelActionRow(
-    label: String,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    emphasize: Boolean = false,
-    danger: Boolean = false,
-) {
-    val color = when {
-        danger -> MaterialTheme.colorScheme.onError
-        emphasize -> MaterialTheme.colorScheme.onTertiary
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    val background = when {
-        danger -> MaterialTheme.colorScheme.error
-        emphasize -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.surface
-    }
+private fun PurgeAllButton(onClick: () -> Unit) {
     PixelPanel(
-        modifier = modifier
-            .semantics { contentDescription = description }
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = "全部净化，清空回收站"
+                role = Role.Button
+            }
             .clickable(role = Role.Button, onClick = onClick),
-        backgroundColor = background,
-        borderColor = MaterialTheme.colorScheme.outline,
-        shadowColor = MaterialTheme.colorScheme.outline,
+        backgroundColor = MaterialTheme.colorScheme.surface,
     ) {
         Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            color = color,
-            modifier = Modifier.fillMaxWidth().padding(MomentMarkTokens.SpaceInner),
+            text = "⚔ 全部净化（清空回收站）",
+            fontSize = MomentMarkTokens.RecycleBinPurgeAllFontSize,
+            lineHeight = MomentMarkTokens.RecycleBinPurgeAllLineHeight,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = FontFamily.Monospace,
+            color = MmDangerDark,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = MomentMarkTokens.RecycleBinPurgeAllPaddingVertical),
         )
     }
 }

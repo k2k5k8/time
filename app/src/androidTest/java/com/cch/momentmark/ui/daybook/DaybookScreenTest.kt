@@ -62,8 +62,8 @@ class DaybookScreenTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("$date 已选择，有任务").assertExists()
-        composeRule.onNodeWithContentDescription("编辑 提交项目周报").performClick()
+        composeRule.onNodeWithContentDescription("$date，已选择，有任务").assertExists()
+        composeRule.onNodeWithContentDescription("提交项目周报，提交项目周报 全天任务，点击编辑，长按放弃").performClick()
 
         assertEquals("task-42", editingId)
     }
@@ -81,6 +81,6 @@ class DaybookScreenTest {
                 )
             }
         }
-        composeRule.onNodeWithText("CLEAR +5 EXP").assertExists()
+        composeRule.onNodeWithText("CLEAR +5").assertExists()
     }
 }

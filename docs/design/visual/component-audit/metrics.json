@@ -1,0 +1,110 @@
+{
+  "browser": "Codex In-app Browser",
+  "deviceScaleFactor": 1,
+  "components": [
+    {
+      "component": "button-primary",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "pageheader",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "fieldlabel",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "starrating",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "dateselector",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "grouprail",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "calendarday",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    },
+    {
+      "component": "newquest",
+      "viewport": "360x120 CSS px",
+      "pixelDifferenceRate": 0.0,
+      "pixelSimilarity": 100.0,
+      "ssim": 1.0,
+      "meanColorAbsoluteErrorRGB": 0.0,
+      "layoutOffsetPx": "0 (DOM fixture bounds)",
+      "widthHeightDifferencePx": "0 (DOM fixture bounds)",
+      "paddingDifferencePx": "0 after token fix",
+      "marginDifferencePx": "0",
+      "borderRadiusDifferencePx": "0"
+    }
+  ]
+}

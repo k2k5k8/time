@@ -30,12 +30,19 @@ enum class OverlayScreen {
  * - 返回键优先关闭叠加表单，其次交还系统；
  * - 「＋ 新时刻」保持来源页签不变，用于导航高亮与返回落点。
  */
-class MomentMarkNavState(initialTab: MainTab = MainTab.HOME) {
+class MomentMarkNavState(
+    initialTab: MainTab = MainTab.HOME,
+    /**
+     * 仅 DEBUG 视觉回归 fixture 使用：启动时直接打开某个叠加页，避免截图脚本依赖坐标点击。
+     * 生产构建始终传 null（首页 + 无叠加页）。
+     */
+    initialOverlay: OverlayScreen? = null,
+) {
 
     var selectedTab: MainTab by mutableStateOf(initialTab)
         private set
 
-    var overlay: OverlayScreen? by mutableStateOf(null)
+    var overlay: OverlayScreen? by mutableStateOf(initialOverlay)
         private set
 
     /** 详情页必须携带 Moment 身份；表单与页签切换时立即清除，避免回到旧详情。 */
@@ -164,12 +171,18 @@ class MomentMarkNavState(initialTab: MainTab = MainTab.HOME) {
                 )
             },
             restore = { values ->
-                MomentMarkNavState(MainTab.valueOf(values[0])).apply {
+                val restoredTab = values.getOrNull(0)?.let { value ->
+                    runCatching { MainTab.valueOf(value) }.getOrDefault(MainTab.HOME)
+                } ?: MainTab.HOME
+                MomentMarkNavState(restoredTab).apply {
+                    val restoredOverlay = values.getOrNull(1)?.takeIf { it.isNotEmpty() }?.let { value ->
+                        runCatching { OverlayScreen.valueOf(value) }.getOrNull()
+                    }
+                    val restoredMomentId = values.getOrNull(2)?.takeIf { it.isNotEmpty() }
                     restore(
                         tab = selectedTab,
-                        overlayScreen = values[1].takeIf { it.isNotEmpty() }
-                            ?.let(OverlayScreen::valueOf),
-                        momentId = values.getOrNull(2)?.takeIf { it.isNotEmpty() },
+                        overlayScreen = if (restoredOverlay == OverlayScreen.MOMENT_DETAIL && restoredMomentId == null) null else restoredOverlay,
+                        momentId = restoredMomentId,
                         editingId = values.getOrNull(3)?.takeIf { it.isNotEmpty() },
                         editingTaskId = values.getOrNull(4)?.takeIf { it.isNotEmpty() },
                     )

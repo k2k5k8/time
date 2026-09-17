@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The TTC contains SC Demibold, Extralight and Heavy faces; index 2 is SC Heavy. -->
+    <font
+        android:font="@font/lantinghei_tc_heavy"
+        android:fontStyle="normal"
+        android:fontWeight="800"
+        android:ttcIndex="2" />
+</font-family>

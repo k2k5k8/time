@@ -1,0 +1,577 @@
+{
+  "mode": "daybook",
+  "unit": "设备像素 @2x（÷2 = dp/CSS px）",
+  "method": "结构线：x 带 280..340 内被完整横穿(≥80%)的深色水平线，按出现顺序配对",
+  "design_line_count": 18,
+  "impl_line_count": 18,
+  "pair_count": 18,
+  "borders": [
+    {
+      "index": 0,
+      "design_center": 59,
+      "impl_center": 60,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 6,
+      "impl_thickness": 6,
+      "design_rel": 0,
+      "impl_rel": 0,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 1,
+      "design_center": 150,
+      "impl_center": 151,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 12,
+      "impl_thickness": 12,
+      "design_rel": 91,
+      "impl_rel": 91,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 2,
+      "design_center": 205,
+      "impl_center": 206,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 146,
+      "impl_rel": 146,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 3,
+      "design_center": 276,
+      "impl_center": 277,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 217,
+      "impl_rel": 217,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 4,
+      "design_center": 288,
+      "impl_center": 289,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 229,
+      "impl_rel": 229,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 5,
+      "design_center": 359,
+      "impl_center": 360,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 300,
+      "impl_rel": 300,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 6,
+      "design_center": 371,
+      "impl_center": 372,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 312,
+      "impl_rel": 312,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 7,
+      "design_center": 442,
+      "impl_center": 443,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 383,
+      "impl_rel": 383,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 8,
+      "design_center": 454,
+      "impl_center": 455,
+      "offset_px": 1,
+      "offset_dp": 0.5,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 395,
+      "impl_rel": 395,
+      "rel_delta_px": 0,
+      "rel_delta_dp": 0.0
+    },
+    {
+      "index": 9,
+      "design_center": 524,
+      "impl_center": 526,
+      "offset_px": 2,
+      "offset_dp": 1.0,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 465,
+      "impl_rel": 466,
+      "rel_delta_px": 1,
+      "rel_delta_dp": 0.5
+    },
+    {
+      "index": 10,
+      "design_center": 536,
+      "impl_center": 538,
+      "offset_px": 2,
+      "offset_dp": 1.0,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 477,
+      "impl_rel": 478,
+      "rel_delta_px": 1,
+      "rel_delta_dp": 0.5
+    },
+    {
+      "index": 11,
+      "design_center": 607,
+      "impl_center": 609,
+      "offset_px": 2,
+      "offset_dp": 1.0,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 548,
+      "impl_rel": 549,
+      "rel_delta_px": 1,
+      "rel_delta_dp": 0.5
+    },
+    {
+      "index": 12,
+      "design_center": 619,
+      "impl_center": 621,
+      "offset_px": 2,
+      "offset_dp": 1.0,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 560,
+      "impl_rel": 561,
+      "rel_delta_px": 1,
+      "rel_delta_dp": 0.5
+    },
+    {
+      "index": 13,
+      "design_center": 690,
+      "impl_center": 692,
+      "offset_px": 2,
+      "offset_dp": 1.0,
+      "design_thickness": 4,
+      "impl_thickness": 4,
+      "design_rel": 631,
+      "impl_rel": 632,
+      "rel_delta_px": 1,
+      "rel_delta_dp": 0.5
+    },
+    {
+      "index": 14,
+      "design_center": 719,
+      "impl_center": 721,
+      "offset_px": 2,
+      "offset_dp": 1.0,
+      "design_thickness": 6,
+      "impl_thickness": 6,
+      "design_rel": 660,
+      "impl_rel": 661,
+      "rel_delta_px": 1,
+      "rel_delta_dp": 0.5
+    },
+    {
+      "index": 15,
+      "design_center": 1174,
+      "impl_center": 1174,
+      "offset_px": 0,
+      "offset_dp": 0.0,
+      "design_thickness": 6,
+      "impl_thickness": 6,
+      "design_rel": 1115,
+      "impl_rel": 1114,
+      "rel_delta_px": -1,
+      "rel_delta_dp": -0.5
+    },
+    {
+      "index": 16,
+      "design_center": 1200,
+      "impl_center": 1200,
+      "offset_px": 0,
+      "offset_dp": 0.0,
+      "design_thickness": 6,
+      "impl_thickness": 6,
+      "design_rel": 1141,
+      "impl_rel": 1140,
+      "rel_delta_px": -1,
+      "rel_delta_dp": -0.5
+    },
+    {
+      "index": 17,
+      "design_center": 1262,
+      "impl_center": 1262,
+      "offset_px": 0,
+      "offset_dp": 0.0,
+      "design_thickness": 10,
+      "impl_thickness": 10,
+      "design_rel": 1203,
+      "impl_rel": 1202,
+      "rel_delta_px": -1,
+      "rel_delta_dp": -0.5
+    }
+  ],
+  "design_lines": [
+    {
+      "top": 57,
+      "bottom": 62,
+      "center": 59,
+      "thickness": 6
+    },
+    {
+      "top": 145,
+      "bottom": 156,
+      "center": 150,
+      "thickness": 12
+    },
+    {
+      "top": 204,
+      "bottom": 207,
+      "center": 205,
+      "thickness": 4
+    },
+    {
+      "top": 275,
+      "bottom": 278,
+      "center": 276,
+      "thickness": 4
+    },
+    {
+      "top": 287,
+      "bottom": 290,
+      "center": 288,
+      "thickness": 4
+    },
+    {
+      "top": 358,
+      "bottom": 361,
+      "center": 359,
+      "thickness": 4
+    },
+    {
+      "top": 370,
+      "bottom": 373,
+      "center": 371,
+      "thickness": 4
+    },
+    {
+      "top": 441,
+      "bottom": 444,
+      "center": 442,
+      "thickness": 4
+    },
+    {
+      "top": 453,
+      "bottom": 456,
+      "center": 454,
+      "thickness": 4
+    },
+    {
+      "top": 523,
+      "bottom": 526,
+      "center": 524,
+      "thickness": 4
+    },
+    {
+      "top": 535,
+      "bottom": 538,
+      "center": 536,
+      "thickness": 4
+    },
+    {
+      "top": 606,
+      "bottom": 609,
+      "center": 607,
+      "thickness": 4
+    },
+    {
+      "top": 618,
+      "bottom": 621,
+      "center": 619,
+      "thickness": 4
+    },
+    {
+      "top": 689,
+      "bottom": 692,
+      "center": 690,
+      "thickness": 4
+    },
+    {
+      "top": 717,
+      "bottom": 722,
+      "center": 719,
+      "thickness": 6
+    },
+    {
+      "top": 1172,
+      "bottom": 1177,
+      "center": 1174,
+      "thickness": 6
+    },
+    {
+      "top": 1198,
+      "bottom": 1203,
+      "center": 1200,
+      "thickness": 6
+    },
+    {
+      "top": 1258,
+      "bottom": 1267,
+      "center": 1262,
+      "thickness": 10
+    }
+  ],
+  "impl_lines": [
+    {
+      "top": 58,
+      "bottom": 63,
+      "center": 60,
+      "thickness": 6
+    },
+    {
+      "top": 146,
+      "bottom": 157,
+      "center": 151,
+      "thickness": 12
+    },
+    {
+      "top": 205,
+      "bottom": 208,
+      "center": 206,
+      "thickness": 4
+    },
+    {
+      "top": 276,
+      "bottom": 279,
+      "center": 277,
+      "thickness": 4
+    },
+    {
+      "top": 288,
+      "bottom": 291,
+      "center": 289,
+      "thickness": 4
+    },
+    {
+      "top": 359,
+      "bottom": 362,
+      "center": 360,
+      "thickness": 4
+    },
+    {
+      "top": 371,
+      "bottom": 374,
+      "center": 372,
+      "thickness": 4
+    },
+    {
+      "top": 442,
+      "bottom": 445,
+      "center": 443,
+      "thickness": 4
+    },
+    {
+      "top": 454,
+      "bottom": 457,
+      "center": 455,
+      "thickness": 4
+    },
+    {
+      "top": 525,
+      "bottom": 528,
+      "center": 526,
+      "thickness": 4
+    },
+    {
+      "top": 537,
+      "bottom": 540,
+      "center": 538,
+      "thickness": 4
+    },
+    {
+      "top": 608,
+      "bottom": 611,
+      "center": 609,
+      "thickness": 4
+    },
+    {
+      "top": 620,
+      "bottom": 623,
+      "center": 621,
+      "thickness": 4
+    },
+    {
+      "top": 691,
+      "bottom": 694,
+      "center": 692,
+      "thickness": 4
+    },
+    {
+      "top": 719,
+      "bottom": 724,
+      "center": 721,
+      "thickness": 6
+    },
+    {
+      "top": 1172,
+      "bottom": 1177,
+      "center": 1174,
+      "thickness": 6
+    },
+    {
+      "top": 1198,
+      "bottom": 1203,
+      "center": 1200,
+      "thickness": 6
+    },
+    {
+      "top": 1258,
+      "bottom": 1267,
+      "center": 1262,
+      "thickness": 10
+    }
+  ],
+  "summary": {
+    "first_line_offset_px": 1,
+    "max_abs_offset_px": 2,
+    "mean_abs_offset_px": 1.17,
+    "within_4px_pct": 100.0,
+    "max_abs_rel_delta_px": 1,
+    "mean_abs_rel_delta_px": 0.5,
+    "within_4px_rel_pct": 100.0
+  },
+  "row_bands_design": [
+    [
+      57,
+      156,
+      100
+    ],
+    [
+      204,
+      278,
+      75
+    ],
+    [
+      287,
+      361,
+      75
+    ],
+    [
+      370,
+      444,
+      75
+    ],
+    [
+      453,
+      526,
+      74
+    ],
+    [
+      535,
+      609,
+      75
+    ],
+    [
+      618,
+      692,
+      75
+    ],
+    [
+      717,
+      1151,
+      435
+    ],
+    [
+      1172,
+      1177,
+      6
+    ],
+    [
+      1198,
+      1267,
+      70
+    ]
+  ],
+  "row_bands_impl": [
+    [
+      58,
+      157,
+      100
+    ],
+    [
+      205,
+      279,
+      75
+    ],
+    [
+      288,
+      362,
+      75
+    ],
+    [
+      371,
+      445,
+      75
+    ],
+    [
+      454,
+      528,
+      75
+    ],
+    [
+      537,
+      611,
+      75
+    ],
+    [
+      620,
+      694,
+      75
+    ],
+    [
+      719,
+      1151,
+      433
+    ],
+    [
+      1172,
+      1177,
+      6
+    ],
+    [
+      1198,
+      1267,
+      70
+    ]
+  ]
+}

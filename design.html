@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J · 像素冒险 — 最终版全页面完整稿（11 屏） — 刻间</title>
+<title>J · 像素冒险 — 最终版全页面完整稿（昼 11 屏 + 夜 11 屏） — 刻间</title>
 <style>
   :root{
     --bg:#E8E0CC; --bg-2:#DFD5BB;
@@ -11,6 +11,7 @@
     --ink:#2B2620; --ink-2:#6B6152; --ink-3:#A79B85;
     --cave:#1B1826; --cave-panel:#262138; --cave-line:#0E0C16;
     --cave-text:#E4DEF2; --cave-2:#9C93B8; --cave-3:#5E5680;
+    --cave-variant:#37304E; --cave-input:#201B30; --amber-n:#FFB84D; --mana-n:#B79AFF;
     --hp:#46C168; --hp-n:#5BD385;
     --amber:#F5A623; --danger:#E5484D; --danger-n:#FF6B6F;
     --xp:#3E9BFF; --xp-n:#66B0FF;
@@ -90,6 +91,38 @@
   .nav .plus{flex:1.4;background:var(--gold);color:var(--ink);border:3px solid var(--panel-line);font-size:11px;font-weight:800;box-shadow:2px 2px 0 var(--panel-line);padding:3px 0;display:flex;align-items:center;justify-content:center;text-align:center}
   .night .nav .plus{background:var(--gold-n);color:var(--cave-line);border-color:var(--cave-line);box-shadow:2px 2px 0 var(--cave-line)}
 
+  /* ── 夜间（洞窟）配色：只把昼间 token 重映射为 DESIGN_SYSTEM §3.1 的夜列值，
+        不改变任何结构、间距或文案。所有规则限定 :not(.light-preview)，
+        因此 ⑤⑨⑩ 的昼间主稿视图不受影响，仅作用于夜间克隆/夜间原生稿。 ── */
+  .phone.night:not(.light-preview){border-color:var(--cave-line)}
+  .night:not(.light-preview) .px{border-color:var(--cave-line);box-shadow:3px 3px 0 var(--cave-line)}
+  .night:not(.light-preview) .px4{border-color:var(--cave-line);box-shadow:4px 4px 0 var(--cave-line)}
+  .night:not(.light-preview) .ach{background:var(--cave-panel);border-color:var(--cave-line);box-shadow:4px 4px 0 var(--cave-line)}
+  .night:not(.light-preview) .ach::before{border-color:var(--gold-n)}
+  .night:not(.light-preview) .hpbar{border-color:var(--cave-line);background:var(--cave-variant)}
+  .night:not(.light-preview) .xpbar .cell{background:var(--cave-variant);border-color:var(--cave-line)}
+  .night:not(.light-preview) .xpbar .cell.fill{background:var(--xp-n)}
+  .night:not(.light-preview) .checkbox{background:var(--cave);border-color:var(--cave-3)}
+  .night:not(.light-preview) .checkbox.on{background:var(--hp-n);border-color:var(--cave-line)}
+  .night:not(.light-preview) .notebox{background:var(--cave-input);border-color:var(--cave-line);color:var(--cave-text)}
+  .night:not(.light-preview) .fieldlabel{color:var(--cave-3)}
+  .night:not(.light-preview) .star{color:var(--gold-n)}
+  .night:not(.light-preview) .rarity-stars{color:var(--gold-n)}
+  .night:not(.light-preview) .back{background:var(--cave);border-color:var(--cave-line);box-shadow:2px 2px 0 var(--cave-line)}
+  .night:not(.light-preview) .btn.green{background:var(--hp-n)}
+  .night:not(.light-preview) .btn.blue{background:var(--xp-n)}
+  .night:not(.light-preview) .btn.red{background:var(--danger-n)}
+  .night:not(.light-preview) .btn.gold{background:var(--gold-n);color:var(--cave-line)}
+  .night:not(.light-preview) .btn.ghost{background:var(--cave);color:var(--cave-2)}
+  .night:not(.light-preview) .nav .item.on{box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+  .night:not(.light-preview) .home-small-card{background:var(--cave-panel);--card-accent:var(--xp-n)}
+  .night:not(.light-preview) .home-small-card.achievement{--card-accent:var(--gold-n)}
+  .night:not(.light-preview) .home-small-card.is-long{--card-accent:var(--hp-n)}
+  .night:not(.light-preview) .home-small-card.is-medium{--card-accent:var(--amber-n)}
+  .night:not(.light-preview) .home-small-card.is-short{--card-accent:var(--danger-n)}
+  .night:not(.light-preview) .home-card-meta{color:var(--cave-3)}
+  .night:not(.light-preview) .home-small-card.achievement .home-card-state{color:var(--cave-text)}
+
   .form-scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
   .form-scroll::-webkit-scrollbar,.party-rail::-webkit-scrollbar{display:none}
   .back{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;margin-right:12px;border:3px solid var(--panel-line);box-shadow:2px 2px 0 var(--panel-line);background:var(--bg);font-size:18px;line-height:1}
@@ -132,7 +165,7 @@
   .cal-month{flex:0 0 100%;scroll-snap-align:start}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
   .cal-arrow{cursor:pointer;user-select:none}
-  /* 主稿的日子簿、设置、封印之地使用昼间 token；原夜间稿保存在页面底部。 */
+  /* 主稿的日子簿、设置、封印之地使用昼间 token；夜间版（11 屏全览）保存在页面底部夜间区。 */
   .light-preview{background:var(--bg)!important}
   .light-preview .statusbar{color:var(--ink-2)}
   .light-preview .pagetitle{background:var(--panel);border:3px solid var(--panel-line);box-shadow:3px 3px 0 var(--panel-line)}
@@ -162,6 +195,42 @@
   .light-preview .nav .item{border-color:var(--panel-line);color:var(--ink-2);background:var(--bg)}
   .light-preview .nav .item.on{background:var(--ink);color:var(--gold)}
   .light-preview .nav .plus{background:var(--gold);color:var(--ink);border-color:var(--panel-line);box-shadow:2px 2px 0 var(--panel-line)}
+
+  /* ── 夜间克隆覆盖：昼间原生屏（①②③④⑥⑦⑧⑪）克隆为夜间时，
+        仅按 DESIGN_SYSTEM §3.1 把内联昼间色重指向夜间 token；
+        !important 用于压过元素内联 style，昼间主稿不含 .night-override，完全不受影响。 ── */
+  .night-override{background:var(--cave);color:var(--cave-text)}
+  .night-override [style*="background:var(--panel)"]{background:var(--cave-panel)!important}
+  .night-override [style*="background:#fff"]{background:var(--cave-input)!important}
+  .night-override [style*="color:var(--ink-2)"]{color:var(--cave-2)!important}
+  .night-override [style*="color:var(--ink-3)"]{color:var(--cave-3)!important}
+  .night-override [style*="color:var(--gold-ink)"]{color:var(--gold-n)!important}
+  .night-override [style*="color:var(--gold)"]{color:var(--gold-n)!important}
+  .night-override [style*="color:var(--hp)"]{color:var(--hp-n)!important}
+  .night-override [style*="color:var(--xp)"]{color:var(--xp-n)!important}
+  .night-override [style*="color:var(--danger)"]{color:var(--danger-n)!important}
+  .night-override [style*="color:var(--mana)"]{color:var(--mana-n)!important}
+  .night-override [style*="color:#D8CFB8"]{color:var(--cave-3)!important}
+  .night-override [style*="color:#F6F1E3"]{color:var(--cave-text)!important}
+  .night-override [style*="background:var(--ink);color:var(--gold)"]{background:var(--gold-n)!important;color:var(--cave-line)!important}
+  .night-override [style*="background:var(--ink);border:3px solid var(--panel-line)"]{background:var(--cave-panel)!important}
+  .night-override [style*="background:var(--gold)"]{background:var(--gold-n)!important}
+  .night-override [style*="background:var(--hp)"]{background:var(--hp-n)!important}
+  .night-override [style*="background:var(--danger)"]{background:var(--danger-n)!important}
+  .night-override [style*="linear-gradient(135deg,var(--gold)"]{background:linear-gradient(135deg,var(--gold-n) 50%,transparent 50%)!important}
+  .night-override [style*="border:3px solid var(--panel-line)"]{border-color:var(--cave-line)!important}
+  .night-override [style*="border:2.5px solid var(--panel-line)"]{border-color:var(--cave-line)!important}
+  .night-override [style*="border:2px solid var(--panel-line)"]{border-color:var(--cave-line)!important}
+  .night-override [style*="border:2.5px solid var(--gold)"]{border-color:var(--gold-n)!important}
+  .night-override [style*="border:2.5px solid var(--hp)"]{border-color:var(--hp-n)!important}
+  .night-override [style*="border:2.5px solid var(--danger)"]{border-color:var(--danger-n)!important}
+  .night-override [style*="border:2.5px solid var(--ink-3)"]{border-color:var(--cave-3)!important}
+  .night-override [style*="border-bottom:2px dashed #E0D8C2"]{border-color:var(--cave-variant)!important}
+  .night-override [style*="border-bottom:2px solid var(--danger)"]{border-color:var(--danger-n)!important}
+  .night-override [style*="border-bottom:2px solid var(--gold)"]{border-color:var(--gold-n)!important}
+  .night-override [style*="box-shadow:3px 3px 0 rgba(43,38,32,.4)"]{box-shadow:3px 3px 0 rgba(0,0,0,.5)!important}
+  .night-override [style*="background:rgba(43,38,32,.45)"]{background:rgba(0,0,0,.55)!important}
+  .night-override [style*="background:rgba(43,38,32,.5)"]{background:rgba(0,0,0,.6)!important}
   .night-staging{margin-top:68px;padding-top:28px;border-top:3px dashed var(--panel-line)}
   .night-staging h2{text-align:center;font-size:20px;font-weight:800}.night-staging p{text-align:center;margin-top:7px;color:var(--ink-2);font-size:12px;font-weight:600}
   .night-staging-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:46px 30px;justify-items:center;margin-top:44px}
@@ -175,8 +244,8 @@
 
   <header>
     <div class="badge">风格 J · 最终完整稿 FINAL</div>
-    <h1>像素冒险 · <span>时刻 + 待办</span>双体系 · 全部 11 屏</h1>
-    <div class="en mono">PIXEL QUEST · COMPLETE MOCKUPS · 11 SCREENS</div>
+    <h1>像素冒险 · <span>时刻 + 待办</span>双体系 · 昼 11 屏 + 夜 11 屏</h1>
+    <div class="en mono">PIXEL QUEST · COMPLETE MOCKUPS · 11 DAY + 11 NIGHT SCREENS</div>
     <p class="sub">首页大事件 = <b>时刻</b>（未来=任务倒数 ⧖ / 过去=成就正数 🏆），日历页事项 = <b>待办任务</b>（仅副本地图创建）。<br>每张新增表单都带符合世界观的<b>备注字段</b>：任务背景 LORE / 成就故事 STORY / 任务描述 LORE。</p>
     <div class="rules">
       <div class="rule">
@@ -814,17 +883,25 @@
 
   </div>
 
-  <section class="night-staging" aria-label="夜间 UI 暂存区">
-    <h2>夜间 UI 暂存区</h2>
-    <p>以下为从主稿暂存的洞窟版本，不作为当前页面的默认视觉。</p>
+  <section class="night-staging" aria-label="夜间 UI · 洞窟版（与昼间逐屏对应）">
+    <h2>夜间 UI · 洞窟版 · 11 屏全览</h2>
+    <p>与上方昼间主稿 ①–⑪ 逐屏对应，仅按 DESIGN_SYSTEM §3.1 的 昼→夜 token 映射替换配色（昼间地图 → 洞窟）。<br>每屏由脚本实时克隆昼间原稿，结构与文案完全一致，不作为当前默认视觉。</p>
     <div class="night-staging-grid">
-      <article class="night-stage" data-source="daybook-light"><h3>⑤ 日子簿 · 夜间暂存</h3><div class="night-slot"></div></article>
-      <article class="night-stage" data-source="settings-light"><h3>⑨ 设置 · 夜间暂存</h3><div class="night-slot"></div></article>
-      <article class="night-stage" data-source="graveyard-light"><h3>⑩ 封印之地 · 夜间暂存</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="1"><h3>① 首页 · 大事件 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="2"><h3>② 铭刻时刻 · 未来模式 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="3"><h3>③ 铭刻时刻 · 过去模式 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="4"><h3>④ 新任务 · 待办 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="5"><h3>⑤ 日子簿 · 副本地图 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="6"><h3>⑥ 任务详情 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="7"><h3>⑦ 成就详情 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="8"><h3>⑧ 分类抽屉 · 搜索 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="9"><h3>⑨ 设置 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="10"><h3>⑩ 回收站 · 封印之地 · 夜</h3><div class="night-slot"></div></article>
+      <article class="night-stage" data-shot="11"><h3>⑪ 删除确认 · 撤销 · 夜</h3><div class="night-slot"></div></article>
     </div>
   </section>
 
-  <footer>刻间 MOMENT MARK · 风格 J 最终完整稿 · 时刻（任务⧖ + 成就🏆）× 待办（新任务▶）· 全部 11 屏</footer>
+  <footer>刻间 MOMENT MARK · 风格 J 最终完整稿 · 时刻（任务⧖ + 成就🏆）× 待办（新任务▶）· 昼 11 屏 + 夜 11 屏</footer>
 </div>
 
 <script>
@@ -846,12 +923,18 @@
   if(arrows[1])arrows[1].onclick=function(){sw.scrollBy({left:step})};
 })();
 (function(){
-  document.querySelectorAll('.night-stage[data-source]').forEach(function(stage){
-    var source=document.querySelector('.phone.'+stage.dataset.source);
-    var slot=stage.querySelector('.night-slot');
+  var shots=document.querySelectorAll('.grid > .shot');
+  document.querySelectorAll('.night-stage[data-shot]').forEach(function(stage){
+    var source=shots[+stage.dataset.shot-1],slot=stage.querySelector('.night-slot');
     if(!source||!slot)return;
-    var preview=source.cloneNode(true);
-    preview.classList.remove('light-preview',stage.dataset.source);
+    var preview=source.querySelector('.phone').cloneNode(true);
+    if(preview.classList.contains('light-preview')){
+      /* ⑤⑨⑩ 本就是夜间原生稿：剥掉昼间预览层即还原洞窟配色 */
+      preview.className=preview.className.split(/\s+/).filter(function(c){return c&&c!=='light-preview'&&!/-light$/.test(c)}).join(' ');
+    }else{
+      /* 昼间原生稿：只加配色映射层，内容与结构零改动 */
+      preview.classList.add('night','night-override');
+    }
     slot.appendChild(preview);
     var swipe=preview.querySelector('.cal-swipe');
     if(swipe&&swipe.children.length>1)swipe.scrollLeft=swipe.children[1].offsetLeft-swipe.children[0].offsetLeft;

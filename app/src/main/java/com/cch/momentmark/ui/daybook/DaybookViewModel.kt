@@ -34,39 +34,73 @@ data class DaybookUiState(
 class DaybookViewModel(
     private val repository: TaskRepositoryPort,
     private val clock: Clock,
+    private val fixtureToday: LocalDate? = null,
+    private val fixtureTasks: List<Task>? = null,
     private val onClearedCallback: (() -> Unit)? = null,
 ) : ViewModel() {
-    private val selectedDate = MutableStateFlow(LocalDate.now(clock))
-    private val _uiState = MutableStateFlow(DaybookUiState(selectedDate = selectedDate.value, today = selectedDate.value))
+    private val selectedDate = MutableStateFlow(fixtureToday ?: LocalDate.now(clock))
+    private val _uiState = MutableStateFlow(
+        DaybookUiState(
+            selectedDate = selectedDate.value,
+            today = selectedDate.value,
+            visibleMonth = YearMonth.from(selectedDate.value),
+            isLoading = fixtureTasks == null,
+        )
+    )
     val uiState = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            selectedDate.flatMapLatest { date ->
-                repository.observeForDate(date).combine(repository.observeActive()) { tasks, activeTasks ->
-                    tasks to activeTasks
-                }
-            }.collect { (tasks, activeTasks) ->
-                val month = _uiState.value.visibleMonth
-                _uiState.update { state ->
-                    state.copy(
-                        selectedDate = selectedDate.value,
-                        tasks = tasks,
-                        taskDates = activeTasks.asSequence()
-                            .map(Task::dueLocalDate)
-                            .filter { YearMonth.from(it) == month }
-                            .toSet(),
-                        isLoading = false,
-                        errorMessage = null,
-                    )
+        if (fixtureToday != null && fixtureTasks != null) {
+            _uiState.update { state ->
+                state.copy(
+                    selectedDate = fixtureToday,
+                    today = fixtureToday,
+                    visibleMonth = YearMonth.from(fixtureToday),
+                    tasks = fixtureTasks.filter { it.dueLocalDate == fixtureToday },
+                    taskDates = fixtureTasks
+                        .map(Task::dueLocalDate)
+                        .filter { YearMonth.from(it) == state.visibleMonth }
+                        .toSet(),
+                    isLoading = false,
+                    errorMessage = null,
+                )
+            }
+        } else {
+            viewModelScope.launch {
+                selectedDate.flatMapLatest { date ->
+                    repository.observeForDate(date).combine(repository.observeActive()) { tasks, activeTasks ->
+                        tasks to activeTasks
+                    }
+                }.collect { (tasks, activeTasks) ->
+                    val month = _uiState.value.visibleMonth
+                    _uiState.update { state ->
+                        state.copy(
+                            selectedDate = selectedDate.value,
+                            tasks = tasks,
+                            taskDates = activeTasks.asSequence()
+                                .map(Task::dueLocalDate)
+                                .filter { YearMonth.from(it) == month }
+                                .toSet(),
+                            isLoading = false,
+                            errorMessage = null,
+                        )
+                    }
                 }
             }
         }
     }
 
     fun selectDate(date: LocalDate) {
-        _uiState.update { it.copy(selectedDate = date, visibleMonth = YearMonth.from(date), isLoading = true) }
+        _uiState.update { it.copy(selectedDate = date, visibleMonth = YearMonth.from(date), isLoading = fixtureTasks == null) }
         selectedDate.value = date
+        if (fixtureTasks != null) {
+            _uiState.update { state ->
+                state.copy(
+                    tasks = fixtureTasks.filter { it.dueLocalDate == date },
+                    isLoading = false,
+                )
+            }
+        }
     }
 
     fun changeMonth(delta: Long) {
@@ -104,7 +138,11 @@ class DaybookViewModel(
     }
 }
 
-class DaybookViewModelFactory(context: Context) : ViewModelProvider.Factory {
+class DaybookViewModelFactory(
+    context: Context,
+    private val fixtureToday: LocalDate? = null,
+    private val fixtureTasks: List<Task>? = null,
+) : ViewModelProvider.Factory {
     private val applicationContext = context.applicationContext
 
     @Suppress("UNCHECKED_CAST")
@@ -112,11 +150,12 @@ class DaybookViewModelFactory(context: Context) : ViewModelProvider.Factory {
         require(modelClass.isAssignableFrom(DaybookViewModel::class.java)) {
             "Unknown ViewModel class: ${modelClass.name}"
         }
-        val container = AppContainer(applicationContext)
+        val container = AppContainer.get(applicationContext)
         return DaybookViewModel(
             repository = container.taskRepository,
             clock = container.clock,
-            onClearedCallback = container::close,
+            fixtureToday = fixtureToday,
+            fixtureTasks = fixtureTasks,
         ) as T
     }
 }

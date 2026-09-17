@@ -19,6 +19,8 @@ interface MomentRepositoryPort {
     suspend fun findById(id: String): Moment?
     suspend fun save(moment: Moment)
     suspend fun seedIfEmpty(moments: List<Moment>)
+    /** 一次性迁移：清理历史开发期种子示例（`sample-` 前缀 id）；测试假实现无需感知。 */
+    suspend fun removeSampleRows() = Unit
     suspend fun setPinned(id: String, pinned: Boolean)
     /** 按用户给出的完整顺序持久化置顶排序（AC-05a）。 */
     suspend fun reorderPinned(orderedIds: List<String>)
@@ -66,6 +68,10 @@ class MomentRepository(
                 },
             )
         }
+    }
+
+    override suspend fun removeSampleRows() {
+        dao.deleteSamples()
     }
 
     /** 置顶追加到现有置顶序列末尾；取消置顶清空顺序。 */

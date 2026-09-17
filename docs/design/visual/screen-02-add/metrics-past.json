@@ -1,0 +1,297 @@
+{
+  "canvas": "628x1296",
+  "logical_canvas": "314x648 dp @2x",
+  "device_scale_factor": 2,
+  "mode": "past",
+  "design_source": "design.html 第③屏（.phone 内容区 314x648 CSS px）",
+  "impl_source": "Pixel AVD, wm size 628x1296 / density 320, immersive",
+  "global": {
+    "pixel_difference_rate_pct": 17.0202,
+    "pixel_similarity_pct": 82.9798,
+    "ssim_gray": 0.715232,
+    "mae_rgb": 19.6551,
+    "tolerance_1_pct": 16.9539,
+    "tolerance_8_pct": 16.5936,
+    "tolerance_24_pct": 15.9445,
+    "thresholds": {
+      "pixel_difference_rate_pct": 1.0,
+      "ssim_gray": 0.95
+    },
+    "passed": false
+  },
+  "color_errors": [
+    {
+      "token": "background",
+      "pixels": 128553,
+      "share_pct": 15.795,
+      "mae_rgb": 7.248,
+      "mean_color_error": 7.248
+    },
+    {
+      "token": "surface",
+      "pixels": 377648,
+      "share_pct": 46.4,
+      "mae_rgb": 12.762,
+      "mean_color_error": 12.762
+    },
+    {
+      "token": "onSurface",
+      "pixels": 129421,
+      "share_pct": 15.902,
+      "mae_rgb": 41.5,
+      "mean_color_error": 41.5
+    },
+    {
+      "token": "outline",
+      "pixels": 129421,
+      "share_pct": 15.902,
+      "mae_rgb": 41.5,
+      "mean_color_error": 41.5
+    },
+    {
+      "token": "tertiary",
+      "pixels": 34218,
+      "share_pct": 4.204,
+      "mae_rgb": 22.142,
+      "mean_color_error": 22.142
+    },
+    {
+      "token": "goldInk",
+      "pixels": 1811,
+      "share_pct": 0.223,
+      "mae_rgb": 72.938,
+      "mean_color_error": 72.938
+    },
+    {
+      "token": "primary",
+      "pixels": 0,
+      "mae_rgb": null
+    },
+    {
+      "token": "secondary",
+      "pixels": 0,
+      "mae_rgb": null
+    },
+    {
+      "token": "error",
+      "pixels": 5882,
+      "share_pct": 0.723,
+      "mae_rgb": 14.289,
+      "mean_color_error": 14.289
+    },
+    {
+      "token": "amber",
+      "pixels": 6,
+      "share_pct": 0.001,
+      "mae_rgb": 23.667,
+      "mean_color_error": 23.667
+    },
+    {
+      "token": "labelTertiary",
+      "pixels": 7036,
+      "share_pct": 0.864,
+      "mae_rgb": 56.086,
+      "mean_color_error": 56.086
+    }
+  ],
+  "element_boxes": {
+    "surface": {
+      "design_bbox": [
+        30,
+        63,
+        597,
+        1292
+      ],
+      "impl_bbox": [
+        30,
+        63,
+        597,
+        1295
+      ],
+      "delta_wh": [
+        0,
+        3
+      ],
+      "delta_xy": [
+        0,
+        0
+      ]
+    },
+    "outline": {
+      "design_bbox": [
+        24,
+        57,
+        611,
+        1295
+      ],
+      "impl_bbox": [
+        24,
+        57,
+        611,
+        1295
+      ],
+      "delta_wh": [
+        0,
+        0
+      ],
+      "delta_xy": [
+        0,
+        0
+      ]
+    },
+    "tertiary": {
+      "design_bbox": [
+        36,
+        191,
+        591,
+        1264
+      ],
+      "impl_bbox": [
+        328,
+        255,
+        574,
+        1277
+      ],
+      "delta_wh": [
+        -309,
+        -51
+      ],
+      "delta_xy": [
+        292,
+        64
+      ]
+    },
+    "goldInk": {
+      "design_bbox": [
+        56,
+        276,
+        516,
+        419
+      ],
+      "impl_bbox": [
+        55,
+        328,
+        518,
+        1186
+      ],
+      "delta_wh": [
+        3,
+        715
+      ],
+      "delta_xy": [
+        -1,
+        52
+      ]
+    },
+    "primary": {
+      "design_bbox": null,
+      "impl_bbox": null,
+      "delta_wh": null,
+      "delta_xy": null
+    },
+    "error": {
+      "design_bbox": [
+        188,
+        1156,
+        307,
+        1210
+      ],
+      "impl_bbox": [
+        185,
+        1154,
+        301,
+        1208
+      ],
+      "delta_wh": [
+        -3,
+        0
+      ],
+      "delta_xy": [
+        -3,
+        -2
+      ]
+    },
+    "amber": {
+      "design_bbox": [
+        81,
+        280,
+        453,
+        1192
+      ],
+      "impl_bbox": [
+        431,
+        278,
+        464,
+        305
+      ],
+      "delta_wh": [
+        -339,
+        -885
+      ],
+      "delta_xy": [
+        350,
+        -2
+      ]
+    },
+    "secondary": {
+      "design_bbox": null,
+      "impl_bbox": null,
+      "delta_wh": null,
+      "delta_xy": null
+    }
+  },
+  "text_bands_design": [
+    [
+      57,
+      164,
+      108
+    ],
+    [
+      179,
+      459,
+      281
+    ],
+    [
+      472,
+      652,
+      181
+    ],
+    [
+      667,
+      840,
+      174
+    ],
+    [
+      855,
+      1074,
+      220
+    ]
+  ],
+  "text_bands_impl": [
+    [
+      57,
+      164,
+      108
+    ],
+    [
+      179,
+      461,
+      283
+    ],
+    [
+      474,
+      655,
+      182
+    ],
+    [
+      670,
+      840,
+      171
+    ],
+    [
+      855,
+      1071,
+      217
+    ]
+  ]
+}

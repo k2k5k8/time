@@ -93,7 +93,7 @@ Domain：Moment、Task、HomeCardItem、EventTimeCalculator
         │   │   ├── settings/      DataStore 边界，不能散落到 Composable
         │   │   ├── templates/     旧模板元数据；仅 P2 装备库恢复时再使用
         │   │   ├── SampleEvents.kt 原型/预览种子数据，不是业务真相
-        │   │   └── AppContainer.kt 手工依赖装配根
+        │   │   └── AppContainer.kt 手工依赖装配根（进程级共享单例，所有工厂经 `get()` 取同一 Room 实例）
         │   ├── domain/
         │   │   ├── model/         不依赖 Android UI 的实体与共享内容契约
         │   │   └── time/          唯一时间计算内核与趣味文案生成
@@ -143,7 +143,7 @@ Domain：Moment、Task、HomeCardItem、EventTimeCalculator
 
 - 若其中已有需要保留的真实用户时刻，写一次**显式迁移**到 `Moment`；不得由 UI 悄悄猜测方向。
 - **已确认（2026-08-28，用户拍板）：当前库中只有样例/开发数据，无真实用户数据。** 采用清空开发库 + 全新 `moments`/`tasks` schema，**不编写 `time_events` 数据搬运迁移**。落地仍须遵守 §6.7：提升数据库版本 + 显式建表 Migration（或开发设备卸载重装后以新版本全新建库）；禁止 `fallbackToDestructiveMigration()`。
-- 落地进度：**数据库当前为 v8**，`MIGRATION_4_5` 新建 `moments` 表，`MIGRATION_5_6` 新建独立 `tasks` 表，`MIGRATION_6_7` 删除仅含样例/开发数据的 `time_events` 遗留表，`MIGRATION_7_8` 新建 Room `groups` 表。当前确认没有真实用户数据；开发期 `SampleMoments` 仅 debug 构建空库时写入，Task 不从原型日子簿或 `time_events` 搬运。
+- 落地进度：**数据库当前为 v8**，`MIGRATION_4_5` 新建 `moments` 表，`MIGRATION_5_6` 新建独立 `tasks` 表，`MIGRATION_6_7` 删除仅含样例/开发数据的 `time_events` 遗留表，`MIGRATION_7_8` 新建 Room `groups` 表。当前确认没有真实用户数据；`SampleMoments` 作为**默认首页事件**，仅在新安装首次启动（DataStore 一次性标记 `default_moments_seeded` 未置位且数据库为空）时注入一次并落标记；同时兼作 `debug.momentmark.seed samples` 视觉回归 fixture（冻结时钟 2026-08-28）。注入后不再清理、不再回填，用户可自由增删改。Task 不从原型日子簿或 `time_events` 搬运。
 - 若仅有 `SampleEvents` 或开发期原型数据，可在新结构上线时清空开发数据库；不能把原型字段强行带进新模型。
 - 不要为了兼容旧卡片而把 `templateKey`、`TravelCardConfig`、`relativeLabel` 等塞进新 `Moment`。
 
@@ -312,7 +312,7 @@ Daybook = Task.dueLocalDate 的主视图 + 系统节日/时刻的只读标记
 | 已解决 | `advancedConfigJson`、`templateConfigJson` 和旧详情 DataStore 属于 `TimeEvent` 模板体系。 | 旧 JSON/附属键会使新实体边界模糊。 | 2026-08-30 随 `time_events` 与旧 UI 移除；新 Moment/Task 只持久化 P0 事实字段。 |
 | 中 | `MomentMarkApp.kt`（约 600 行）承载旧手工导航、跨页面状态和事件处理。 | 重做 J 页面时旧分支会干扰新路由。 | 以 J 三入口为边界重建协调层；不要迁移无对应页面的旧 screen。 |
 | 中 | 当前多个 DataStore 之间无事务；分组重命名同时写 Room 与 DataStore。 | 中途失败可能留下不一致状态。 | 在操作层记录顺序并补偿；分组关系变复杂时迁移到 Room。 |
-| 中 | Debug 空数据库会写入 `SampleMoments.all`。 | 生产用户不受影响，但调试时空状态需要显式清库才可验证。 | 保持 debug-only；发布前确认 release 包不会调用 seed。 |
+| 已解决 | Debug 空数据库会写入 `SampleMoments.all`，且各 ViewModel 工厂各自 `new AppContainer` 导致首页 Flow 收不到跨实例写入通知（内容“写死”不刷新）。 | 生产用户不受影响，但调试时空状态需要显式清库才可验证；首页数据看起来是固定示例。 | 2026-09-16：`AppContainer` 改为进程级共享单例（构造函数私有、`get()` 获取）。2026-09-17：`SampleMoments` 改为默认首页事件，首次启动一次性注入（DataStore `default_moments_seeded` 标记），不再每次启动清理 `sample-` 前缀历史行，用户可自由增删改。 |
 | 中 | 旧 UI 存在大量旧暖纸风格硬编码色值。 | 新 J 页面会与旧页面视觉冲突。 | 新 J 页面只用 token；迁移完成的旧页面直接移除，不要求为保留它而 token 化。 |
 | 中 | 日子簿的农历节日是按某年公历日期的原型表。 | 跨年后日期错误。 | 当前不把原型节日当作业务事实；P1 接入可验证的农历/节气数据源。 |
 | 低 | `applicationId` 为 `com.cch.momentmark.app`，Activity package 仍为 `com.cch.momentmark`。 | 改 applicationId 会成为新 App 身份，旧本地数据不会迁移。 | 除非明确做数据迁移，不改 applicationId。 |

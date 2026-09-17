@@ -16,6 +16,17 @@ import com.cch.momentmark.domain.model.HomeMomentProjector
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 
+/**
+ * 血条三段色（DESIGN_SYSTEM §133/§179）：绿（长 >60%）/ 橙（中 30–60%）/ 红（短 <30%）。
+ * 首页双列小卡的数字与单位也使用同一 accent 色（design.html `.home-card-number{color:var(--card-accent)}`）。
+ */
+@Composable
+fun resolveHpAccentColor(fraction: Float): androidx.compose.ui.graphics.Color = when {
+    fraction > 0.6f -> MaterialTheme.colorScheme.primary
+    fraction >= HomeMomentProjector.LIMITED_FRACTION -> LocalMmExtendedColors.current.amber
+    else -> MaterialTheme.colorScheme.error
+}
+
 /** 真实时间派生的 HP 血条；边框不被填充色覆盖。 */
 @Composable
 fun PixelHpBar(
@@ -24,11 +35,7 @@ fun PixelHpBar(
     fillColor: androidx.compose.ui.graphics.Color? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val resolvedFillColor = fillColor ?: when {
-        fraction > 0.6f -> scheme.primary
-        fraction >= HomeMomentProjector.LIMITED_FRACTION -> LocalMmExtendedColors.current.amber
-        else -> scheme.error
-    }
+    val resolvedFillColor = fillColor ?: resolveHpAccentColor(fraction)
     val safeFraction = fraction.coerceIn(0f, 1f)
     Box(
         modifier

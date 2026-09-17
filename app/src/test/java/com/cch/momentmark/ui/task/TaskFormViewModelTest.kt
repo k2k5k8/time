@@ -38,14 +38,14 @@ class TaskFormViewModelTest {
         val repository = RecordingTaskRepository()
         val viewModel = TaskFormViewModel(repository, clock, idGenerator = { "quest-1" })
 
-        assertEquals("2026-08-29", viewModel.uiState.value.dueDateText)
-        assertEquals("2026-08-29", viewModel.uiState.value.quickTodayDateText)
-        assertEquals("2026-08-30", viewModel.uiState.value.quickTomorrowDateText)
-        assertEquals("2026-08-29", viewModel.uiState.value.quickSaturdayDateText)
+        // UI 可见日期为 design.html 第 ④ 屏的点分格式。
+        assertEquals("2026.08.29", viewModel.uiState.value.dueDateText)
+        assertEquals("2026.08.29", viewModel.uiState.value.quickTodayDateText)
+        assertEquals("2026.08.30", viewModel.uiState.value.quickTomorrowDateText)
+        assertEquals("2026.08.29", viewModel.uiState.value.quickSaturdayDateText)
         assertFalse(viewModel.uiState.value.showOnHome)
         viewModel.updateTitle("提交项目周报")
         viewModel.updateTime("09:30")
-        viewModel.selectType(TaskType.MAIN)
         viewModel.submit()
         advanceUntilIdle()
 
@@ -53,7 +53,8 @@ class TaskFormViewModelTest {
         assertEquals("quest-1", saved.id)
         assertEquals(LocalDate.of(2026, 8, 29), saved.dueLocalDate)
         assertEquals(Instant.parse("2026-08-29T09:30:00Z"), saved.dueInstant)
-        assertEquals(TaskType.MAIN, saved.taskType)
+        // 任务类型不在第 ④ 屏 UI 展示，仍以默认 SIDE 落库（数据层保留字段）。
+        assertEquals(TaskType.SIDE, saved.taskType)
         assertFalse(saved.isCompleted)
         assertFalse(saved.showOnHome)
         assertEquals(LocalDate.of(2026, 8, 29), viewModel.uiState.value.savedDueDate)
@@ -102,8 +103,7 @@ class TaskFormViewModelTest {
         assertEquals(null, viewModel.uiState.value.taskType)
 
         viewModel.updateTitle("更新后的任务")
-        viewModel.updateDate("2026-08-29")
-        viewModel.toggleShowOnHome()
+        viewModel.updateDate("2026.08.29")
         viewModel.selectDifficulty(2)
         viewModel.submit()
         advanceUntilIdle()
@@ -116,7 +116,57 @@ class TaskFormViewModelTest {
         assertTrue(saved.isCompleted)
         assertEquals(completedAt, saved.completedAt)
         assertEquals(Instant.ofEpochMilli(123L), saved.createdAt)
-        assertTrue(saved.showOnHome)
+        // 第 ④ 屏 UI 不展示「显示在首页」开关；编辑不得隐式翻转既有事实字段。
+        assertFalse(saved.showOnHome)
+    }
+
+    @Test
+    fun dottedAndIsoDateInputsBothParse() = runTest {
+        val repository = RecordingTaskRepository()
+        val viewModel = TaskFormViewModel(repository, clock)
+        viewModel.updateTitle("点分日期")
+        viewModel.updateDate("2026.12.31")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 12, 31), repository.saved?.dueLocalDate)
+
+        val repository2 = RecordingTaskRepository()
+        val viewModel2 = TaskFormViewModel(repository2, clock)
+        viewModel2.updateTitle("ISO 日期")
+        viewModel2.updateDate("2026-12-31")
+        viewModel2.submit()
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 12, 31), repository2.saved?.dueLocalDate)
+    }
+
+    @Test
+    fun sampleFixturePreFillsStructureButNeverMockText() = runTest {
+        val repository = RecordingTaskRepository()
+        val viewModel = TaskFormViewModel(repository, clock)
+        viewModel.debugSeedFixture = "sample"
+        viewModel.start(null)
+        val state = viewModel.uiState.value
+        // 只预置与设计稿一致的结构：日期 / 时间 / 难度。
+        assertEquals("2026.09.18", state.dueDateText)
+        assertEquals("10:00", state.dueTimeText)
+        assertEquals(1, state.difficulty)
+        // design.html 的「抢演唱会门票」与 LORE 段落只是 HTML 稿的展示效果，绝不预填。
+        assertEquals("", state.title)
+        assertEquals("", state.note)
+    }
+
+    @Test
+    fun emptyFixtureKeepsProductionEquivalentForm() = runTest {
+        val repository = RecordingTaskRepository()
+        val viewModel = TaskFormViewModel(repository, clock)
+        viewModel.debugSeedFixture = "empty"
+        viewModel.start(null)
+        val state = viewModel.uiState.value
+        assertEquals("", state.title)
+        assertEquals("", state.note)
+        assertEquals("", state.dueTimeText)
+        assertEquals(null, state.difficulty)
+        assertEquals("2026.08.29", state.dueDateText)
     }
 }
 

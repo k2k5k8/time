@@ -10,6 +10,7 @@ import com.cch.momentmark.data.repository.Group
 import com.cch.momentmark.data.repository.GroupRepositoryPort
 import com.cch.momentmark.domain.model.Moment
 import com.cch.momentmark.domain.model.MomentDirection
+import com.cch.momentmark.BuildConfig
 import java.time.Clock
 import java.time.LocalDate
 import java.util.UUID
@@ -58,7 +59,44 @@ class MomentFormViewModel(
 ) : ViewModel() {
 
     private fun dateParts(date: LocalDate) = Triple(date.year, date.monthValue, date.dayOfMonth)
+
+    /**
+     * 初始状态。生产路径（非 debug fixture）永远是**空表单**：只有方向、日期与分组列表。
+     *
+     * 设计稿截屏 fixture 仅在 [BuildConfig.DEBUG] 下生效，且**只预置结构字段**
+     * （方向 / 锚定日期 / 分组线路 / 重要度），不预填任何文案。
+     *
+     * `design.html` 第 ②③ 屏里「毕业旅行 · 东京」「和甜甜在一起」等 时刻名称，
+     * 以及 任务背景 LORE / 成就故事 STORY 的段落，都只是 HTML 稿的展示效果，
+     * 不是要给真实表单预填的数据（用户 2026-09-14 明确要求删除），
+     * 因此 `title` / `note` 恒为数据类默认的空串，不再有任何 fixture 预置文本。
+     */
     private fun initialState(): MomentFormUiState {
+        val seed = if (BuildConfig.DEBUG) debugSeedFixture else ""
+        if (BuildConfig.DEBUG && seed == "future") {
+            val date = LocalDate.of(2027, 3, 28)
+            return MomentFormUiState(
+                direction = MomentDirection.FUTURE_COUNTDOWN,
+                groupId = "travel",
+                rarity = 2,
+                anchorDateText = date.toString(),
+                selectedYear = date.year,
+                selectedMonth = date.monthValue,
+                selectedDay = date.dayOfMonth,
+            )
+        }
+        if (BuildConfig.DEBUG && seed == "past") {
+            val date = LocalDate.of(2023, 5, 20)
+            return MomentFormUiState(
+                direction = MomentDirection.PAST_ACHIEVEMENT,
+                groupId = "heart",
+                rarity = 3,
+                anchorDateText = date.toString(),
+                selectedYear = date.year,
+                selectedMonth = date.monthValue,
+                selectedDay = date.dayOfMonth,
+            )
+        }
         val date = LocalDate.now(clock)
         val (year, month, day) = dateParts(date)
         return MomentFormUiState(
@@ -68,6 +106,13 @@ class MomentFormViewModel(
             selectedDay = day,
         )
     }
+
+    /**
+     * 设计稿截屏 fixture。生产构建下保留空字符串（默认行为）：空标题 / 未来方向 / 今天日期。
+     * 仅当 [BuildConfig.DEBUG] 时被 [initialState] 读取，取值 `future` / `past`，
+     * **只预置方向、锚定日期、分组与重要度等结构，不预置任何文案**。
+     */
+    var debugSeedFixture: String = ""
 
     private val _uiState = MutableStateFlow(initialState())
     val uiState = _uiState.asStateFlow()
@@ -271,13 +316,26 @@ class MomentFormViewModelFactory(context: Context) : ViewModelProvider.Factory {
         require(modelClass.isAssignableFrom(MomentFormViewModel::class.java)) {
             "Unknown ViewModel class: ${modelClass.name}"
         }
-        val container = AppContainer(applicationContext)
-        return MomentFormViewModel(
+        val container = AppContainer.get(applicationContext)
+        val viewModel = MomentFormViewModel(
             repository = container.momentRepository,
             clock = container.clock,
-            onClearedCallback = container::close,
             groupRepository = container.groupRepository,
-        ) as T
+        )
+        // 设计稿截屏 fixture：adb shell setprop debug.momentmark.form "future"/"past"。
+        // 仅 debug 构建生效，生产构建始终为 ""（默认生产行为）。
+        if (BuildConfig.DEBUG) {
+            viewModel.debugSeedFixture = readDebugSeed(applicationContext)
+        }
+        return viewModel as T
+    }
+
+    private fun readDebugSeed(context: Context): String = try {
+        val clazz = Class.forName("android.os.SystemProperties")
+        val get = clazz.getMethod("get", String::class.java, String::class.java)
+        (get.invoke(null, "debug.momentmark.form", "") as? String).orEmpty()
+    } catch (_: Throwable) {
+        ""
     }
 }
 

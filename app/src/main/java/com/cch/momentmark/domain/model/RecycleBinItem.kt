@@ -11,7 +11,7 @@ data class RecycleBinItem(
 )
 
 enum class RecycleBinItemType(val label: String) {
-    MOMENT("时刻"),
+    MOMENT("成就"),
     TASK("任务"),
 }
 

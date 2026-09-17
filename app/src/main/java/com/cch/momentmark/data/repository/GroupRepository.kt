@@ -15,6 +15,8 @@ data class Group(
     val name: String,
     val colorToken: String,
     val sortOrder: Int,
+    /** 稳定的内置图标字段；当前由排序槽映射，后续可迁移为持久化字段。 */
+    val iconKey: String = "default",
 )
 
 interface GroupRepositoryPort {
@@ -33,7 +35,7 @@ class GroupRepository(
     private val nowMillis: () -> Long,
 ) : GroupRepositoryPort {
     override fun observeAll(): Flow<List<Group>> =
-        groupDao.observeAll().map { list -> list.map { Group(it.id, it.name, it.colorToken, it.sortOrder) } }
+        groupDao.observeAll().map { list -> list.map { Group(it.id, it.name, it.colorToken, it.sortOrder, iconKeyFor(it.sortOrder)) } }
 
     override suspend fun create(name: String): Result<Group> = runCatching {
         val normalized = name.trim()
@@ -47,7 +49,7 @@ class GroupRepository(
             sortOrder = sortOrder, createdAt = now, updatedAt = now,
         )
         groupDao.insert(entity)
-        Group(entity.id, entity.name, entity.colorToken, entity.sortOrder)
+        Group(entity.id, entity.name, entity.colorToken, entity.sortOrder, iconKeyFor(entity.sortOrder))
     }
 
     override suspend fun rename(id: String, name: String): Result<Unit> = runCatching {
@@ -74,5 +76,6 @@ class GroupRepository(
 
     companion object {
         val COLOR_TOKENS = listOf("manaPurple", "amber", "hpRed", "goldInk", "xpBlue")
+        private fun iconKeyFor(sortOrder: Int): String = when (sortOrder % 3) { 0 -> "travel"; 1 -> "work"; else -> "heart" }
     }
 }
