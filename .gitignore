@@ -89,5 +89,5 @@ key.properties
 !/readme-assets/
 /readme-assets/*
 !/readme-assets/daybook-light.png
-!/readme-assets/daybook-dark.png
+!/readme-assets/task-details.png
 !/readme-assets/task-form.png

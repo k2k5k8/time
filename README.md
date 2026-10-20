@@ -27,13 +27,13 @@
 
 <div align="center">
 
-<img src="readme-assets/daybook-light.png" alt="亮色日子簿：月历、四色任务标记与每日待办" width="30%" />
-<img src="readme-assets/daybook-dark.png" alt="深色日子簿：大字号配置下的月历与任务列表" width="30%" />
-<img src="readme-assets/task-form.png" alt="创建任务：选择日期与计划安排" width="30%" />
+<img src="readme-assets/daybook-light.png" alt="昼间正常字号：月历、四色任务标记与每日待办" width="30%" />
+<img src="readme-assets/task-form.png" alt="昼间正常字号：创建任务，选择日期与计划安排" width="30%" />
+<img src="readme-assets/task-details.png" alt="昼间正常字号：任务备注与精力投入设置" width="30%" />
 
-**亮色日子簿 · 深色日子簿 · 创建任务**
+**日子簿月历 · 创建任务 · 备注与精力投入**
 
-<sub>真实 Android 界面，截取于 2026-10-20 的模拟器验收；内容为演示数据。深色月历使用大字号配置。</sub>
+<sub>均为昼间主题、正常字号（1.0）的真实 Android 界面，来自 2026-10-20 的模拟器验收；内容为演示数据。</sub>
 
 </div>
 
