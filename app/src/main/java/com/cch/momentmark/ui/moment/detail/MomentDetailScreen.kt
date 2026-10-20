@@ -2,6 +2,7 @@ package com.cch.momentmark.ui.moment.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +66,7 @@ import com.cch.momentmark.ui.components.MilestonePanel
 import com.cch.momentmark.ui.components.MilestonePresentation
 import com.cch.momentmark.ui.components.PixelConfirmationDialog
 import com.cch.momentmark.ui.components.PixelPageHeader
+import com.cch.momentmark.ui.components.pixelClickable
 import com.cch.momentmark.domain.time.Milestone
 import com.cch.momentmark.domain.time.MilestoneCalculator
 import com.cch.momentmark.domain.time.MilestoneStatus
@@ -365,7 +367,7 @@ private fun AchievementBranch(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .semantics { contentDescription = "封印此成就，移入回收站" }
-                .clickable(role = Role.Button, onClick = onRequestSeal)
+                .pixelClickable(role = Role.Button, onClick = onRequestSeal)
                 .padding(bottom = 1.dp),
         )
     }
@@ -672,7 +674,7 @@ private fun QuestBranch(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .semantics { contentDescription = "放弃任务，移入回收站" }
-                .clickable(role = Role.Button, onClick = onSeal)
+                .pixelClickable(role = Role.Button, onClick = onSeal)
                 .padding(bottom = 1.dp),
         )
     }
@@ -753,13 +755,15 @@ private fun DetailActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val pressInteraction = remember { MutableInteractionSource() }
     PixelPanel(
         modifier = modifier
             .semantics(mergeDescendants = true) { this.contentDescription = contentDescription }
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = pressInteraction, indication = null, role = Role.Button, onClick = onClick),
         backgroundColor = container,
         borderColor = MaterialTheme.colorScheme.outline,
         shadowColor = MaterialTheme.colorScheme.outline,
+        pressInteractionSource = pressInteraction,
     ) {
         Text(
             text = label,

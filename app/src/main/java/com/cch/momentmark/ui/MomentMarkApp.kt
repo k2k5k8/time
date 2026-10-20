@@ -5,14 +5,17 @@ import android.content.ContextWrapper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
@@ -20,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import com.cch.momentmark.BuildConfig
@@ -90,6 +95,20 @@ private data class SkeletonDestination(
     val tab: MainTab,
     val overlay: OverlayScreen?,
 )
+
+/** 路由方向只由目的地变化推导，页面本身不保存动画状态。 */
+private fun AnimatedContentTransitionScope<SkeletonDestination>.isForwardNavigation(): Boolean {
+    val from = initialState
+    val to = targetState
+    return when {
+        from.overlay == null && to.overlay != null -> true
+        from.overlay != null && to.overlay == null -> false
+        from.overlay != null && to.overlay != null ->
+            // 回收站只从设置页进入；详情 → 编辑等其它叠加页切换按前进处理。
+            !(from.overlay == OverlayScreen.RECYCLE_BIN && to.overlay == OverlayScreen.SETTINGS)
+        else -> from.tab.ordinal < to.tab.ordinal
+    }
+}
 
 private data class UndoSeal(val type: RecycleBinItemType, val id: String, val title: String)
 
@@ -263,6 +282,18 @@ fun MomentMarkApp() {
         )[DaybookViewModel::class.java]
     }
     val daybookUiState by daybookViewModel.uiState.collectAsState()
+    val repeatLifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(repeatLifecycleOwner, daybookViewModel) {
+        repeatLifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            var resumed = true
+            while (true) {
+                daybookViewModel.checkNaturalDay(force = resumed)
+                resumed = false
+                // 按规则午夜/截止风险边界唤醒；新摘要会重排等待，后台不请求唤醒。
+                daybookViewModel.awaitNaturalDayCheck()
+            }
+        }
+    }
     val taskFormViewModel = remember(activity) {
         ViewModelProvider(activity, TaskFormViewModelFactory(context.applicationContext))[TaskFormViewModel::class.java]
     }
@@ -290,7 +321,27 @@ fun MomentMarkApp() {
         }
     }
 
+    var acceptedTaskId by rememberSaveable { mutableStateOf<String?>(null) }
+    var taskSavedFeedback by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(taskSavedFeedback, nav.overlay, daybookUiState.tasksDate) {
+        if (nav.overlay == null && daybookUiState.tasksDate == daybookUiState.selectedDate) {
+            kotlinx.coroutines.delay(MomentMarkTokens.TaskAcceptedRowMs)
+            taskSavedFeedback = null
+        }
+    }
+    LaunchedEffect(acceptedTaskId, nav.overlay, daybookUiState.tasks) {
+        if (nav.overlay == null && daybookUiState.tasks.any { it.id == acceptedTaskId }) {
+            kotlinx.coroutines.delay(MomentMarkTokens.TaskAcceptedRowMs)
+            acceptedTaskId = null
+        }
+    }
+    // TaskFormScreen owns its system/header return and success-event consumption.
     BackHandler(enabled = nav.overlay != null) { nav.back() }
+    val returnToTaskOrigin = { originDate: java.time.LocalDate? ->
+        originDate?.let(daybookViewModel::selectDate)
+        nav.back()
+        Unit
+    }
 
     // 首页抽屉的返回处理统一放在应用层（而非 MomentHomeScreen 内部）：
     // 1) 左缘右滑与系统返回手势竞争时，紧随其后的返回事件被宽限期吞掉，抽屉保持展开；
@@ -305,6 +356,14 @@ fun MomentMarkApp() {
 
     // 当前设计稿所有页面均使用昼间任务板配色（DESIGN_SYSTEM §5）。
     MomentMarkTheme(themeMode = themeMode) {
+        // The root owns the baseline restored by form/dialog windows on exit.
+        val night = com.cch.momentmark.ui.theme.LocalMomentMarkNight.current
+        androidx.compose.runtime.SideEffect {
+            androidx.core.view.WindowCompat.getInsetsController(activity.window, activity.window.decorView).apply {
+                isAppearanceLightStatusBars = !night
+                isAppearanceLightNavigationBars = !night
+            }
+        }
         // design.html 的 .phone 内容区是 314×648 的固定画布；设备宽度不等于 314dp 时
         // 整页等比缩放，避免卡片外框随 weight(1f) 拉伸而字号/内距仍是固定 dp（DESIGN_SYSTEM §2.6）。
         PixelCanvas {
@@ -313,121 +372,161 @@ fun MomentMarkApp() {
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                AnimatedContent(
-                    targetState = SkeletonDestination(nav.selectedTab, nav.overlay),
-                    modifier = Modifier.weight(1f),
-                    transitionSpec = {
-                        // 8-bit 式快速硬切过渡：不做位移动画
-                        (fadeIn(tween(MomentMarkTokens.MotionPressMs)) togetherWith
-                            fadeOut(tween(MomentMarkTokens.MotionPressMs)))
-                    },
-                    label = "skeleton-destination",
-                ) { destination ->
-                    when (destination.overlay) {
-                        OverlayScreen.MOMENT_FORM -> MomentFormScreen(
-                            viewModel = momentFormViewModel,
-                            momentId = nav.editingMomentId,
-                            onSaved = nav::completeMomentForm,
-                            onBack = nav::back,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        OverlayScreen.MOMENT_DETAIL -> MomentDetailScreen(
-                            momentId = nav.selectedMomentId ?: "",
-                            viewModel = momentDetailViewModel,
-                            onBack = nav::back,
-                            onEdit = nav::openMomentEdit,
-                            onSealed = { moment ->
-                                undoSeal = UndoSeal(RecycleBinItemType.MOMENT, moment.id, moment.title)
-                                nav.back()
-                            },
-                            modifier = Modifier.fillMaxSize(),
-                            fixtureState = when (debugDetail) {
-                                "quest" -> MomentDetailVisualFixture.uiState
-                                "achievement" -> MomentDetailVisualFixture.achievementUiState
-                                else -> null
-                            },
-                        )
-                        OverlayScreen.TASK_FORM -> TaskFormScreen(
-                            viewModel = taskFormViewModel,
-                            taskId = nav.editingTaskId,
-                            onSaved = { dueDate ->
-                                daybookViewModel.selectDate(dueDate)
-                                nav.back()
-                            },
-                            onBack = nav::back,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        OverlayScreen.SETTINGS -> SystemSettingsScreen(
-                            recycleBinState = recycleBinUiState,
-                            onBack = nav::back,
-                            onOpenRecycleBin = nav::openRecycleBin,
-                            themeMode = themeMode,
-                            onThemeModeChanged = themeSettingsViewModel::setThemeMode,
-                            selectedTab = nav.selectedTab,
-                            onTabSelected = nav::selectTab,
-                            onNewMoment = nav::openMomentForm,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        OverlayScreen.RECYCLE_BIN -> RecycleBinScreen(
-                            uiState = recycleBinUiState,
-                            clock = java.time.Clock.systemDefaultZone(),
-                            onBack = nav::openSettings,
-                            onRestore = recycleBinViewModel::restore,
-                            onPermanentlyDelete = recycleBinViewModel::permanentlyDelete,
-                            onPurgeAll = recycleBinViewModel::purgeAll,
-                            selectedTab = nav.selectedTab,
-                            onTabSelected = nav::selectTab,
-                            onNewMoment = nav::openMomentForm,
-                            fixtureState = if (debugRecycleBin == "graveyard") RecycleBinVisualFixture.uiState else null,
-                            fixtureClock = if (debugRecycleBin == "graveyard") RecycleBinVisualFixture.clock else null,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        null -> when (destination.tab) {
-                            MainTab.HOME -> MomentHomeScreen(
-                                uiState = homeUiState,
-                                onMomentSelected = nav::openMomentDetail,
-                                onPinnedMove = homeViewModel::movePinned,
-                                onDrawerOpen = homeViewModel::openDrawer,
-                                onDrawerClose = homeViewModel::closeDrawer,
-                                onOpenGroupManagement = nav::openSettings,
-                                partyRows = buildMapFilterPartyRows(
-                                    groups = groupUiState.groups,
-                                    counts = homeUiState.filterCounts,
-                                ),
-                                drawerFixture = if (debugDrawer == "filter") {
-                                    MomentHomeVisualFixture.mapFilter
-                                } else {
-                                    null
-                                },
+                Box(Modifier.weight(1f)) {
+                    AnimatedContent(
+                        targetState = SkeletonDestination(nav.selectedTab, nav.overlay),
+                        modifier = Modifier.fillMaxSize(),
+                        transitionSpec = {
+                            // 旧、新页面若同时存在，日历/表单会在同一帧进行两棵复杂树的布局和绘制。
+                            // 因此旧页立即移除，只为新页保留 GPU 友好的短距离入场，避免掉帧。
+                            val isForward = isForwardNavigation()
+                            val shortSave = initialState.overlay == OverlayScreen.TASK_FORM &&
+                                taskFormViewModel.uiState.value.isSaved && taskFormViewModel.uiState.value.editingTaskId != null
+                            if (shortSave) androidx.compose.animation.EnterTransition.None togetherWith ExitTransition.None else
+                            (
+                                slideInHorizontally(
+                                    animationSpec = tween(MomentMarkTokens.MotionPageEnterMs),
+                                    initialOffsetX = { fullWidth ->
+                                        if (isForward) fullWidth / 3 else -fullWidth / 3
+                                    },
+                                ) + fadeIn(
+                                    animationSpec = tween(MomentMarkTokens.MotionPageEnterMs),
+                                    initialAlpha = 0.96f,
+                                )
+                            ) togetherWith ExitTransition.None
+                        },
+                        label = "skeleton-destination",
+                    ) { destination ->
+                        when (destination.overlay) {
+                            OverlayScreen.MOMENT_FORM -> MomentFormScreen(
+                                viewModel = momentFormViewModel,
+                                momentId = nav.editingMomentId,
+                                onSaved = nav::completeMomentForm,
+                                onBack = nav::back,
                                 modifier = Modifier.fillMaxSize(),
                             )
-                            MainTab.DAYBOOK -> DaybookScreen(
-                                uiState = daybookUiState,
-                                onAcceptNewTask = nav::openTaskForm,
-                                onOpenSettings = nav::openSettings,
-                                onDateSelected = daybookViewModel::selectDate,
-                                onMonthChanged = daybookViewModel::changeMonth,
-                                onTaskCompletionToggled = daybookViewModel::toggleCompleted,
-                                onTaskEditRequested = nav::openTaskEdit,
-                                onTaskSealRequested = { task ->
-                                    daybookViewModel.seal(task) {
-                                        undoSeal = UndoSeal(RecycleBinItemType.TASK, task.id, task.title)
-                                    }
+                            OverlayScreen.MOMENT_DETAIL -> MomentDetailScreen(
+                                momentId = nav.selectedMomentId ?: "",
+                                viewModel = momentDetailViewModel,
+                                onBack = nav::back,
+                                onEdit = nav::openMomentEdit,
+                                onSealed = { moment ->
+                                    undoSeal = UndoSeal(RecycleBinItemType.MOMENT, moment.id, moment.title)
+                                    nav.back()
                                 },
                                 modifier = Modifier.fillMaxSize(),
+                                fixtureState = when (debugDetail) {
+                                    "quest" -> MomentDetailVisualFixture.uiState
+                                    "achievement" -> MomentDetailVisualFixture.achievementUiState
+                                    else -> null
+                                },
                             )
+                            OverlayScreen.TASK_FORM -> TaskFormScreen(
+                                viewModel = taskFormViewModel,
+                                taskId = nav.editingTaskId,
+                                selectedDate = daybookUiState.selectedDate,
+                                onSaved = { originDate ->
+                                    val saved = taskFormViewModel.uiState.value
+                                    taskSavedFeedback = if (saved.editingTaskId == null) "任务已接取" else "已保存"
+                                    returnToTaskOrigin(originDate)
+                                },
+                                onAccepted = { acceptedTaskId = it },
+                                onBack = { returnToTaskOrigin(taskFormViewModel.uiState.value.originDate) },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            OverlayScreen.SETTINGS -> SystemSettingsScreen(
+                                recycleBinState = recycleBinUiState,
+                                onBack = nav::back,
+                                onOpenRecycleBin = nav::openRecycleBin,
+                                themeMode = themeMode,
+                                onThemeModeChanged = themeSettingsViewModel::setThemeMode,
+                                selectedTab = nav.selectedTab,
+                                onTabSelected = nav::selectTab,
+                                onNewMoment = nav::openMomentForm,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            OverlayScreen.RECYCLE_BIN -> RecycleBinScreen(
+                                uiState = recycleBinUiState,
+                                clock = java.time.Clock.systemDefaultZone(),
+                                onBack = nav::openSettings,
+                                onRestore = recycleBinViewModel::restore,
+                                onPermanentlyDelete = recycleBinViewModel::permanentlyDelete,
+                                onPurgeAll = recycleBinViewModel::purgeAll,
+                                selectedTab = nav.selectedTab,
+                                onTabSelected = nav::selectTab,
+                                onNewMoment = nav::openMomentForm,
+                                fixtureState = if (debugRecycleBin == "graveyard") RecycleBinVisualFixture.uiState else null,
+                                fixtureClock = if (debugRecycleBin == "graveyard") RecycleBinVisualFixture.clock else null,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            null -> when (destination.tab) {
+                                MainTab.HOME -> MomentHomeScreen(
+                                    uiState = homeUiState,
+                                    onMomentSelected = nav::openMomentDetail,
+                                    onPinnedMove = homeViewModel::movePinned,
+                                    onDrawerOpen = homeViewModel::openDrawer,
+                                    onDrawerClose = homeViewModel::closeDrawer,
+                                    onOpenGroupManagement = nav::openSettings,
+                                    partyRows = buildMapFilterPartyRows(
+                                        groups = groupUiState.groups,
+                                        counts = homeUiState.filterCounts,
+                                    ),
+                                    drawerFixture = if (debugDrawer == "filter") {
+                                        MomentHomeVisualFixture.mapFilter
+                                    } else {
+                                        null
+                                    },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                                MainTab.DAYBOOK -> DaybookScreen(
+                                    uiState = daybookUiState,
+                                    acceptedTaskId = acceptedTaskId,
+                                    saveFeedback = taskSavedFeedback,
+                                    onAcceptNewTask = { acceptedTaskId = null; taskSavedFeedback = null; nav.openTaskForm() },
+                                    onOpenSettings = nav::openSettings,
+                                    onDateSelected = daybookViewModel::selectDate,
+                                    onDateConfirmed = daybookViewModel::confirmDate,
+                                    onTodayRequested = daybookViewModel::selectToday,
+                                    onPickerOpened = daybookViewModel::refreshToday,
+                                    onPickerDraftChanged = daybookViewModel::updateDatePicker,
+                                    onRetryTasks = daybookViewModel::retryTasks,
+                                    onRetryCalendar = daybookViewModel::retryCalendar,
+                                    onMonthChanged = daybookViewModel::changeMonth,
+                                    onTaskCompletionToggled = daybookViewModel::toggleCompleted,
+                                    onTaskCompletionRequested = daybookViewModel::requestCompletion,
+                                    onTaskMove = daybookViewModel::moveTask,
+                                    onPendingAction = daybookViewModel::actOnPending,
+                                    onRetryPending = daybookViewModel::retryPendingTasks,
+                                    onTaskAutoDefer = daybookViewModel::autoDefer,
+                                    onMoveUndo = daybookViewModel::undoMove,
+                                    onMakeUp = daybookViewModel::makeUp,
+                                    onRepeatSkip = daybookViewModel::skipRepeat,
+                                    onRepeatPause = daybookViewModel::pauseRepeat,
+                                    onRepeatResume = daybookViewModel::resumeRepeat,
+                                    onRepeatEdited = daybookViewModel::editRepeatFuture,
+                                    onTaskEditRequested = { acceptedTaskId = null; taskSavedFeedback = null; nav.openTaskEdit(it) },
+                                    onTaskSealRequested = { task ->
+                                        daybookViewModel.seal(task) {
+                                            undoSeal = UndoSeal(RecycleBinItemType.TASK, task.id, task.title)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     }
-                }
-                undoSeal?.let { sealed ->
-                    PixelUndoToast(
-                        title = sealed.title,
-                        onUndo = {
-                            recycleBinViewModel.restore(sealed.type, sealed.id)
-                            undoSeal = null
-                        },
-                        onDismiss = { undoSeal = null },
-                    )
+                    undoSeal?.let { sealed ->
+                        PixelUndoToast(
+                            title = sealed.title,
+                            onUndo = {
+                                recycleBinViewModel.restore(sealed.type, sealed.id)
+                                undoSeal = null
+                            },
+                            onDismiss = { undoSeal = null },
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                                .padding(horizontal = MomentMarkTokens.SpacePage, vertical = MomentMarkTokens.SpaceCompact),
+                        )
+                    }
                 }
                 if (nav.overlay == null) {
                     PixelBottomNav(

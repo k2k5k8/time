@@ -24,10 +24,34 @@ data class Task(
     val deletedAt: Instant?,
     val createdAt: Instant,
     val updatedAt: Instant,
-)
+    val plan: TaskPlan = TaskPlan(),
+    val important: Boolean = false,
+    /** 实例原执行日不会随着编辑所属日改变；同系列同原执行日身份唯一。 */
+    val repeatRuleId: String? = null,
+    val repeatOccurrenceDate: LocalDate? = null,
+    val isSkipped: Boolean = false,
+    val initialScheduledDate: LocalDate = dueLocalDate,
+    val autoDefer: Boolean = false,
+    val restoredOn: LocalDate? = null,
+    /** 只读日期投影，不落库；过去缺失实例不能伪装成实际待办。 */
+    val movedTo: LocalDate? = null,
+    val repeatDisplay: RepeatDisplay = RepeatDisplay.STORED,
+    /** Read-only provenance from the same rule/exception snapshot; never persisted. Null is unknown. */
+    val repeatContext: RepeatOccurrenceContext? = null,
+) {
+    init {
+        require((repeatRuleId == null) == (repeatOccurrenceDate == null))
+        require(repeatRuleId == null || !autoDefer)
+        require(!isSkipped || (repeatRuleId != null && !isCompleted))
+    }
+}
 
 enum class TaskType {
     MAIN,
     SIDE,
     LIMITED,
 }
+
+enum class RepeatDisplay { STORED, PREVIEW, UNRECORDED }
+
+data class RepeatOccurrenceContext(val daily: Boolean, val hasException: Boolean)

@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
@@ -31,6 +35,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 
@@ -51,6 +57,15 @@ fun PixelTextInput(
     errorMessage: String? = null,
     /** design.html 字段行右侧的 mono 提示（如 `选填 · 将显示在详情页`）。 */
     helperLabel: String? = null,
+    /** Optional heading layout anchor; owned by the calling scroll container. */
+    labelModifier: Modifier = Modifier,
+    /** Opt-in for a focused field inside an IME-resized, scrollable form. */
+    followCursor: Boolean = false,
+    /** Embedded in a parent form section; keep only the input border. */
+    framed: Boolean = true,
+    enabled: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    minInputHeight: Dp = 0.dp,
 ) {
     val scheme = MaterialTheme.colorScheme
     val extended = LocalMmExtendedColors.current
@@ -59,6 +74,15 @@ fun PixelTextInput(
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     // 闪烁相位与方块光标由 PixelCursor 统一提供，避免各表单各写一套（与 DueCell 共用）。
     val cursorVisible = rememberPixelCursorVisible(focused)
+    val cursorRequester = remember { BringIntoViewRequester() }
+    val cursorMargin = with(LocalDensity.current) { MomentMarkTokens.SpaceUnit.toPx() }
+    LaunchedEffect(followCursor, focused, fieldValue, layoutResult) {
+        val layout = layoutResult
+        if (followCursor && focused && layout?.layoutInput?.text?.text == fieldValue.text) {
+            // Request only the caret, so even a note taller than the viewport can scroll.
+            cursorRequester.bringIntoView(requireNotNull(layout).getCursorRect(fieldValue.selection.end).inflate(cursorMargin))
+        }
+    }
 
     LaunchedEffect(value) {
         if (value != fieldValue.text) {
@@ -98,23 +122,19 @@ fun PixelTextInput(
     } else {
         Modifier.heightIn(min = MomentMarkTokens.FormNoteMinHeight)
     }
-    PixelPanel(
-        modifier = modifier.fillMaxWidth(),
-        // HTML 表单字段本身也是 .px：外框右下保留实体黑影，内层再放白色输入框。
-        variant = PixelPanelVariant.Raised,
-    ) {
+    val fieldContent: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxWidth()
                 // design.html `.px{padding:10px 12px}`。
-                .padding(
+                .then(if (framed) Modifier.padding(
                     horizontal = MomentMarkTokens.FormPanelPaddingHorizontal,
                     vertical = MomentMarkTokens.FormPanelPaddingVertical,
-                ),
+                ) else Modifier),
         ) {
             // label 行：左 fieldlabel、右可选 mono 提示（HTML `justify-content:space-between`）。
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().then(labelModifier),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -162,6 +182,8 @@ fun PixelTextInput(
                             onValueChange(next.text)
                         },
                         singleLine = singleLine,
+                        keyboardOptions = keyboardOptions,
+                        enabled = enabled,
                         textStyle = fieldTextStyle.copy(color = scheme.onSurface),
                         cursorBrush = SolidColor(androidx.compose.ui.graphics.Color.Transparent),
                         onTextLayout = { layoutResult = it },
@@ -171,6 +193,8 @@ fun PixelTextInput(
                                 horizontal = MomentMarkTokens.FormInputPaddingHorizontal,
                                 vertical = MomentMarkTokens.FormInputPaddingVertical,
                             )
+                            .heightIn(min = minInputHeight)
+                            .bringIntoViewRequester(cursorRequester)
                             .semantics { this.contentDescription = contentDescription },
                         decorationBox = { innerTextField ->
                             if (fieldValue.text.isEmpty() && !focused) {
@@ -197,4 +221,7 @@ fun PixelTextInput(
             }
         }
     }
+    if (framed) PixelPanel(modifier.fillMaxWidth(), variant = PixelPanelVariant.Raised) { fieldContent() }
+    else Box(modifier.fillMaxWidth()) { fieldContent() }
+
 }

@@ -1,206 +1,85 @@
 package com.cch.momentmark.ui.task
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.cch.momentmark.ui.components.PixelFieldLabel
-import com.cch.momentmark.ui.components.PixelPanel
-import com.cch.momentmark.ui.components.PixelPanelVariant
-import com.cch.momentmark.ui.components.PixelStarRating
-import com.cch.momentmark.ui.components.pixelBlockCursor
-import com.cch.momentmark.ui.components.rememberPixelCursorVisible
-import com.cch.momentmark.ui.theme.LocalMmExtendedColors
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.*
+import com.cch.momentmark.ui.components.*
 import com.cch.momentmark.ui.theme.MomentMarkTokens
+import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 
-/**
- * 第 ④ 屏「▸ 截止日期 DUE ★」面板 + 右上「[ ] 全天」helper + 一行两白框（日期 1.4 + 时间 1）。
- *
- * 与 design.html 完全一致：`.px`（内距 10/12，border 3） + 顶行 `flex-between` label/helper
- * + 第二行 `flex` 双白框 `gap:8px` `margin-top:8px`。
- */
+/** Optional energy: only a user click toggles; assignment/refill callbacks keep their meaning. */
 @Composable
-internal fun DueDateTimePanel(
-    dateText: String,
-    timeText: String,
-    onDateChanged: (String) -> Unit,
-    onTimeChanged: (String) -> Unit,
-) {
-    PixelPanel(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = MomentMarkTokens.FormPanelPaddingHorizontal,
-                    vertical = MomentMarkTokens.FormPanelPaddingVertical,
-                ),
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.FormTaskDateTimeLabelToRowGap),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PixelFieldLabel(
-                    label = "▸ 截止日期 DUE ★",
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = "[ ] 全天",
-                    style = TextStyle(
-                        fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 9.sp,
-                        lineHeight = 11.sp,
-                        letterSpacing = 1.8.sp,
-                    ),
-                    color = LocalMmExtendedColors.current.labelTertiary,
-                )
+internal fun DifficultyPanel(difficulty: Int?, onDifficultySelected: (Int?) -> Unit, enabled: Boolean = true, framed: Boolean = true) {
+    val density = LocalDensity.current
+    val body: @Composable () -> Unit = {
+        Column(Modifier.fillMaxWidth().then(if (framed) Modifier.padding(MomentMarkTokens.FormPanelPaddingHorizontal) else Modifier),
+            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit)) {
+            TaskFormSectionLabel("难度 · 精力投入")
+            @Composable fun option(value: Int, modifier: Modifier) {
+                val label = listOf("轻量", "适中", "费力")[value - 1]
+                val isSelected = difficulty == value
+                val action = { onDifficultySelected(if (isSelected) null else value) }
+                PixelButton("${"★".repeat(value)}\n$label", action,
+                    modifier.testTag("task-energy-$value").clearAndSetSemantics {
+                        contentDescription = "$value 星，$label，精力投入"
+                        role = Role.Button
+                        selected = isSelected
+                        stateDescription = if (isSelected) "已选择，再次点击取消" else "未选择"
+                        if (enabled) onClick(if (isSelected) "取消$label" else "选择$label") { action(); true }
+                        else disabled()
+                    }, variant = PixelButtonVariant.Ghost,
+                    selected = isSelected, selectedColors = LocalMmExtendedColors.current.task.effort(value),
+                    enabled = enabled)
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.FormTaskDateTimeCellRowGap),
-            ) {
-                DueCell(
-                    value = dateText,
-                    onValueChange = onDateChanged,
-                    modifier = Modifier.weight(MomentMarkTokens.FormTaskDateTimeCellWeightDate),
-                )
-                DueCell(
-                    value = timeText,
-                    onValueChange = onTimeChanged,
-                    modifier = Modifier.weight(MomentMarkTokens.FormTaskDateTimeCellWeightTime),
-                )
+            if (density.fontScale > 1.3f) {
+                (1..3).forEach { option(it, Modifier.fillMaxWidth()) }
+            } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceUnit)) {
+                (1..3).forEach { option(it, Modifier.weight(1f)) }
             }
         }
     }
+    if (framed) PixelPanel(Modifier.fillMaxWidth()) { body() } else body()
 }
 
-/**
- * 单格白框——与第 ②③ 屏 `.px` 内 DatePart 同款外观，但实现为可编辑 BasicTextField。
- * 文本格式 `text` 由 ViewModel 负责（日期 `YYYY.MM.DD` / 时间 `HH:MM`）。
- */
 @Composable
-private fun DueCell(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
-    var focused by remember { mutableStateOf(false) }
-    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-    // 与新时刻表单（PixelTextInput）共用同一组方块光标与闪烁相位：4dp × 8.3dp、1s 硬切换。
-    val cursorVisible = rememberPixelCursorVisible(focused)
-    LaunchedEffect(value) {
-        if (value != fieldValue.text) {
-            fieldValue = TextFieldValue(value, TextRange(value.length))
-        }
-    }
-    // design.html 白框是裸 `border:3px`（无 box-shadow）——必须用 Flat 变体，
-    // 否则 Raised 的 3dp 硬影会在白框右/下多出墨色带（与设计不符且挤压相邻 gap 视觉）。
-    PixelPanel(modifier = modifier.fillMaxWidth(), variant = PixelPanelVariant.Flat) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                // design.html 白框 `background:#fff`：与 PixelTextInput 一致使用输入内表面。
-                .background(LocalMmExtendedColors.current.inputSurface)
-                .padding(
-                    horizontal = MomentMarkTokens.FormDateCellPaddingHorizontal,
-                    vertical = MomentMarkTokens.FormDateCellPaddingVertical,
-                )
-                .onFocusChanged { focused = it.isFocused }
-                // 方块光标画在 padding 之后，绘制原点即文本区左上角，无需偏移补偿。
-                .pixelBlockCursor(
-                    layoutResult = layoutResult,
-                    selectionEnd = fieldValue.selection.end,
-                    visible = focused && cursorVisible,
-                    color = scheme.outline,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            BasicTextField(
-                value = fieldValue,
-                onValueChange = { next ->
-                    fieldValue = next
-                    onValueChange(next.text)
-                },
-                singleLine = true,
-                // design.html 白框 `text-align:center`：日期与时间均居中显示。
-                textStyle = TextStyle(
-                    fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = MomentMarkTokens.FormTaskCellValueSize,
-                    lineHeight = MomentMarkTokens.FormDateCellValueLineHeight,
-                    textAlign = TextAlign.Center,
-                ).copy(color = scheme.onSurface),
-                // 光标由 pixelBlockCursor 手绘；不置透明会出现系统细线与方块重叠的双光标。
-                cursorBrush = SolidColor(Color.Transparent),
-                onTextLayout = { layoutResult = it },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+internal fun TaskFormSectionLabel(label: String) {
+    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** One main boundary per section; embedded fields own only their input/control border. */
+@Composable
+internal fun TaskFormSection(tag: String, content: @Composable ColumnScope.() -> Unit) {
+    PixelPanel(Modifier.fillMaxWidth().testTag(tag)) {
+        Column(Modifier.fillMaxWidth().padding(
+            horizontal = MomentMarkTokens.FormPanelPaddingHorizontal,
+            vertical = MomentMarkTokens.FormPanelPaddingVertical),
+            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard), content = content)
     }
 }
 
-/**
- * 第 ④ 屏「▸ 难度 DIFFICULTY」行：label + 等宽星串 17sp letterSpacing 3sp。
- *
- * design.html 结构：`.px{padding:10px 12px}` 内唯一子行 `margin-top:10px`（星串行高 ≈20px），
- * 实测面板总高 56dp。Compose 侧：border 补偿 padding 13 + 顶部额外 10dp + 行高 21dp。
- * 星串行触摸高度 21dp < TouchTargetMin，与 FormRarityRow 同一显式取舍。
- */
+/** Fine local connector points at the active entry without adding another raised panel. */
 @Composable
-internal fun DifficultyPanel(difficulty: Int?, onDifficultySelected: (Int?) -> Unit) {
-    PixelPanel(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = MomentMarkTokens.FormPanelPaddingHorizontal,
-                    end = MomentMarkTokens.FormPanelPaddingHorizontal,
-                    top = MomentMarkTokens.FormPanelPaddingVertical +
-                        MomentMarkTokens.FormTaskDifficultyLabelTopGap,
-                    bottom = MomentMarkTokens.FormPanelPaddingVertical,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PixelFieldLabel(
-                label = "▸ 难度 DIFFICULTY",
-                modifier = Modifier.weight(1f),
-            )
-            PixelStarRating(
-                value = difficulty,
-                onValueChange = onDifficultySelected,
-                progressive = false,
-                minRowHeight = MomentMarkTokens.FormRarityRowHeight,
-                contentDescription = { "$it 星难度" },
-            )
-        }
-    }
+internal fun TaskFormConnectedBody(activeSlot: Int, slots: Int, modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit) {
+    val outline = MaterialTheme.colorScheme.outline
+    Column(modifier.fillMaxWidth().drawBehind {
+        val stroke = MomentMarkTokens.PxThinBorderWidth.toPx()
+        val center = size.width * (activeSlot + .5f) / slots
+        val gap = MomentMarkTokens.SpaceCompact.toPx()
+        drawLine(outline, Offset(0f, 0f), Offset(center - gap, 0f), stroke)
+        drawLine(outline, Offset(center + gap, 0f), Offset(size.width, 0f), stroke)
+        drawLine(outline, Offset(center - gap, 0f), Offset(center, gap), stroke)
+        drawLine(outline, Offset(center, gap), Offset(center + gap, 0f), stroke)
+        drawLine(outline, Offset(0f, 0f), Offset(0f, size.height), stroke)
+        drawLine(outline, Offset(size.width, 0f), Offset(size.width, size.height), stroke)
+        drawLine(outline, Offset(0f, size.height), Offset(size.width, size.height), stroke)
+    }.padding(MomentMarkTokens.SpaceInner),
+        verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard), content = content)
 }

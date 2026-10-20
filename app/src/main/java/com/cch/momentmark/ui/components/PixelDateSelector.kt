@@ -1,14 +1,15 @@
 package com.cch.momentmark.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 import java.time.LocalDate
@@ -111,14 +113,16 @@ fun PixelDateSelector(
 @Composable
 private fun DatePart(label: String, value: String, options: List<Int>, onSelected: (Int) -> Unit, modifier: Modifier) {
     var expanded by remember { mutableStateOf(false) }
+    val pressInteraction = remember { MutableInteractionSource() }
     Box(modifier) {
         PixelPanel(
             modifier = Modifier.fillMaxWidth().semantics {
                 contentDescription = "${label}选择器，当前$value"
                 role = Role.Button
-            }.clickable(role = Role.Button) { expanded = !expanded },
+            }.clickable(interactionSource = pressInteraction, indication = null, role = Role.Button) { expanded = !expanded },
             backgroundColor = MaterialTheme.colorScheme.surface,
             shadowColor = MaterialTheme.colorScheme.outline,
+            pressInteractionSource = pressInteraction,
         ) {
             Row(
                 modifier = Modifier
@@ -154,9 +158,14 @@ private fun DatePart(label: String, value: String, options: List<Int>, onSelecte
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
-                DropdownMenuItem(text = {
+                Box(
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        .pixelClickable(role = Role.Button) { onSelected(option); expanded = false }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
                     Text(if (label == "年") option.toString() else "%02d".format(option))
-                }, onClick = { onSelected(option); expanded = false })
+                }
             }
         }
     }

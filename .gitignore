@@ -20,3 +20,66 @@ outputs/
 
 # 已归档的旧方案文档（git 历史中仍可找回）
 nouse/
+
+# Local signing credentials and environment files
+*.jks
+*.keystore
+keystore.properties
+key.properties
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Android distribution artifacts
+*.apk
+*.aab
+*.apks
+
+# Generated acceptance media (reports and scripts remain versioned).
+# Keep these local attachments; Git is not their backup.
+/archive/20*/**/*.png
+/archive/20*/**/*.jpg
+/archive/20*/**/*.jpeg
+/archive/20*/**/*.mp4
+/archive/20*/**/*.webm
+/archive/20*/**/binary/
+/archive
+# Device data exports may contain personal records and preferences.
+/archive/**/*.tar
+/archive/**/app-data/
+/archive/**/final-app-data/
+/archive/**/*.db
+/archive/**/*.db-shm
+/archive/**/*.db-wal
+/archive/**/*.preferences_pb
+
+# Publish only application sources, runtime assets and required build files.
+/*
+!/.gitignore
+!/app/
+!/background_picture/
+!/gradle/
+!/build.gradle.kts
+!/settings.gradle.kts
+!/gradle.properties
+!/gradlew
+!/gradlew.bat
+
+/app/*
+!/app/build.gradle.kts
+!/app/proguard-rules.pro
+!/app/src/
+/app/src/*
+!/app/src/main/
+
+/gradle/*
+!/gradle/libs.versions.toml
+!/gradle/wrapper/
+/gradle/wrapper/*
+!/gradle/wrapper/gradle-wrapper.jar
+!/gradle/wrapper/gradle-wrapper.properties
+
+# Markdown stays local, including files under otherwise allowed directories.
+*.[mM][dD]
+*.[mM][aA][rR][kK][dD][oO][wW][nN]

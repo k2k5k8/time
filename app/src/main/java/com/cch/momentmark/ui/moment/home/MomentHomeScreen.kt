@@ -278,7 +278,7 @@ private fun PinnedMoveButton(
         modifier = modifier
             .size(MomentMarkTokens.TouchTargetMin)
             .semantics { this.contentDescription = contentDescription }
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onClick),
     ) {
         Text(text = label, color = Color.Transparent)
     }

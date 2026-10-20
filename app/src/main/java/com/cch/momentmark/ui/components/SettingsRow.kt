@@ -21,7 +21,8 @@ import com.cch.momentmark.ui.theme.MomentMarkTokens
 fun SettingsRow(label: String, description: String, onClick: () -> Unit, trailing: String? = null, divider: Boolean = false, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth()) {
         Row(
-            Modifier.fillMaxWidth().semantics { contentDescription = description; role = Role.Button }.clickable(role = Role.Button, onClick = onClick)
+            Modifier.fillMaxWidth().semantics { contentDescription = description; role = Role.Button }
+                .clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onClick)
                 .padding(horizontal = MomentMarkTokens.SpaceInner, vertical = if (divider) MomentMarkTokens.SpaceCompact else MomentMarkTokens.SpaceInner),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
         ) {

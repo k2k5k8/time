@@ -1,7 +1,13 @@
 package com.cch.momentmark.ui.task
 
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,165 +15,278 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
+import androidx.core.view.WindowCompat
+import android.app.Activity
+import android.view.WindowManager
+import android.content.ContextWrapper
+import com.cch.momentmark.ui.theme.LocalMomentMarkNight
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.cch.momentmark.ui.components.PageTitlePanel
-import com.cch.momentmark.ui.components.PixelPanel
-import com.cch.momentmark.ui.components.PixelStatusHud
+import com.cch.momentmark.ui.components.PixelButton
+import com.cch.momentmark.ui.components.PixelButtonIcon
+import com.cch.momentmark.ui.components.PixelButtonVariant
+import androidx.compose.ui.platform.testTag
 import com.cch.momentmark.ui.components.PixelTextInput
 import com.cch.momentmark.ui.theme.MomentMarkTokens
 import java.time.LocalDate
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 
-/**
- * J 第 ④ 屏「接受新任务」表单：仅从日子簿入口进入，保存后回到任务所属日期。
- *
- * 字段顺序、面板结构、辅助文字与 design.html 第 ④ 屏（`4 新任务 · 待办`）一一对应：
- *  - 顶部 `.statusbar mono`（LV.07 / NEW QUEST）
- *  - `.pagetitle.px` 带返回方块 + 「▶ 接受新任务」/ HUD「待办 · 来自日子簿」
- *  - ▸ 任务名称 NAME ★（单行白框）
- *  - ▸ 截止日期 DUE ★ + 右上 [ ] 全天 + 两白框（日期 1.4 + 时间 1）
- *  - ▸ 任务描述 LORE（多行 notebox + helper `选填 · 攻略/备注/链接`）
- *  - ▸ 难度 DIFFICULTY（等宽 17sp 星串）
- *  - `.btn.green.px` 提交按钮 `▶ 开始执行`
- *
- * 表单不显示底部导航，由 [MomentMarkApp] 在 overlay 模式下整体替换骨架接管。
- */
+/** 日子簿规划表单；保存与取消均返回入口浏览日，独立于任务所属日。 */
 @Composable
 fun TaskFormScreen(
     viewModel: TaskFormViewModel,
     taskId: String?,
     onSaved: (LocalDate) -> Unit,
-    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+    selectedDate: LocalDate? = null,
+    onAccepted: (String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
-    LaunchedEffect(taskId) { viewModel.start(taskId) }
-    LaunchedEffect(state.savedDueDate) {
-        state.savedDueDate?.let { dueDate ->
-            viewModel.consumeSaved()
-            onSaved(dueDate)
+    val viewModelContext = LocalView.current.context
+    var started by rememberSaveable(taskId) { mutableStateOf(false) }
+    val latestSaved by androidx.compose.runtime.rememberUpdatedState(onSaved)
+    val latestAccepted by androidx.compose.runtime.rememberUpdatedState(onAccepted)
+    val activity = remember(viewModelContext) {
+        generateSequence(viewModelContext) { (it as? ContextWrapper)?.baseContext }
+            .filterIsInstance<androidx.activity.ComponentActivity>().first()
+    }
+    val lifecycle = activity.lifecycle
+    LaunchedEffect(lifecycle, viewModel) {
+        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            while (true) { viewModel.refreshDateShortcuts(); kotlinx.coroutines.delay(1000) }
         }
     }
-    TaskFormContent(
-        state = state,
-        onTitleChanged = viewModel::updateTitle,
-        onDateChanged = viewModel::updateDate,
-        onTimeChanged = viewModel::updateTime,
-        onNoteChanged = viewModel::updateNote,
-        onDifficultySelected = viewModel::selectDifficulty,
-        onSave = viewModel::submit,
-        onBack = onBack,
-        modifier = modifier,
-    )
+    val finish = {
+        val saved = viewModel.uiState.value
+        viewModel.consumeSaved()?.let { date ->
+            if (saved.editingTaskId == null && saved.savedDueDate == date) saved.savedTaskId?.let(latestAccepted)
+            latestSaved(date)
+        }
+    }
+    val latestFinish by androidx.compose.runtime.rememberUpdatedState(finish)
+    val returnToDaybook: () -> Unit = {
+        if (viewModel.uiState.value.savedDueDate != null) latestFinish() else onBack?.invoke()
+    }
+    androidx.activity.compose.BackHandler(enabled = onBack != null) { returnToDaybook() }
+    DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && !activity.isChangingConfigurations) latestFinish()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    var feedbackStarted by rememberSaveable(taskId) { mutableStateOf(false) }
+    LaunchedEffect(viewModel, taskId) {
+        // 先初始化本次表单，再监听成功，不能把上次退出后的事件送给新表单。
+        if (!started || !viewModel.hasSession) {
+            viewModel.start(taskId, selectedDate ?: LocalDate.parse(state.quickTodayDateText.replace('.', '-')))
+            started = true
+        }
+        viewModel.uiState.map { it.savedDueDate }.filterNotNull().collect {
+            val scale = android.provider.Settings.Global.getFloat(
+                viewModelContext.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+            if (!feedbackStarted && scale > 0f && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                feedbackStarted = true
+                kotlinx.coroutines.delay(((if (taskId == null) MomentMarkTokens.TaskAcceptFeedbackMs else MomentMarkTokens.TaskEditFeedbackMs) * scale).toLong())
+            }
+            if (!activity.isChangingConfigurations && lifecycle.currentState != androidx.lifecycle.Lifecycle.State.DESTROYED) latestFinish()
+        }
+    }
+    androidx.compose.foundation.layout.Box(modifier) {
+        TaskFormContent(
+            state = state,
+            onTitleChanged = viewModel::updateTitle,
+            onNoteChanged = viewModel::updateNote,
+            onDifficultySelected = viewModel::selectDifficulty,
+            onSave = viewModel::submit,
+            onBack = returnToDaybook,
+            modifier = Modifier,
+            planning = { extras -> TaskPlanningPanel(state, viewModel, extras) },
+            onExtrasToggle = viewModel::toggleExtras,
+        )
+        if (state.savedDueDate != null) TaskSaveFeedback(state.editingTaskId != null)
+    }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun TaskFormContent(
     state: TaskFormUiState,
     onTitleChanged: (String) -> Unit,
-    onDateChanged: (String) -> Unit,
-    onTimeChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onDifficultySelected: (Int?) -> Unit,
     onSave: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    planning: @Composable (@Composable () -> Unit) -> Unit,
+    onExtrasToggle: (() -> Unit)? = null,
 ) {
-    // design.html 结构：`.statusbar` 与 `.pagetitle` 固定，只有 `.form-scroll` 滚动。
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .imePadding(),
-    ) {
-        // design.html `.statusbar{padding:11px 18px 5px}`：左右 18dp。
-        PixelStatusHud(
-            leftText = "LV.07",
-            rightText = "NEW QUEST",
+    var localExtrasOpen by rememberSaveable { mutableStateOf(false) }
+    val extrasOpen = if (onExtrasToggle != null) state.extrasOpen else localExtrasOpen
+    var extrasHeadingBottom by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val view = LocalView.current
+    val density = LocalDensity.current
+    val backTouchTarget = with(density) { (48f * view.resources.displayMetrics.density).toDp() }
+        .coerceAtLeast(MomentMarkTokens.FormPlanningTouchTarget)
+    val window = remember(view) { generateSequence(view.context) { (it as? ContextWrapper)?.baseContext }
+        .filterIsInstance<Activity>().firstOrNull()?.window }
+    DisposableEffect(window) {
+        // With an unspecified adjustment Android can pan the whole window for lower fields,
+        // in addition to Compose's imePadding. Keep the edge-to-edge form on resize insets.
+        val originalSoftInputMode = window?.attributes?.softInputMode
+        if (originalSoftInputMode != null) window.setSoftInputMode(
+            (originalSoftInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST.inv()) or
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
         )
-        // 设计稿表单容器：`<div style="padding:0 12px;...gap:10px">` —— 左右 12dp、面板间 10dp。
+        onDispose {
+            if (originalSoftInputMode != null) {
+                window.setSoftInputMode(originalSoftInputMode)
+                // Window.setSoftInputMode(0) only clears its explicit-mode flag; it leaves
+                // LayoutParams unchanged. Restore that value too when returning to default.
+                window.attributes = window.attributes.apply { softInputMode = originalSoftInputMode }
+            }
+        }
+    }
+    val controller = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
+    val night = LocalMomentMarkNight.current
+    DisposableEffect(controller) {
+        val status = controller?.isAppearanceLightStatusBars
+        val navigation = controller?.isAppearanceLightNavigationBars
+        onDispose { if (status != null) controller.isAppearanceLightStatusBars = status; if (navigation != null) controller.isAppearanceLightNavigationBars = navigation }
+    }
+    SideEffect { controller?.isAppearanceLightStatusBars = !night; controller?.isAppearanceLightNavigationBars = !night }
+    val scroll = rememberScrollState()
+    val revealViewport = remember(scroll) { TaskFormRevealViewport(scroll) }
+    val imeVisible = WindowInsets.isImeVisible
+    SideEffect { revealViewport.imeVisible = imeVisible }
+    CompositionLocalProvider(LocalTaskFormRevealViewport provides revealViewport) {
+        // Task keeps one compact title inside the scroll area; submit stays above the IME.
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = MomentMarkTokens.HomePagePaddingHorizontal)
-                // design.html `.form-scroll` 内容直接贴屏幕底部；
-                // App 内为提交按钮留出余量，避免按钮紧贴屏幕边缘/手势条。
-                .padding(bottom = MomentMarkTokens.FormScrollPaddingBottom),
-            // 字段间距 = SpaceCard(10dp)，与 design `.form-scroll` 各 `.px` 之间的 10px 一致。
-            verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard),
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding(),
         ) {
-            PageTitlePanel(
-                title = if (state.editingTaskId == null) "▶ 接受新任务" else "✎ 编辑任务",
-                hud = if (state.editingTaskId == null) "待办 · 来自日子簿" else "TASK · EDIT",
-                onBack = onBack,
-            )
+            // 设计稿表单容器：`<div style="padding:0 12px;...gap:10px">` —— 左右 12dp、面板间 10dp。
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .onGloballyPositioned {
+                        val position = it.positionInRoot()
+                        revealViewport.bounds = Rect(position.x, position.y, position.x + it.size.width, position.y + it.size.height)
+                    }
+                    .verticalScroll(scroll)
+                    .padding(horizontal = MomentMarkTokens.HomePagePaddingHorizontal)
+                    // design.html `.form-scroll` 内容直接贴屏幕底部；
+                    // App 内为提交按钮留出余量，避免按钮紧贴屏幕边缘/手势条。
+                    .padding(bottom = MomentMarkTokens.FormScrollPaddingBottom),
+                // 字段间距 = SpaceCard(10dp)，与 design `.form-scroll` 各 `.px` 之间的 10px 一致。
+                verticalArrangement = Arrangement.spacedBy(MomentMarkTokens.SpaceCard),
+            ) {
+                PageTitlePanel(
+                    title = if (state.editingTaskId == null) "接受新任务" else "编辑任务",
+                    onBack = onBack,
+                    backTouchTarget = backTouchTarget,
+                    compact = true,
+                    hudFollowsTitle = true,
+                    hud = runCatching { LocalDate.parse(state.dueDateText.replace('.', '-')) }.getOrNull()?.let { date ->
+                        if (date.year == LocalDate.parse(state.quickTodayDateText.replace('.', '-')).year) "%02d.%02d".format(date.monthValue, date.dayOfMonth) else state.dueDateText
+                    },
+                    backContentDescription = "返回日子簿",
+                    modifier = Modifier.testTag("task-form-header"),
+                )
 
-            // 1) ▸ 任务名称 NAME ★
-            PixelTextInput(
-                label = "▸ 任务名称 NAME ★",
-                value = state.title,
-                placeholder = "例如：提交项目周报",
-                contentDescription = "任务名称",
-                onValueChange = onTitleChanged,
-                singleLine = true,
-            )
+                // Task title remains the only required input.
+                PixelTextInput(
+                    label = "任务名称",
+                    value = state.title,
+                    placeholder = "",
+                    contentDescription = "任务名称",
+                    onValueChange = onTitleChanged,
+                    singleLine = true,
+                )
 
-            // 2) ▸ 截止日期 DUE ★ + 右上 [ ] 全天 + 两白框（日期 1.4 + 时间 1）
-            DueDateTimePanel(
-                dateText = state.dueDateText,
-                timeText = state.dueTimeText,
-                onDateChanged = onDateChanged,
-                onTimeChanged = onTimeChanged,
-            )
+                planning {
+                    TaskFormReveal(state.extrasAvailable || state.editingTaskId != null, "form-extras") {
+                        TaskFormSection("task-section-extras") {
+                            TaskFormSectionLabel("附加信息")
+                            TaskFormAction(state.extrasSummary(),
+                                { if (onExtrasToggle != null) onExtrasToggle() else localExtrasOpen = !localExtrasOpen },
+                                Modifier.fillMaxWidth(), PixelButtonIcon.Note,
+                                enabled = !state.isLoading && !state.isSaving && !state.isSaved, expanded = extrasOpen, field = true)
+                            TaskFormReveal(extrasOpen, "form-note", headingBottom = extrasHeadingBottom) {
+                                // Notes stay in state when their disclosure is collapsed.
+                                PixelTextInput(
+                                    label = "备注",
+                                    value = state.note,
+                                    placeholder = "",
+                                    contentDescription = "任务描述，可选",
+                                    onValueChange = onNoteChanged,
+                                    singleLine = false,
+                                    framed = false,
+                                    followCursor = imeVisible,
+                                    labelModifier = Modifier.onGloballyPositioned {
+                                        extrasHeadingBottom = it.positionInRoot().y + it.size.height
+                                    },
+                                )
 
-            // 3) ▸ 任务描述 LORE（多行；helper `选填 · 攻略/备注/链接`）
-            PixelTextInput(
-                label = "▸ 任务描述 LORE",
-                value = state.note,
-                placeholder = "攻略、备注或链接",
-                contentDescription = "任务描述，可选",
-                onValueChange = onNoteChanged,
-                singleLine = false,
-                helperLabel = "选填 · 攻略/备注/链接",
-            )
+                                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                DifficultyPanel(
+                                    framed = false,
+                                    difficulty = state.difficulty,
+                                    onDifficultySelected = onDifficultySelected,
+                                    enabled = !state.isLoading && !state.isSaving && !state.isSaved,
+                                )
+                            }
+                        }
+                    }
 
-            // 4) ▸ 难度 DIFFICULTY —— 等宽星串（17sp letterSpacing 3sp）
-            DifficultyPanel(
-                difficulty = state.difficulty,
-                onDifficultySelected = onDifficultySelected,
-            )
+                }
 
-            // 错误提示
-            state.errorMessage?.let {
-                Text(
-                    text = "⚠ $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                // 错误提示
+                state.errorMessage?.let {
+                    Text(
+                        text = "⚠ $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+            }
+            Column(Modifier.fillMaxWidth().padding(horizontal = MomentMarkTokens.HomePagePaddingHorizontal)
+                .padding(vertical = MomentMarkTokens.SpaceInner)) {
+                SubmitButton(
+                    isSaving = state.isSaving,
+                    isSaved = state.isSaved,
+                    enabled = !state.isLoading && !state.isSaving && !state.isSaved,
+                    isEditing = state.editingTaskId != null,
+                    onSave = onSave,
                 )
             }
-
-            // 5) 提交按钮 ▶ 开始执行（`.btn.green.px`）
-            SubmitButton(
-                isSaving = state.isSaving,
-                isEditing = state.editingTaskId != null,
-                onSave = onSave,
-            )
         }
     }
 }
@@ -181,36 +300,33 @@ internal fun TaskFormContent(
 @Composable
 private fun SubmitButton(
     isSaving: Boolean,
+    isSaved: Boolean,
+    enabled: Boolean,
     isEditing: Boolean,
     onSave: () -> Unit,
 ) {
     val text = when {
+        isSaved -> "已保存"
         isSaving -> "保存中…"
         isEditing -> "✎ 保存修改 · 返回日子簿"
-        else -> "▶ 开始执行"
+        else -> "开始执行"
     }
-    PixelPanel(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = "确认接受任务" }
-            .clickable(enabled = !isSaving, role = Role.Button, onClick = onSave),
-        backgroundColor = MaterialTheme.colorScheme.primary,
-        borderColor = MaterialTheme.colorScheme.outline,
-        shadowColor = MaterialTheme.colorScheme.outline,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
-                lineHeight = 20.sp,
-            ),
-            color = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = MomentMarkTokens.FormSubmitPaddingVertical),
-            textAlign = TextAlign.Center,
-        )
-    }
+    PixelButton(
+        label = text,
+        onClick = onSave,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        contentDescription = "确认接受任务",
+        icon = if (!isEditing && !isSaving && !isSaved) PixelButtonIcon.Play else PixelButtonIcon.Check,
+        textStyle = MaterialTheme.typography.labelLarge.copy(
+            fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.ExtraBold,
+            lineHeight = 20.sp,
+        ),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = MomentMarkTokens.SpaceInner,
+            vertical = MomentMarkTokens.FormSubmitPaddingVertical,
+        ),
+    )
 }

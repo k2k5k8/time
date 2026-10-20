@@ -43,7 +43,7 @@ object MomentMarkTokens {
     val PxShadowOffset = 3.dp    // 硬偏移阴影（普通卡/按钮）
     val PxShadowOffsetLarge = 4.dp // 硬偏移阴影（主卡/弹窗）
     val PxShadowOffsetSmall = 2.dp // 硬偏移阴影（底部导航/小元素）
-    val PressOffset = 2.dp       // 按压时位移 + 阴影缩短量
+    val PressOffset = PxShadowOffset // 普通按钮按压至硬影完全重合
 
     // ── 游戏化组件 ───────────────────────────────────────
     const val XpCellCount = 16   // 经验条总格数
@@ -52,6 +52,11 @@ object MomentMarkTokens {
     val HpBarHeight = 10.dp      // 血条高度
     val CheckboxSize = 15.dp     // 目标复选框
     val TouchTargetMin = 44.dp   // 关键触摸目标最小尺寸
+    val FormButtonIconSize = 16.dp // 单色按钮图标，装饰语义
+    val ButtonTouchTargetMin = 48.dp // 按真实设备密度换算，所有按钮规格共享
+    val ButtonCompactMinHeight = 32.dp // 视觉主体；外层触摸盒仍至少 48dp
+    val ButtonCompactPaddingHorizontal = 8.dp
+    val ButtonCompactPaddingVertical = 4.dp
     val CompactIconSize = 28.dp  // 紧凑像素箭头/图标的视觉盒尺寸
     val CheckboxStrokeWidth = 2.5.dp // 复选框/虚线新增框描边
     val AchievementInset = 5.dp  // 成就金线距外框留白：内容 padding 10dp，金线 inset 5dp，内容在金线内 5dp（与 CSS 13-8=5px 一致）
@@ -86,7 +91,12 @@ object MomentMarkTokens {
      * 显式锁定以避免 Row 被标题文字行高压缩。
      */
     val PageTitleMinHeight = 25.dp
+    // Task opts into one title row; other page headers retain their existing geometry.
+    val TaskHeaderMinHeight = 52.dp
+    val TaskHeaderPaddingHorizontal = 4.dp
+    val TaskHeaderPaddingVertical = 2.dp
     // `.px{padding:10px 12px;border:3px}` → 13 / 15。
+    val FormPlanningTouchTarget = 48.dp
     val FormPanelPaddingVertical = 13.dp
     val FormPanelPaddingHorizontal = 15.dp
     // 首块 `.px4{padding:11px 12px;border:3px}` → 14 / 15。
@@ -269,10 +279,10 @@ object MomentMarkTokens {
     val DaybookCalendarGap = 4.dp
     val DaybookCellFontSize = 13.sp
     val DaybookCellLineHeight = 18.sp
-    val DaybookCellMarkerFontSize = 8.sp
-    val DaybookCellMarkerLineHeight = 11.sp
-    // design `.fx{bottom:3px}` 相对边框内的内边距盒定位 → Compose 需 +2dp 边框补偿。
-    val DaybookCellMarkerBottomInset = 5.dp
+    val DaybookDotSize = 3.dp
+    val DaybookDotGap = 2.dp
+    // 日期格顶部内缩含 2dp 描边；标记在内容前景绘制，不被今天金底覆盖。
+    val DaybookCellMarkerTopInset = 4.dp
     val DaybookTodayShadowOffset = 2.dp
     // 任务面板
     val DaybookTaskPanelMarginTop = 12.dp
@@ -284,6 +294,21 @@ object MomentMarkTokens {
     // design 任务行 = 8(pad) + 18.5(13px sans 的 normal 行盒) + 8(pad) + 2(border-bottom) = 36.5px。
     // Chrome 实测 5 条虚线的间距恒为 73 设备像素 @2x = 36.5 CSS px；取 36dp 会让每行少 1px、
     // 5 行累积 5px（实测第 5 条虚线偏移 -4px），故必须用 36.5dp。
+    // Future formal rows: measured period gutter | fixed axis | safe gap | common task body.
+    val DaybookFutureAxisWidth = 12.dp
+    val DaybookFutureAxisGap = 4.dp
+    val DaybookFutureAxisStroke = 1.dp
+    val DaybookFutureNodeSize = 5.dp
+    val DaybookFutureRowTop = 4.dp
+    val DaybookFutureRowBottom = 8.dp
+    val DaybookFutureBodyHorizontal = 4.dp
+    val DaybookFutureBodyVertical = 2.dp
+    val DaybookFutureBorder = 2.dp
+    val DaybookFutureShadow = 2.dp
+    val DaybookPeriodGutterWidth = 20.dp // 两字“随时”的最小窄栏，实际字体测量可继续增宽
+    val DaybookPeriodFontSize = 8.sp
+    val DaybookTaskStatusMaxWidth = 84.dp
+    const val DaybookCompletionStrikeMs = 280
     val DaybookTaskRowHeight = 36.5.dp
     val DaybookTaskRowPaddingVertical = 8.dp
     val DaybookTaskRowBorderWidth = 2.dp
@@ -581,7 +606,30 @@ object MomentMarkTokens {
 
     // ── 动效 ────────────────────────────────────────────
     const val MotionStepMs = 200          // 阶梯式变化（减血/落位）
-    const val MotionPressMs = 100         // 按压位移响应
+    const val MotionPressMs = 100         // 快速单击的按压反馈最短可见时长
+    /** 路由页仅为新页保留轻量入场，旧页立即移除以避免双页面叠绘。 */
+    const val MotionPageEnterMs = 160
+    // DB-15: 200ms stamp + 160ms existing return = 360ms at system scale 1.
+    const val TaskAcceptFeedbackMs = 200L
+    const val TaskEditFeedbackMs = 150L
+    const val TaskStampSettleMs = 120
+    const val TaskAcceptedRowMs = 1000L
+    const val DaybookMonthSettleMs = 210
+    val DaybookMonthPageGap = 12.dp
+    const val DaybookMonthFlipFraction = 0.24f
+    const val DaybookMonthFlingWidthsPerSecond = 1.1f
+    // DB-02 日期轮盘：尺寸仍位于 PixelCanvas 的逻辑坐标系。
+    val DateWheelSheetMargin = 8.dp
+    val DateWheelContentPadding = 15.dp
+    val DateWheelColumnGap = 8.dp
+    val DateWheelRowHeight = 44.dp
+    val DateWheelLargeRowHeight = 70.dp
+    val DateWheelValueSize = 20.sp
+    val DateWheelNeighborSize = 17.5.sp
+    val DateWheelTitleSize = 15.4.sp
+    val DateWheelPreviewSize = 14.7.sp
+    val DateWheelActionSize = 13.2.sp
+    const val DateWheelMotionMs = 200
     const val MotionLongPressEditMs = 500L // 长按进入布局编辑（沿用既有交互契约）
 
     // ── 状态透明度 ───────────────────────────────────────

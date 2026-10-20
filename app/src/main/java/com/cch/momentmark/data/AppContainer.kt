@@ -26,7 +26,9 @@ class AppContainer private constructor(context: Context) : Closeable {
     val clock: Clock = Clock.systemDefaultZone()
 
     val momentRepository = MomentRepository(database.momentDao(), clock)
-    val taskRepository = TaskRepository(database.taskDao(), clock)
+    val taskRepeatRepository = com.cch.momentmark.data.repository.TaskRepeatRepository(database, clock)
+    val taskPlanningRepository = com.cch.momentmark.data.repository.TaskPlanningRepository(database.taskPlanningDao(), clock, taskRepeatRepository::reconcile)
+    val taskRepository = TaskRepository(database.taskDao(), clock, taskRepeatRepository)
     val groupRepository = GroupRepository(database, database.groupDao(), database.momentDao(), database.taskDao(), clock::millis)
     val settingsStore = MomentMarkSettingsStore(context)
     val groupStore = MomentMarkGroupStore(context)

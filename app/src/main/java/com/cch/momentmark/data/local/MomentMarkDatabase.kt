@@ -11,13 +11,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * exported schema JSON, and a MigrationTestHelper path from the previous version.
  */
 @Database(
-    entities = [MomentEntity::class, TaskEntity::class, GroupEntity::class],
-    version = 8,
+    entities = [MomentEntity::class, TaskEntity::class, GroupEntity::class, TaskRepeatRuleEntity::class, TaskRepeatBreakEntity::class, TaskScheduleChangeEntity::class, TaskRepeatExceptionEntity::class],
+    version = 10,
     exportSchema = true,
 )
 abstract class MomentMarkDatabase : RoomDatabase() {
     abstract fun momentDao(): MomentDao
     abstract fun taskDao(): TaskDao
+    abstract fun taskPlanningDao(): TaskPlanningDao
     abstract fun groupDao(): GroupDao
 
     companion object {
@@ -133,6 +134,36 @@ abstract class MomentMarkDatabase : RoomDatabase() {
             }
         }
 
+        /** DB-09：仅增列/增表，旧任务保持独立单次语义与原始截止。 */
+        val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `planPeriod` TEXT NOT NULL DEFAULT 'ANYTIME'")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `planTime` TEXT")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `important` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `repeatRuleId` TEXT")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `repeatOccurrenceDateIso` TEXT")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `isSkipped` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `initialScheduledDateIso` TEXT")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `autoDefer` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `tasks` ADD COLUMN `restoredOnIso` TEXT")
+                db.execSQL("UPDATE tasks SET initialScheduledDateIso = dueLocalDateIso")
+                db.execSQL("CREATE UNIQUE INDEX `index_tasks_repeatRuleId_repeatOccurrenceDateIso` ON `tasks` (`repeatRuleId`, `repeatOccurrenceDateIso`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `task_repeat_rules` (`ruleId` TEXT NOT NULL, `effectiveFromIso` TEXT NOT NULL, `startDateIso` TEXT NOT NULL, `endDateIso` TEXT, `weekdaysMask` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, `title` TEXT NOT NULL, `note` TEXT NOT NULL, `planPeriod` TEXT NOT NULL, `planTime` TEXT, `deadlineTime` TEXT, `important` INTEGER NOT NULL, `difficulty` INTEGER, `taskType` TEXT, `groupId` TEXT, `showOnHome` INTEGER NOT NULL, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`ruleId`, `effectiveFromIso`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `task_repeat_breaks` (`ruleId` TEXT NOT NULL, `startDateIso` TEXT NOT NULL, `endExclusiveIso` TEXT, `kind` TEXT NOT NULL, PRIMARY KEY(`ruleId`, `startDateIso`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `task_schedule_changes` (`id` TEXT NOT NULL, `taskId` TEXT NOT NULL, `fromDateIso` TEXT NOT NULL, `toDateIso` TEXT NOT NULL, `changedAtEpochMillis` INTEGER NOT NULL, `reason` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX `index_task_schedule_changes_taskId` ON `task_schedule_changes` (`taskId`)")
+            }
+        }
+
+        /** DB-10：持久化单日例外/净化墓碑；既有任务与规则原样保留。 */
+        val MIGRATION_9_10 = object : androidx.room.migration.Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `task_repeat_exceptions` (`ruleId` TEXT NOT NULL, `dateIso` TEXT NOT NULL, `purged` INTEGER NOT NULL, PRIMARY KEY(`ruleId`, `dateIso`))")
+                // 既有实例可能已经逐日编辑，保守保留为单日例外。
+                db.execSQL("INSERT INTO task_repeat_exceptions SELECT repeatRuleId, repeatOccurrenceDateIso, 0 FROM tasks WHERE repeatRuleId IS NOT NULL")
+            }
+        }
+
         fun create(context: Context): MomentMarkDatabase =
             Room.databaseBuilder(
                 context.applicationContext,
@@ -146,6 +177,8 @@ abstract class MomentMarkDatabase : RoomDatabase() {
                 .addMigrations(MIGRATION_5_6)
                 .addMigrations(MIGRATION_6_7)
                 .addMigrations(MIGRATION_7_8)
+                .addMigrations(MIGRATION_8_9)
+                .addMigrations(MIGRATION_9_10)
                 .build()
     }
 }

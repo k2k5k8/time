@@ -38,6 +38,7 @@ import com.cch.momentmark.ui.components.PageTitlePanel
 import com.cch.momentmark.ui.components.PixelBottomNav
 import com.cch.momentmark.ui.components.PixelDashedDivider
 import com.cch.momentmark.ui.components.PixelPanel
+import com.cch.momentmark.ui.components.pixelClickable
 import com.cch.momentmark.ui.recyclebin.RecycleBinUiState
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MmGoldDark
@@ -304,7 +305,7 @@ private fun DisplayModeButton(
                 contentDescription = label
                 role = Role.Button
             }
-            .clickable(role = Role.Button, onClick = onClick),
+            .pixelClickable(role = Role.Button, onClick = onClick),
         backgroundColor = bgColor,
         borderColor = borderColor,
         shadowColor = Color.Transparent,
@@ -387,7 +388,7 @@ private fun SettingsListItem(
                 contentDescription = label
                 role = Role.Button
             }
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = null, indication = null, role = Role.Button, onClick = onClick),
     ) {
         Row(
             Modifier

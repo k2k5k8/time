@@ -1,5 +1,6 @@
 package com.cch.momentmark.ui.theme
 
+import com.cch.momentmark.domain.model.TaskPlanPeriod
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,58 @@ enum class ThemeMode {
  */
 val LocalMomentMarkNight = staticCompositionLocalOf { false }
 
+/** Accent for solid markers, plus an opaque container and its readable foreground. */
+data class MmSemanticColor(val accent: Color, val container: Color, val onContainer: Color)
+
+data class MmTaskColors(
+    val anytime: MmSemanticColor,
+    val morning: MmSemanticColor,
+    val midday: MmSemanticColor,
+    val evening: MmSemanticColor,
+    val lightEffort: MmSemanticColor,
+    val mediumEffort: MmSemanticColor,
+    val heavyEffort: MmSemanticColor,
+    val important: MmSemanticColor,
+) {
+    fun period(period: TaskPlanPeriod): MmSemanticColor = when (period) {
+        TaskPlanPeriod.ANYTIME -> anytime
+        TaskPlanPeriod.MORNING -> morning
+        TaskPlanPeriod.MIDDAY -> midday
+        TaskPlanPeriod.EVENING -> evening
+    }
+    // The calendar's today fill is gold in both themes; use the same hues' dark inks on it.
+    fun calendarMarker(period: TaskPlanPeriod, today: Boolean): Color =
+        if (today) LightTaskColors.period(period).onContainer else this.period(period).accent
+
+    fun effort(value: Int): MmSemanticColor = when (value) {
+        1 -> lightEffort
+        2 -> mediumEffort
+        3 -> heavyEffort
+        else -> error("Difficulty must be 1..3")
+    }
+}
+
+internal val LightTaskColors = MmTaskColors(
+    MmSemanticColor(MmHpGreenLight, MmHpContainerLight, MmOnHpContainerLight),
+    MmSemanticColor(MmXpBlueLight, MmXpContainerLight, MmOnXpContainerLight),
+    MmSemanticColor(MmAmberLight, MmAmberContainerLight, MmOnAmberContainerLight),
+    MmSemanticColor(MmManaPurpleLight, MmPurpleContainerLight, MmOnPurpleContainerLight),
+    MmSemanticColor(MmEffortLightLight, MmAmberContainerLight, MmOnAmberContainerLight),
+    MmSemanticColor(MmEffortMediumLight, MmEffortMediumContainerLight, MmOnEffortMediumContainerLight),
+    MmSemanticColor(MmEffortHeavyLight, MmEffortHeavyContainerLight, MmOnEffortHeavyContainerLight),
+    MmSemanticColor(MmGoldLight, MmGoldContainerLight, MmOnGoldContainerLight),
+)
+internal val DarkTaskColors = MmTaskColors(
+    MmSemanticColor(MmHpGreenDark, MmHpContainerDark, MmOnHpContainerDark),
+    MmSemanticColor(MmXpBlueDark, MmXpContainerDark, MmOnXpContainerDark),
+    MmSemanticColor(MmAmberDark, MmAmberContainerDark, MmOnAmberContainerDark),
+    MmSemanticColor(MmManaPurpleDark, MmPurpleContainerDark, MmOnPurpleContainerDark),
+    MmSemanticColor(MmEffortLightDark, MmAmberContainerDark, MmOnAmberContainerDark),
+    MmSemanticColor(MmEffortMediumDark, MmEffortMediumContainerDark, MmOnEffortMediumContainerDark),
+    MmSemanticColor(MmEffortHeavyDark, MmEffortHeavyContainerDark, MmOnEffortHeavyContainerDark),
+    MmSemanticColor(MmGoldDark, MmGoldContainerDark, MmOnGoldContainerDark),
+)
+
 /**
  * colorScheme 之外、无 M3 槽位的成对扩展色（DESIGN_SYSTEM §3.1）。
  * labelTertiary = HUD 弱注释色；goldInk = 成就深金；manaPurple = 主线紫；amber = 限时橙。
@@ -35,6 +88,7 @@ data class MmExtendedColors(
     val manaPurple: Color,
     val amber: Color,
     val inputSurface: Color,
+    val task: MmTaskColors = LightTaskColors,
 )
 
 val LocalMmExtendedColors = staticCompositionLocalOf {
@@ -60,6 +114,7 @@ private val DarkExtendedColors = MmExtendedColors(
     manaPurple = MmManaPurpleDark,
     amber = MmAmberDark,
     inputSurface = MmInputSurfaceDark,
+    task = DarkTaskColors,
 )
 
 /** 昼 · 任务板（浅色 ColorScheme） */

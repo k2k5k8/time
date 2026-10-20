@@ -1,6 +1,7 @@
 package com.cch.momentmark.ui.moment.home
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -114,12 +116,13 @@ fun HomeAchievementCard(
     semanticDescription: String? = null,
 ) {
     val extended = LocalMmExtendedColors.current
+    val pressInteraction = remember { MutableInteractionSource() }
     val frameModifier = modifier
         .fillMaxWidth()
         // aspectRatio 已按兰亭黑实际行高调整为 290/150，比 DESIGN 142dp 多 8dp 容纳数字行，
         // meta 行（下一里程碑 X 天）距 bottom border 12.5dp，与 DESIGN 一致。
         .aspectRatio(MomentMarkTokens.HomeAchievementAspectRatio)
-        .clickable(role = Role.Button, onClick = onClick)
+        .clickable(interactionSource = pressInteraction, indication = null, role = Role.Button, onClick = onClick)
         .semantics(mergeDescendants = true) {
             contentDescription = semanticDescription
                 ?: "$title，已 $days 天，${anchorDate.format(CardDateFormatter)}${if (isPinned) "，已置顶" else ""}"
@@ -212,7 +215,7 @@ fun HomeAchievementCard(
             }
         }
     }
-    AchievementFrame(modifier = frameModifier) { content() }
+    AchievementFrame(modifier = frameModifier, pressInteractionSource = pressInteraction) { content() }
 }
 
 /**
@@ -232,6 +235,7 @@ fun HomeMainQuestCard(
     semanticDescription: String? = null,
 ) {
     val extended = LocalMmExtendedColors.current
+    val pressInteraction = remember { MutableInteractionSource() }
     val hudStyle = TextStyle(
         fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.ExtraBold,
@@ -268,12 +272,13 @@ fun HomeMainQuestCard(
             .fillMaxWidth()
             // aspectRatio 调整为 290/116，容纳兰亭黑 44sp 数字实际行高。
             .aspectRatio(MomentMarkTokens.HomeMainQuestAspectRatio)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(interactionSource = pressInteraction, indication = null, role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = semanticDescription
                     ?: "$title，还有 $days 天，${anchorDate.format(CardDateFormatter)}"
             },
         variant = com.cch.momentmark.ui.components.PixelPanelVariant.Emphasized,
+        pressInteractionSource = pressInteraction,
         // 描边盒必须撑满 aspectRatio 外框（DESIGN_SYSTEM §3.3）：边框若按内容高度 wrap，
         // 硬影仍按外框全高绘制，不同屏宽/字体渲染下会出现「主体过小 + 悬空阴影」。
         fillContent = true,
@@ -365,15 +370,17 @@ fun HomeSmallCard(
     modifier: Modifier = Modifier,
     semanticDescription: String? = null,
 ) {
+    val pressInteraction = remember { MutableInteractionSource() }
     PixelPanel(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(MomentMarkTokens.HomeSmallCardAspectRatio)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(interactionSource = pressInteraction, indication = null, role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = semanticDescription ?: "$title，$value$unitLabel，$metadata"
             },
         variant = com.cch.momentmark.ui.components.PixelPanelVariant.Raised,
+        pressInteractionSource = pressInteraction,
         // 描边盒撑满 aspectRatio 外框，边框与硬影在任何屏宽/字体下严格对齐。
         fillContent = true,
     ) {

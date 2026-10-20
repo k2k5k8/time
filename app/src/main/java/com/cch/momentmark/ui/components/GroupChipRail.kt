@@ -1,6 +1,7 @@
 package com.cch.momentmark.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -81,6 +83,7 @@ private fun GroupChipItemView(
     selectedBackgroundColor: Color,
     unselectedBackgroundColor: Color,
 ) {
+    val pressInteraction = remember { MutableInteractionSource() }
     val border = if (selected) selectedBorderColor else unselectedBorderColor
     val bg = if (selected) selectedBackgroundColor else unselectedBackgroundColor
     val text = if (selected) {
@@ -98,11 +101,12 @@ private fun GroupChipItemView(
         modifier = Modifier.semantics {
             contentDescription = "分组 ${item.label}"
             this.selected = selected
-        }.clickable(role = Role.RadioButton) { onSelected() },
+        }.clickable(interactionSource = pressInteraction, indication = null, role = Role.RadioButton) { onSelected() },
         backgroundColor = bg,
         borderColor = border,
         borderWidth = MomentMarkTokens.CheckboxStrokeWidth, // 对应 HTML `.party-rail > *` 的 2.5px 实边
         shadowColor = MaterialTheme.colorScheme.outline,
+        pressInteractionSource = pressInteraction,
     ) {
         Row(
             modifier = Modifier.padding(

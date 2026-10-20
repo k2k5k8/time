@@ -1,9 +1,9 @@
 package com.cch.momentmark.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,39 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.cch.momentmark.ui.theme.LocalMmExtendedColors
 import com.cch.momentmark.ui.theme.MomentMarkTokens
-
-/** 像素硬偏移影：右侧竖带（含右下角）+ 底部横带，与 HTML box-shadow Npx Npx 0 等价。 */
-private fun Modifier.pixelHardShadow(offset: Dp, color: Color): Modifier = this.then(
-    Modifier.drawBehind {
-        val offsetPx = offset.toPx()
-        drawRect(
-            color = color,
-            topLeft = Offset(size.width, offsetPx),
-            size = Size(offsetPx, size.height),
-        )
-        drawRect(
-            color = color,
-            topLeft = Offset(offsetPx, size.height),
-            size = Size((size.width - offsetPx).coerceAtLeast(0f), offsetPx),
-        )
-    }
-)
 
 /**
  * J ⑩ 封印之地条目卡（design.html 第⑩屏 GRAVEYARD · 昼）。
@@ -70,6 +49,8 @@ fun RecycleBinItemCard(
     modifier: Modifier = Modifier,
 ) {
     val ink3 = LocalMmExtendedColors.current.labelTertiary
+    val restorePress = remember { MutableInteractionSource() }
+    val deletePress = remember { MutableInteractionSource() }
     PixelPanel(
         modifier = modifier.fillMaxWidth(),
         variant = PixelPanelVariant.Flat,
@@ -137,18 +118,16 @@ fun RecycleBinItemCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // 复活按钮：gold 背景，flex:1，带 3dp 硬影
-                Box(
+                PixelPanel(
                     modifier = Modifier
                         .weight(1f)
-                        .background(MaterialTheme.colorScheme.tertiary)
-                        .border(MomentMarkTokens.PxBorderWidth, MaterialTheme.colorScheme.outline)
-                        .pixelHardShadow(MomentMarkTokens.PxShadowOffset, MaterialTheme.colorScheme.outline)
                         .semantics {
                             contentDescription = "复活 ${presentation.title}"
                             role = Role.Button
                         }
-                        .clickable(role = Role.Button, onClick = onRestore),
-                    contentAlignment = Alignment.Center,
+                        .clickable(interactionSource = restorePress, indication = null, role = Role.Button, onClick = onRestore),
+                    backgroundColor = MaterialTheme.colorScheme.tertiary,
+                    pressInteractionSource = restorePress,
                 ) {
                     Text(
                         text = "✚ 复活",
@@ -158,21 +137,20 @@ fun RecycleBinItemCard(
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onTertiary,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.padding(vertical = MomentMarkTokens.RecycleBinButtonPaddingVertical),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = MomentMarkTokens.RecycleBinButtonPaddingVertical),
                     )
                 }
                 // 永久净化按钮：ghost（panel 底），ink-3 字，wrap content，带 3dp 硬影
-                Box(
+                PixelPanel(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(MomentMarkTokens.PxBorderWidth, MaterialTheme.colorScheme.outline)
-                        .pixelHardShadow(MomentMarkTokens.PxShadowOffset, MaterialTheme.colorScheme.outline)
                         .semantics {
                             contentDescription = "永久净化 ${presentation.title}"
                             role = Role.Button
                         }
-                        .clickable(role = Role.Button, onClick = onPermanentlyDelete),
-                    contentAlignment = Alignment.Center,
+                        .clickable(interactionSource = deletePress, indication = null, role = Role.Button, onClick = onPermanentlyDelete),
+                    backgroundColor = MaterialTheme.colorScheme.surface,
+                    fillWidth = false,
+                    pressInteractionSource = deletePress,
                 ) {
                     Text(
                         text = "永久净化",

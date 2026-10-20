@@ -2,6 +2,7 @@ package com.cch.momentmark.ui.moment
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -335,9 +337,10 @@ private fun DirectionChoice(
         achievement -> MaterialTheme.colorScheme.onTertiary
         else -> MaterialTheme.colorScheme.onSecondary
     }
+    val pressInteraction = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .clickable(role = Role.RadioButton, onClick = onSelect)
+            .clickable(interactionSource = pressInteraction, indication = null, role = Role.RadioButton, onClick = onSelect)
             .semantics(mergeDescendants = true) {
                 contentDescription = label
                 role = Role.RadioButton
@@ -348,6 +351,7 @@ private fun DirectionChoice(
             backgroundColor = bg,
             borderColor = MaterialTheme.colorScheme.outline,
             shadowColor = MaterialTheme.colorScheme.outline,
+            pressInteractionSource = pressInteraction,
         ) {
             Column(
                 modifier = Modifier
@@ -452,6 +456,7 @@ private fun GroupAndRarityPanel(
 
 @Composable
 private fun SubmitButton(direction: MomentDirection, isSaving: Boolean, isEditing: Boolean, onSave: () -> Unit) {
+    val pressInteraction = remember { MutableInteractionSource() }
     val bg = when (direction) {
         MomentDirection.FUTURE_COUNTDOWN -> MaterialTheme.colorScheme.secondary
         MomentDirection.PAST_ACHIEVEMENT -> MaterialTheme.colorScheme.tertiary
@@ -470,10 +475,12 @@ private fun SubmitButton(direction: MomentDirection, isSaving: Boolean, isEditin
         modifier = Modifier
             .fillMaxWidth()
             .semantics { contentDescription = "确认铭刻时刻" }
-            .clickable(enabled = !isSaving, role = Role.Button, onClick = onSave),
+            .clickable(interactionSource = pressInteraction, indication = null, enabled = !isSaving, role = Role.Button, onClick = onSave),
         backgroundColor = bg,
         borderColor = MaterialTheme.colorScheme.outline,
         shadowColor = MaterialTheme.colorScheme.outline,
+        pressInteractionSource = pressInteraction,
+        pressEnabled = !isSaving,
     ) {
         Text(
             text = text,

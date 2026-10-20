@@ -115,7 +115,9 @@ fun PixelStarRating(
                         if (selected) stateDescription = "已选择"
                     }
                 val clickableModifier = onValueChange?.let { callback ->
-                    optionModifier.clickable(role = Role.RadioButton) { callback(if (selected) null else option) }
+                    optionModifier.clickable(interactionSource = null, indication = null, role = Role.RadioButton) {
+                        callback(if (selected) null else option)
+                    }
                 } ?: optionModifier
                 Box(clickableModifier)
             }

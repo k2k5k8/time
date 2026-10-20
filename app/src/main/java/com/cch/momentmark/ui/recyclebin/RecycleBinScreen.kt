@@ -2,6 +2,7 @@ package com.cch.momentmark.ui.recyclebin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -211,6 +212,7 @@ fun RecycleBinScreen(
  */
 @Composable
 private fun PurgeAllButton(onClick: () -> Unit) {
+    val pressInteraction = remember { MutableInteractionSource() }
     PixelPanel(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,8 +220,9 @@ private fun PurgeAllButton(onClick: () -> Unit) {
                 contentDescription = "全部净化，清空回收站"
                 role = Role.Button
             }
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = pressInteraction, indication = null, role = Role.Button, onClick = onClick),
         backgroundColor = MaterialTheme.colorScheme.surface,
+        pressInteractionSource = pressInteraction,
     ) {
         Text(
             text = "⚔ 全部净化（清空回收站）",

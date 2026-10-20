@@ -1,6 +1,7 @@
 package com.cch.momentmark.ui.components
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,12 +21,14 @@ import com.cch.momentmark.ui.theme.MomentMarkTokens
 fun AchievementFrame(
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    pressInteractionSource: MutableInteractionSource? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     PixelPanel(
         modifier = modifier,
         backgroundColor = backgroundColor,
         variant = PixelPanelVariant.Emphasized,
+        pressInteractionSource = pressInteractionSource,
         // 描边盒撑满 aspectRatio 外框：金色内框与硬影都按整卡绘制（design.html `.ach::before{inset:3px}`）。
         fillContent = true,
     ) {

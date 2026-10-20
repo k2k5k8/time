@@ -1,6 +1,5 @@
 package com.cch.momentmark.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -35,7 +34,7 @@ import com.cch.momentmark.ui.theme.MomentMarkTokens
  * - 右侧 mono 弱注释 NEW QUEST。
  */
 @Composable
-fun NewQuestEntry(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun NewQuestEntry(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val green = MaterialTheme.colorScheme.primary
     Row(
         modifier
@@ -44,7 +43,7 @@ fun NewQuestEntry(onClick: () -> Unit, modifier: Modifier = Modifier) {
                 contentDescription = "接受新任务（待办）"
                 role = Role.Button
             }
-            .clickable(role = Role.Button, onClick = onClick)
+            .pixelClickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(
                 top = MomentMarkTokens.DaybookNewTaskRowPaddingTop,
                 bottom = MomentMarkTokens.DaybookNewTaskRowPaddingBottom,
