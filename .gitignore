@@ -83,3 +83,11 @@ key.properties
 # Markdown stays local, including files under otherwise allowed directories.
 *.[mM][dD]
 *.[mM][aA][rR][kK][dD][oO][wW][nN]
+
+# Public repository introduction and its selected App screenshots.
+!/README.md
+!/readme-assets/
+/readme-assets/*
+!/readme-assets/daybook-light.png
+!/readme-assets/daybook-dark.png
+!/readme-assets/task-form.png
